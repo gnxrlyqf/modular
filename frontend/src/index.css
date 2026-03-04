@@ -1,0 +1,15 @@
+@font-face {
+    font-family: Lexend;
+    src: url("src/assets/Lexend-Regular.ttf");
+}
+
+@import "tailwindcss";
+
+@theme {
+    --font-archivo: Archivo, "sans-serif";
+    --font-lexend: Lexend, "sans-serif";
+}
+
+.user:hover {
+    stroke: "#c7d2fe"
+}
