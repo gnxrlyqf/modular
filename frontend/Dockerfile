@@ -32,7 +32,7 @@ WORKDIR /app
 
 COPY ./*config* ./
 
-CMD ["npm", "run", "build"]
+RUN npm run build
 
 
 
