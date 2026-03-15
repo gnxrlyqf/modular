@@ -6,7 +6,7 @@ services:
     networks:
       - internals
     ports:
-      - 80:80
+      - 5173:5173
     volumes:
       - ./frontend/src:/app/src
 
