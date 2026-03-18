@@ -1,6 +1,30 @@
 import AnimatedContent from './ReactBits/AnimatedContent.tsx'
 import {Input, Button} from './Reusables.tsx'
-import { useState } from 'react'
+import { useState, type FormEvent } from 'react'
+
+const LOGIN_ENDPOINT = 'https://c7e73032-d72e-445c-bcf6-58f694a5f2ac.mock.pstmn.io/api/auth/login';
+const AUTH_COOKIE_NAME = 'authToken';
+const REDIRECT_PATH = '/';
+
+type LoginResponse = {
+  id: string;
+  username: string;
+  token: string;
+};
+
+function isLoginResponse(data: unknown): data is LoginResponse {
+  if (!data || typeof data !== 'object') {
+    return false;
+  }
+
+  const candidate = data as Record<string, unknown>;
+
+  return (
+    typeof candidate.id === 'string' &&
+    typeof candidate.username === 'string' &&
+    typeof candidate.token === 'string'
+  );
+}
 
 function Google() {
   return (
@@ -76,21 +100,91 @@ function Signup() {
   )
 }
 
-function Login() {
+function Login(props: {onSuccess?: () => void}) {
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!email || !password) {
+      setError('Email and password are required.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      const response = await fetch(LOGIN_ENDPOINT, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Invalid login credentials.');
+      }
+
+      const data: unknown = await response.json();
+
+      if (!isLoginResponse(data)) {
+        throw new Error('Unexpected login response format.');
+      }
+
+      const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
+      document.cookie = `${AUTH_COOKIE_NAME}=${encodeURIComponent(data.token)}; Max-Age=86400; Path=/; SameSite=Lax${secureFlag}`;
+      props.onSuccess?.();
+      window.location.assign(REDIRECT_PATH);
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Login failed.';
+      setError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div>
       <p className="text-indigo-100 text-4xl px-2 items-center text-center">
         Log in
       </p>
-      <div className="mx-auto flex flex-col gap-5 mt-10 mb-5 h-full items-center">
+      <form onSubmit={handleSubmit} className="mx-auto flex flex-col gap-5 mt-10 mb-5 h-full items-center">
         <div className="flex flex-col gap-3">
           <Google />
           <Facebook />
         </div>
         <span className="text-indigo-100">Or</span>
-        <Input placeholder="Email" />
-        <Input placeholder="Password" />
-        <Button text="Log in"/>
+        <Input
+          type="email"
+          placeholder="Email"
+          value={email}
+          onChange={(event) => setEmail(event.target.value)}
+          autoComplete="email"
+          required
+        />
+        <Input
+          type="password"
+          placeholder="Password"
+          value={password}
+          onChange={(event) => setPassword(event.target.value)}
+          autoComplete="current-password"
+          required
+        />
+        {error && <p className="text-red-200 text-sm">{error}</p>}
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="inline-block font-lexend leading-6 hover:text-white hover:shadow-xl text-indigo-700 bg-indigo-300 shadow-2xl cursor-pointer rounded-md duration-100 ease-in-out hover:scale-110 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+        >
+          <span className="block px-2 py-1 rounded-md bg-indigo-300">
+            {isSubmitting ? 'Logging in...' : 'Log in'}
+          </span>
+        </button>
         <div className="flex flex-row gap-1">
           <span>Don't have an account?</span>
           <button
@@ -100,12 +194,12 @@ function Login() {
             Sign up
           </button>
         </div>
-      </div>
+      </form>
     </div>
   )
 }
 
-function LoginPage(props: {func?: (value: boolean) => void}) {
+function LoginPage(props: {func?: (value: boolean) => void; onSuccess?: () => void}) {
   const [isLogin, setIsLogin] = useState(true);
 
   // Expose toggle function globally for button callbacks
@@ -147,14 +241,14 @@ function LoginPage(props: {func?: (value: boolean) => void}) {
           threshold={0.1}
           delay={0}
         >
-          {isLogin ? <Login /> : <Signup />}
+          {isLogin ? <Login onSuccess={props.onSuccess} /> : <Signup />}
         </AnimatedContent>
       </div>
     </AnimatedContent>
   );
 }
 
-function LoginOverlay(props: {func?: (value: boolean) => void}) {
+function LoginOverlay(props: {func?: (value: boolean) => void; onSuccess?: () => void}) {
   const [visible, setVisible] = useState(true);
 
   return (
@@ -174,7 +268,7 @@ function LoginOverlay(props: {func?: (value: boolean) => void}) {
       disappearDuration={.5}
       onDisappearanceComplete={() => props.func && props.func(false)}
     >
-      <LoginPage func={setVisible} />
+      <LoginPage func={setVisible} onSuccess={props.onSuccess} />
     </AnimatedContent>
   );
 }

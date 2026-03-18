@@ -4,6 +4,20 @@ import {SplitText, AnimatedContent, SpotlightCard} from './ReactBits/ReactBits'
 import {Anchor, Button} from "./Reusables";
 import LoginOverlay from "./Login";
 import ProjectsContainer from "./Projects";
+import SettingsContainer from "./Settings";
+
+const AUTH_COOKIE_NAME = "authToken";
+
+function hasCookie(cookieName: string): boolean {
+  if (typeof document === "undefined") {
+    return false;
+  }
+
+  return document.cookie
+    .split(";")
+    .map((entry) => entry.trim())
+    .some((entry) => entry.startsWith(`${cookieName}=`));
+}
 
 function WelcomeText() {
   const handleAnimationComplete = () => {
@@ -152,14 +166,21 @@ function List() {
 function App() {
   const [showLogin, setShowLogin] = useState(false);
   const [showProjects, setShowProjects] = useState(true);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => hasCookie(AUTH_COOKIE_NAME));
+
+  const handleLoginSuccess = () => {
+    setIsLoggedIn(true);
+    setShowLogin(false);
+  };
 
   return (
     <div>
       <div className="relative min-h-screen overflow-hidden">
         <div className="absolute items-center w-full z-20">
-          <TopBar func={setShowLogin} isLoggedIn={false} />
-          {showProjects && <ProjectsContainer func={setShowProjects} />}
-          {showLogin && <LoginOverlay func={setShowLogin} />}
+          <TopBar func={setShowLogin} isLoggedIn={isLoggedIn} />
+          {/* {showProjects && <ProjectsContainer func={setShowProjects} />} */}
+          <SettingsContainer />
+          {showLogin && <LoginOverlay func={setShowLogin} onSuccess={handleLoginSuccess} />}
         </div>
         <div className="scale-110 absolute inset-0 bg-[url(assets/background.jpg)] bg-center bg-cover blur-sm z-0" />
         <div className="absolute inset-0 z-10 pointer-events-none bg-linear-to-b from-transparent via-transparent to-indigo-950" />

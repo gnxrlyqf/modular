@@ -32,16 +32,19 @@ function Button(props : {text?: React.ReactNode; func?: (value: boolean) => void
     )
 }
 
-function Input(props: {placeholder?: string}) {
+function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
+    const { className = "", ...inputProps } = props;
+
     return (
       <input 
-        placeholder={props.placeholder}
-        className="
-          px-3 py-2 rounded-md outline-none
-          bg-white/30
-          focus:bg-white/50
-          transform-all duration-200 ease-in-out
-        "
+            {...inputProps}
+            className={`
+                px-3 py-2 rounded-md outline-none
+                bg-white/30
+                focus:bg-white/50
+                transform-all duration-200 ease-in-out
+                ${className}
+            `}
       />
     )
 }
