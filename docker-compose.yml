@@ -10,8 +10,7 @@ services:
       # 80:5173 if you want to access the frontend on port 80
       # 443:5173 if you want to access the frontend on port 443
     volumes:
-      - ./frontend:/app
-      - /app/node_modules
+      - ./frontend/src:/app/src
 
 networks:
   internals:
