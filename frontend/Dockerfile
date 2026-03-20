@@ -20,7 +20,7 @@ WORKDIR /app
 COPY ./*config* ./
 EXPOSE 5173
 
-CMD ["npm", "run", "dev"]
+CMD ["npm", "run", "dev", "--", "--host"]
 
 
 
@@ -31,6 +31,7 @@ FROM base AS builder
 WORKDIR /app
 
 COPY ./*config* ./
+COPY . .
 
 RUN npm run build
 
