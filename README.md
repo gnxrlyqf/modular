@@ -229,6 +229,23 @@ You explicitly chose **microservices**, so here is a clean breakdown:
 
 ---
 
+### 📈 8. Observability Stack
+
+**Included tools:**
+
+* ELK Stack (Elasticsearch + Logstash + Kibana) for centralized logging and log search
+* Prometheus for metrics collection and service health scraping
+* Grafana for dashboards and alert visualization
+
+**Responsibilities:**
+
+* Collect logs from all services and containers
+* Expose and scrape metrics from each microservice
+* Provide dashboards for API latency, error rate, and system health
+* Support alerting for failures and performance regressions
+
+---
+
 ## 🔗 Communication
 
 * Services communicate via:
@@ -237,6 +254,10 @@ You explicitly chose **microservices**, so here is a clean breakdown:
 * Optional later:
 
   * Message queue (for scoring, async tasks)
+* Observability data flow:
+
+  * Logs → Logstash → Elasticsearch → Kibana
+  * Metrics → Prometheus → Grafana
 
 ---
 
@@ -316,6 +337,34 @@ To be determined:
 
   * Frontend: Vercel / Netlify
   * Backend: cloud services (AWS / etc.)
+  * Observability:
+
+    * ELK stack deployed with backend services for centralized logging
+    * Prometheus for metrics scraping
+    * Grafana for monitoring dashboards and alert panels
+
+---
+
+## 🛰️ 11. Monitoring & Logging Plan (V1)
+
+### Logging (ELK)
+
+* Each service writes structured logs (JSON preferred)
+* Container logs are shipped to Logstash
+* Logs are indexed in Elasticsearch and explored in Kibana
+
+### Metrics (Prometheus + Grafana)
+
+* Services expose `/metrics` endpoints
+* Prometheus scrapes key metrics (request count, latency, error rate)
+* Grafana visualizes service-level and platform-level dashboards
+
+### Initial Dashboards
+
+* API throughput and latency per service
+* Error rates (4xx/5xx)
+* Challenge submission success/failure trends
+* Infrastructure health (CPU, memory, container restarts)
 
 ---
 
@@ -329,6 +378,7 @@ You now have:
 ✅ Microservices architecture
 ✅ Sequencer direction
 ✅ ML plan (non-blocking)
+✅ Observability plan (ELK + Prometheus + Grafana)
 
 ---
 
