@@ -1,0 +1,263 @@
+<!-- ...existing code... -->
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Projects</title>
+    <style>
+        :root{
+            --bg:#0f1724; --card:#0b1220; --muted:#94a3b8; --accent:#60a5fa; --danger:#fb7185;
+            --glass: rgba(255,255,255,0.03);
+            font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+        }
+        html,body{height:100%; margin:0; background:linear-gradient(180deg,#071124 0%, #071123 60%); color:#e6eef8}
+        .container{max-width:980px;margin:36px auto;padding:20px;}
+        header{display:flex;align-items:center;justify-content:space-between;gap:12px}
+        h1{margin:0;font-size:20px;letter-spacing:0.2px}
+        .subtitle{color:var(--muted);font-size:13px}
+        .controls{display:flex;gap:8px;align-items:center}
+        button{background:var(--accent);color:#06202f;border:0;padding:8px 12px;border-radius:8px;cursor:pointer;font-weight:600}
+        button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);color:var(--muted);font-weight:600}
+        .grid{display:grid;grid-template-columns:1fr 320px;gap:18px;margin-top:18px}
+        .list{background:var(--card);padding:12px;border-radius:12px;min-height:480px}
+        .sidebar{background:var(--glass);padding:12px;border-radius:12px;min-height:480px;color:var(--muted)}
+        .project{display:flex;justify-content:space-between;align-items:center;padding:10px;border-radius:10px;margin-bottom:8px;background:linear-gradient(90deg, rgba(255,255,255,0.02), transparent);border:1px solid rgba(255,255,255,0.02)}
+        .project .meta{display:flex;gap:12px;align-items:center}
+        .badge{font-size:12px;padding:6px 8px;border-radius:8px;background:rgba(255,255,255,0.02);color:var(--muted)}
+        .actions{display:flex;gap:6px}
+        .small{font-size:13px;color:var(--muted)}
+        footer{margin-top:18px;color:var(--muted);font-size:13px}
+        /* modal */
+        .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.6);display:none;align-items:center;justify-content:center;z-index:40}
+        .modal{background:var(--card);padding:16px;border-radius:12px;min-width:320px;max-width:680px;box-shadow:0 10px 30px rgba(2,6,23,0.6)}
+        .form-row{display:flex;flex-direction:column;margin-bottom:10px}
+        label{font-size:13px;margin-bottom:6px;color:var(--muted)}
+        input[type="text"],textarea,select{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;color:inherit}
+        textarea{min-height:90px;resize:vertical}
+        .row{display:flex;gap:8px}
+        .muted{color:var(--muted)}
+        .danger{background:var(--danger);color:#2b0210}
+        .hidden{display:none}
+        .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,0.08);border-top-color:var(--accent);border-radius:50%;animation:spin 1s linear infinite}
+        @keyframes spin{to{transform:rotate(360deg)}}
+        @media (max-width:880px){ .grid{grid-template-columns:1fr; } .sidebar{order:2} }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div>
+                <h1>Projects</h1>
+                <div class="subtitle">List of projects — connected to /api/projects (GET/POST/PUT/DELETE)</div>
+            </div>
+            <div class="controls">
+                <button id="newBtn">New Project</button>
+                <button id="refreshBtn" class="ghost">Refresh</button>
+            </div>
+        </header>
+
+        <div class="grid">
+            <section class="list" id="list">
+                <!-- generated project list -->
+                <div id="projectsRoot" class="projectsRoot">
+                    <div class="small muted">Loading projects…</div>
+                </div>
+                <footer id="footer" class="small muted">Tip: Endpoints expected: GET /api/projects, POST /api/projects, PUT /api/projects/:id, DELETE /api/projects/:id</footer>
+            </section>
+
+            <aside class="sidebar">
+                <h3 style="margin-top:0">Quick actions</h3>
+                <p class="small muted">Click a project to edit. Use "New Project" to create one.</p>
+                <div style="margin-top:12px">
+                    <div class="badge">Total: <span id="totalCount">—</span></div>
+                </div>
+                <hr style="border:none;height:1px;background:rgba(255,255,255,0.03);margin:12px 0" />
+                <div class="small muted">Status guide</div>
+                <ul class="small muted" style="padding-left:18px;margin-top:8px">
+                    <li>active — in progress</li>
+                    <li>paused — on hold</li>
+                    <li>done — completed</li>
+                </ul>
+            </aside>
+        </div>
+    </div>
+
+    <!-- modal -->
+    <div id="modalBackdrop" class="modal-backdrop" aria-hidden="true">
+        <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+            <h3 id="modalTitle">New Project</h3>
+            <div class="form-row">
+                <label for="pname">Name</label>
+                <input id="pname" type="text" placeholder="Project name" />
+            </div>
+            <div class="form-row">
+                <label for="pdesc">Description</label>
+                <textarea id="pdesc" placeholder="Short description"></textarea>
+            </div>
+            <div class="form-row">
+                <label for="pstatus">Status</label>
+                <select id="pstatus">
+                    <option value="active">active</option>
+                    <option value="paused">paused</option>
+                    <option value="done">done</option>
+                </select>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:8px">
+                <button id="saveBtn">Save</button>
+                <button id="cancelBtn" class="ghost">Cancel</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const apiBase = '/api/projects/';
+        let projects = [];
+        let editing = null;
+
+        const projectsRoot = document.getElementById('projectsRoot');
+        const totalCount = document.getElementById('totalCount');
+        const modal = document.getElementById('modalBackdrop');
+        const pname = document.getElementById('pname');
+        const pdesc = document.getElementById('pdesc');
+        const pstatus = document.getElementById('pstatus');
+        const modalTitle = document.getElementById('modalTitle');
+
+        document.getElementById('newBtn').addEventListener('click', () => openModal());
+        document.getElementById('refreshBtn').addEventListener('click', fetchProjects);
+        document.getElementById('cancelBtn').addEventListener('click', closeModal);
+        document.getElementById('saveBtn').addEventListener('click', saveProject);
+
+        async function fetchProjects() {
+            setLoading(true);
+            try {
+                const res = await fetch(apiBase);
+                if (!res.ok) throw new Error('Failed to fetch');
+                projects = await res.json();
+                renderProjects();
+            } catch (err) {
+                projectsRoot.innerHTML = '<div class="small muted">Unable to load projects.</div>';
+                totalCount.textContent = '—';
+                console.error(err);
+            } finally {
+                setLoading(false);
+            }
+        }
+
+        function renderProjects() {
+            totalCount.textContent = projects.length;
+            if (!projects.length) {
+                projectsRoot.innerHTML = '<div class="small muted">No projects yet. Create one.</div>';
+                return;
+            }
+            projectsRoot.innerHTML = '';
+            projects.forEach(p => {
+                const el = document.createElement('div');
+                el.className = 'project';
+                el.innerHTML = `
+                    <div class="meta" style="flex:1;min-width:0">
+                        <div style="display:flex;flex-direction:column;min-width:0">
+                            <strong style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(p.name)}</strong>
+                            <span class="small muted" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${escapeHtml(p.description || '')}</span>
+                        </div>
+                    </div>
+                    <div class="actions">
+                        <div class="badge">${escapeHtml(p.status || '')}</div>
+                        <button data-id="${p.id}" class="ghost editBtn">Edit</button>
+                        <button data-id="${p.id}" class="danger deleteBtn">Delete</button>
+                    </div>
+                `;
+                projectsRoot.appendChild(el);
+            });
+
+            // attach handlers
+            Array.from(document.getElementsByClassName('editBtn')).forEach(b => {
+                b.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    const p = projects.find(x => String(x.id) === String(id));
+                    openModal(p);
+                });
+            });
+            Array.from(document.getElementsByClassName('deleteBtn')).forEach(b => {
+                b.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    if (confirm('Delete this project?')) deleteProject(id);
+                });
+            });
+        }
+
+        function openModal(project = null) {
+            editing = project;
+            modalTitle.textContent = project ? 'Edit Project' : 'New Project';
+            pname.value = project ? project.name || '' : '';
+            pdesc.value = project ? project.description || '' : '';
+            pstatus.value = project ? project.status || 'active' : 'active';
+            modal.style.display = 'flex';
+            modal.setAttribute('aria-hidden','false');
+            pname.focus();
+        }
+
+        function closeModal() {
+            editing = null;
+            modal.style.display = 'none';
+            modal.setAttribute('aria-hidden','true');
+        }
+
+        async function saveProject() {
+            const payload = {
+                name: pname.value.trim(),
+                description: pdesc.value.trim(),
+                status: pstatus.value
+            };
+            if (!payload.name) { alert('Name required'); return; }
+
+            document.getElementById('saveBtn').disabled = true;
+            try {
+                let res;
+                if (editing && editing.id) {
+                    res = await fetch(`${apiBase}/${encodeURIComponent(editing.id)}`, {
+                        method: 'PUT', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+                    });
+                } else {
+                    res = await fetch(apiBase, {
+                        method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify(payload)
+                    });
+                }
+                if (!res.ok) throw new Error('Save failed');
+                await fetchProjects();
+                closeModal();
+            } catch (err) {
+                alert('Save failed');
+                console.error(err);
+            } finally {
+                document.getElementById('saveBtn').disabled = false;
+            }
+        }
+
+        async function deleteProject(id) {
+            try {
+                const res = await fetch(`${apiBase}/${encodeURIComponent(id)}`, { method: 'DELETE' });
+                if (!res.ok) throw new Error('Delete failed');
+                projects = projects.filter(p => String(p.id) !== String(id));
+                renderProjects();
+            } catch (err) {
+                alert('Delete failed');
+                console.error(err);
+            }
+        }
+
+        function setLoading(on) {
+            if (on) {
+                projectsRoot.innerHTML = '<div class="small muted"><span class="spinner"></span> Loading…</div>';
+            }
+        }
+
+        // basic escaping for rendered text
+        function escapeHtml(s){ return String(s || '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]); }
+
+        // initial load
+        fetchProjects();
+    </script>
+</body>
+</html>
+<!-- ...existing code... -->

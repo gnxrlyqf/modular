@@ -2,8 +2,6 @@ FROM node:20-slim AS base
 
 WORKDIR /app
 
-RUN npm install -g nodemon
-
 COPY package*.json .
 
 RUN npm install
@@ -45,6 +43,6 @@ FROM nginx:alpine AS production
 
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-EXPOSE 5173
+EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]

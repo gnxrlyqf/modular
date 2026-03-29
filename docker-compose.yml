@@ -11,6 +11,15 @@ services:
       # 443:5173 if you want to access the frontend on port 443
     volumes:
       - ./frontend/src:/app/src
+  backend:
+    build:
+      context: ./backend
+    networks:
+      - internals
+    ports:
+      - 8000:8000
+      # for now so you guys can test it using postman, later should be closed
+    
 
 networks:
   internals:

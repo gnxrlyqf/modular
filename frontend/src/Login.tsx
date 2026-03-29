@@ -2,6 +2,19 @@ import AnimatedContent from './ReactBits/AnimatedContent.tsx'
 import {Input, Button} from './Reusables.tsx'
 import { useState, type FormEvent } from 'react'
 
+const LOG_ENDPOINT = '/api/logs';
+
+function sendLog(level: 'info' | 'warn' | 'error', event: string, data?: Record<string, unknown>) {
+  const payload = { level, event, ...data, ts: new Date().toISOString() };
+  navigator.sendBeacon(LOG_ENDPOINT, new Blob([JSON.stringify(payload)], { type: 'application/json' }));
+}
+
+const logger = {
+  info:  (event: string, data?: Record<string, unknown>) => sendLog('info',  event, data),
+  warn:  (event: string, data?: Record<string, unknown>) => sendLog('warn',  event, data),
+  error: (event: string, data?: Record<string, unknown>) => sendLog('error', event, data),
+};
+
 const LOGIN_ENDPOINT = 'https://c7e73032-d72e-445c-bcf6-58f694a5f2ac.mock.pstmn.io/api/auth/login';
 const AUTH_COOKIE_NAME = 'authToken';
 const REDIRECT_PATH = '/';
@@ -110,12 +123,14 @@ function Login(props: {onSuccess?: () => void}) {
     event.preventDefault();
 
     if (!email || !password) {
+      logger.warn('login.validation_failed', { reason: 'missing_fields' });
       setError('Email and password are required.');
       return;
     }
 
     setIsSubmitting(true);
     setError(null);
+    logger.info('login.attempt', { email });
 
     try {
       const response = await fetch(LOGIN_ENDPOINT, {
@@ -127,21 +142,25 @@ function Login(props: {onSuccess?: () => void}) {
       });
 
       if (!response.ok) {
+        logger.warn('login.failed', { email, status: response.status });
         throw new Error('Invalid login credentials.');
       }
 
       const data: unknown = await response.json();
 
       if (!isLoginResponse(data)) {
+        logger.error('login.unexpected_response', { email });
         throw new Error('Unexpected login response format.');
       }
 
+      logger.info('login.success', { email, userId: data.id, username: data.username });
       const secureFlag = window.location.protocol === 'https:' ? '; Secure' : '';
       document.cookie = `${AUTH_COOKIE_NAME}=${encodeURIComponent(data.token)}; Max-Age=86400; Path=/; SameSite=Lax${secureFlag}`;
       props.onSuccess?.();
       window.location.assign(REDIRECT_PATH);
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Login failed.';
+      logger.error('login.error', { email, message });
       setError(message);
     } finally {
       setIsSubmitting(false);
