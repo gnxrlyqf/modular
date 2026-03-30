@@ -7,3 +7,4 @@
 - [ ] Develop nginx image ourselves (in case galoha f subject (chfrha l youssef mn inception))
 - [ ] connect front end logs to backend /api/logs if @king made it otherwise make it and connect them
 - [ ] play with logs and install ELK to manage them and visualize stuff
+- [ ] Go back to the default inotify system for better CPU usage, or find a better concept than mounting a windows volume
