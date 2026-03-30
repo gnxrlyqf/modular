@@ -14,41 +14,16 @@ type ApiProject = {
 };
 
 const API_URL = "https://c7e73032-d72e-445c-bcf6-58f694a5f2ac.mock.pstmn.io/api/projects";
-const PAGE_SIZE = 9;
 const FALLBACK_IMAGE = "https://via.placeholder.com/1920x1080?text=Project";
 
-function Pager(props: {
-  curr: number;
-  total: number;
-  onPrev: () => void;
-  onNext: () => void;
-}) {
+function NewButton() {
   return (
-    <div className="bg-indigo-300 rounded-xl flex items-center">
-      <button
-        onClick={props.onPrev}
-        disabled={props.curr <= 1}
-        className="mx-2 hover:-translate-x-1 ease-in-out duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg className="rotate-90 transition-transform duration-200 "
-        width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} fill="currentColor"
-        >
-          <path d={arrow} />
-        </svg>
-      </button>
-      <span>{`${props.curr}/${props.total}`}</span>
-      <button
-        onClick={props.onNext}
-        disabled={props.curr >= props.total}
-        className="mx-2 hover:translate-x-1 ease-in-out duration-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-      >
-        <svg className="rotate-270 transition-transform duration-200 "
-        width="16" height="16" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} fill="currentColor"
-        >
-          <path d={arrow} />
-        </svg>
-      </button>
-    </div>
+    <button type="button" className="mr-3 items-center flex flex-row bg-white/30 hover:bg-white/50 hover:-translate-y-0.5 text-gray-900 rounded-md px-1 ease-in-out duration-100 cursor-pointer"
+    >
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+        <path d="M6 12H18M12 6V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+    </button>
   )
 }
 
@@ -75,18 +50,7 @@ function FilterButton(props: {text?: string; onClick?: () => void}) {
   )
 }
 
-function NewButton() {
-  return (
-    <button type="button" className="mr-3 items-center flex flex-row bg-white/30 hover:bg-white/50 hover:-translate-y-0.5 text-gray-900 rounded-md px-1 ease-in-out duration-100 cursor-pointer"
-    >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M6 12H18M12 6V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-    </button>
-  )
-}
-
-function Filters(props: {onDateSort: () => void; onNameSort: () => void}) {
+function Filters(props: {onDateSort?: () => void; onNameSort?: () => void}) {
   return (
     <div className="font-lexend flex flex-row gap-3 mx-3">
       <div className="flex flex-row gap-2">
@@ -192,62 +156,11 @@ function Card(props: {card: ApiProject; index: number}) {
   )
 }
 
-function Projects(props: {personal?: boolean; func?: (value: boolean) => void}) {
+function Projects(props: {user?: string}) {
   const [cards, setCards] = useState<ApiProject[]>([]);
-  const [curr, setCurr] = useState(1);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [, setDateAsc] = useState(true);
-  const [, setNameAsc] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-
-  const getTimeValue = (value?: string) => {
-    if (!value) {
-      return 0;
-    }
-
-    const parsedDate = Date.parse(value);
-    if (!Number.isNaN(parsedDate)) {
-      return parsedDate;
-    }
-
-    const parsedNumber = Number.parseFloat(value.replace(/[^0-9.-]/g, ""));
-    if (!Number.isNaN(parsedNumber)) {
-      return parsedNumber;
-    }
-
-    return 0;
-  };
-
-  const sortByDate = () => {
-    setDateAsc((prevDateAsc) => {
-      const nextDateAsc = !prevDateAsc;
-
-      setCards((prevCards) => {
-        const sorted = [...prevCards].sort((a, b) => getTimeValue(a.time) - getTimeValue(b.time));
-        return nextDateAsc ? sorted : sorted.reverse();
-      });
-
-      return nextDateAsc;
-    });
-
-    setCurr(1);
-  };
-
-  const sortByName = () => {
-    setNameAsc((prevNameAsc) => {
-      const nextNameAsc = !prevNameAsc;
-
-      setCards((prevCards) => {
-        const sorted = [...prevCards].sort((a, b) => (a.title ?? "").localeCompare(b.title ?? ""));
-        return nextNameAsc ? sorted : sorted.reverse();
-      });
-
-      return nextNameAsc;
-    });
-
-    setCurr(1);
-  };
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     const fetchProjects = async () => {
@@ -255,7 +168,7 @@ function Projects(props: {personal?: boolean; func?: (value: boolean) => void}) 
       setError(null);
 
       try {
-        const response = await fetch(`${API_URL}?_limit=30`);
+        const response = await fetch(API_URL);
 
         if (!response.ok) {
           throw new Error("Could not fetch projects");
@@ -264,7 +177,6 @@ function Projects(props: {personal?: boolean; func?: (value: boolean) => void}) 
         const data: ApiProject[] = await response.json();
 
         setCards(data);
-        setCurr(1);
       } catch {
         setCards([]);
         setError("Failed to load projects.");
@@ -276,37 +188,17 @@ function Projects(props: {personal?: boolean; func?: (value: boolean) => void}) 
     fetchProjects();
   }, []);
 
-  const normalizedQuery = searchQuery.trim().toLowerCase();
-  const filteredCards = cards.filter((card, index) => {
-    if (!normalizedQuery) {
-      return true;
-    }
-
-    const title = (card.title ?? `Untitled project ${index + 1}`).toLowerCase();
-    return title.includes(normalizedQuery);
-  });
-
-  const total = Math.max(1, Math.ceil(filteredCards.length / PAGE_SIZE));
-  const visibleCards = filteredCards.slice((curr - 1) * PAGE_SIZE, curr * PAGE_SIZE);
-
-  const goPrev = () => setCurr((value) => Math.max(1, value - 1));
-  const goNext = () => setCurr((value) => Math.min(total, value + 1));
-
   return (
-    <div className="font-lexend backdrop-blur bg-indigo-400/50 rounded-2xl z-50 max-w-200 mx-auto">
-      <button onClick={() => props.func && props.func(false)} className="m-3">
-        <img src="src/assets/close.svg" alt="close" className="w-7 ease-in-out duration-100 hover:scale-110 cursor-pointer"/>
-      </button>
+    <>
       <p className="text-center text-4xl pb-5 text-indigo-100">
-        {props.personal ? "Your projects" : "Community projects"}
+        {props.user ? "" : "Community projects"}
       </p>
       <div className="flex flex-row my-2">
-        <Filters onDateSort={sortByDate} onNameSort={sortByName} />
+        <Filters />
         <Search
           value={searchQuery}
           onChange={(value) => {
             setSearchQuery(value);
-            setCurr(1);
           }}
         />
         <NewButton />
@@ -315,17 +207,15 @@ function Projects(props: {personal?: boolean; func?: (value: boolean) => void}) 
         <div className="grid grid-cols-3 gap-3">
           {loading && <p className="col-span-3 text-indigo-100 py-5">Loading projects...</p>}
           {!loading && error && <p className="col-span-3 text-red-100 py-5">{error}</p>}
-          {!loading && !error && visibleCards.map((card, index) => (
-            <Card key={`${card.id ?? card.title ?? "project"}-${index}`} card={card} index={(curr - 1) * PAGE_SIZE + index} />
+          {!loading && !error && cards.map((card, index) => (
+            <Card key={`${card.id ?? card.title ?? "project"}-${index}`} card={card} index={index} />
           ))}
         </div>
         <div className="flex flex-row py-3 text-zinc-900">
-          <p>{`${filteredCards.length} results found`}</p>
-          <p className="ml-auto mx-2">Page</p>
-          <Pager curr={curr} total={total} onPrev={goPrev} onNext={goNext} />
+          <p>{`${cards.length} results found`}</p>
         </div>
       </div>
-    </div>
+    </>
   )
 }
 
@@ -362,10 +252,15 @@ function ProjectsContainer(props: {func?: (value: boolean) => void}) {
           threshold={0.1}
           delay={.1}
         >
-          <Projects func={setVisible}/>
+          <div className="font-lexend backdrop-blur bg-indigo-400/50 rounded-2xl z-50 max-w-200 mx-auto">
+            <button onClick={() => setVisible(false)} className="m-3">
+              <img src="src/assets/close.svg" alt="close" className="w-7 ease-in-out duration-100 hover:scale-110 cursor-pointer"/>
+            </button>
+            <Projects />
+          </div>
         </AnimatedContent>        
     </AnimatedContent>
   )
 }
 
-export default ProjectsContainer
+export { ProjectsContainer, Projects }

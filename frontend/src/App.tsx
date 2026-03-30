@@ -3,10 +3,11 @@ import { useState } from "react";
 import {SplitText, AnimatedContent, SpotlightCard} from './ReactBits/ReactBits'
 import {Anchor, Button} from "./Reusables";
 import LoginOverlay from "./Login";
-import ProjectsContainer from "./Projects";
+import {ProjectsContainer} from "./Projects";
+import ProfileContainer from "./Profile";
 import SettingsContainer from "./Settings";
 
-const AUTH_COOKIE_NAME = "authToken";
+const ACCESS_COOKIE_NAME = "accessToken";
 
 function hasCookie(cookieName: string): boolean {
   if (typeof document === "undefined") {
@@ -59,7 +60,7 @@ function WelcomeText() {
   )
 }
 
-function TopBar(props : {func?: (value: boolean) => void; isLoggedIn?: boolean}) {
+function TopBar(props : {func?: (value: boolean) => void; isLoggedIn?: boolean; onProfileOpen?: (value: boolean) => void; onProjectsOpen?: (value: boolean) => void}) {
   const user = "M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z M12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z"
 
   return (
@@ -82,13 +83,12 @@ function TopBar(props : {func?: (value: boolean) => void; isLoggedIn?: boolean})
           lhrba
         </span>
         { props.isLoggedIn ? <div className="ml-auto flex flex-row gap-3 font-lexend">
-          <Anchor text="Community"/>
-          <Anchor text="Projects"/>
-          <Anchor text={
+          <Button text="Community" func={props.onProjectsOpen} />
+          <Button text={
             <svg width="16" height="24" viewBox="2 2 20 20" fill="none">
               <path d={user} stroke="currentColor" strokeWidth={2}/>
             </svg>
-          }/>
+          } func={props.onProfileOpen} />
         </div> : <div className="ml-auto flex flex-row gap-3 font-lexend">
           <Anchor text="Try it!"/>
           <Button text="Log in" func={props.func} />
@@ -165,8 +165,10 @@ function List() {
 
 function App() {
   const [showLogin, setShowLogin] = useState(false);
-  const [showProjects, setShowProjects] = useState(true);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => hasCookie(AUTH_COOKIE_NAME));
+  const [showProjects, setShowProjects] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showProfile, setShowProfile] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => hasCookie(ACCESS_COOKIE_NAME));
 
   const handleLoginSuccess = () => {
     setIsLoggedIn(true);
@@ -177,9 +179,10 @@ function App() {
     <div>
       <div className="relative min-h-screen overflow-hidden">
         <div className="absolute items-center w-full z-20">
-          <TopBar func={setShowLogin} isLoggedIn={isLoggedIn} />
-          {/* {showProjects && <ProjectsContainer func={setShowProjects} />} */}
-          <SettingsContainer />
+          <TopBar func={setShowLogin} isLoggedIn={isLoggedIn} onProfileOpen={setShowProfile} onProjectsOpen={setShowProjects} />
+          {showProjects && <ProjectsContainer func={setShowProjects} />}
+          {showProfile && <ProfileContainer func={setShowProfile} set={setShowSettings} />}
+          {showSettings && <SettingsContainer func={setShowSettings} setLoggedIn={setIsLoggedIn} />}
           {showLogin && <LoginOverlay func={setShowLogin} onSuccess={handleLoginSuccess} />}
         </div>
         <div className="scale-110 absolute inset-0 bg-[url(assets/background.jpg)] bg-center bg-cover blur-sm z-0" />
