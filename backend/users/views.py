@@ -1,16 +1,49 @@
-from rest_framework import generics
-from .serializers import RegisterSerializer
 from django.contrib.auth import get_user_model
-User = get_user_model()
+from django.contrib.auth.password_validation import validate_password
 
-class RegisterView(generics.CreateAPIView):
-    queryset = User.objects.all()
-    serializer_class = RegisterSerializer
-
+from rest_framework import generics
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
+from drf_spectacular.utils import extend_schema
+
+from rest_framework_simplejwt.tokens import RefreshToken
+from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+
+from .models import Profile
+from .serializers import RegisterSerializer, ProfileSerializer
+
+User = get_user_model()
+
+
+# -------------------------
+# REGISTER
+# -------------------------
+@extend_schema(
+    description="Register a new user account",
+    request=RegisterSerializer,
+    responses=RegisterSerializer,
+)
+class RegisterView(generics.CreateAPIView):
+    queryset = User.objects.all()
+    serializer_class = RegisterSerializer
+
+
+# -------------------------
+# CURRENT USER
+# -------------------------
+@extend_schema(
+    description="Get authenticated user basic info",
+    responses={
+        200: {
+            "example": {
+                "id": 1,
+                "username": "king"
+            }
+        }
+    }
+)
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def me(request):
@@ -20,11 +53,25 @@ def me(request):
         "username": user.username
     })
 
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.response import Response
-from django.contrib.auth.password_validation import validate_password
 
-# change password
+# -------------------------
+# CHANGE PASSWORD
+# -------------------------
+@extend_schema(
+    description="Change current user's password",
+    request={
+        "application/json": {
+            "example": {
+                "old_password": "old123",
+                "new_password": "newStrongPass123"
+            }
+        }
+    },
+    responses={
+        200: {"example": {"message": "password updated"}},
+        400: {"example": {"error": "wrong password"}}
+    }
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def change_password(request):
@@ -34,6 +81,7 @@ def change_password(request):
 
     if not user.check_password(old):
         return Response({"error": "wrong password"}, status=400)
+
     try:
         validate_password(new, user)
     except Exception as e:
@@ -43,16 +91,34 @@ def change_password(request):
     user.save()
     return Response({"message": "password updated"})
 
-# change email
+
+# -------------------------
+# CHANGE EMAIL
+# -------------------------
+@extend_schema(
+    description="Update user email address",
+    request={
+        "application/json": {
+            "example": {
+                "email": "new@mail.com"
+            }
+        }
+    },
+    responses={
+        200: {"example": {"message": "email updated"}},
+        400: {"example": {"error": "email already in use"}}
+    }
+)
 @api_view(["PUT"])
 @permission_classes([IsAuthenticated])
 def change_email(request):
     user = request.user
     email = request.data.get("email")
-    email = email.strip().lower()
 
     if not email:
         return Response({"error": "email required"}, status=400)
+
+    email = email.strip().lower()
 
     if User.objects.filter(email=email).exclude(id=user.id).exists():
         return Response({"error": "email already in use"}, status=400)
@@ -61,7 +127,24 @@ def change_email(request):
     user.save()
     return Response({"message": "email updated"})
 
-# change username
+
+# -------------------------
+# CHANGE USERNAME
+# -------------------------
+@extend_schema(
+    description="Update username",
+    request={
+        "application/json": {
+            "example": {
+                "username": "new_name"
+            }
+        }
+    },
+    responses={
+        200: {"example": {"message": "username updated"}},
+        400: {"example": {"error": "username already taken"}}
+    }
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def change_username(request):
@@ -70,7 +153,9 @@ def change_username(request):
 
     if not username or not username.strip():
         return Response({"error": "invalid username"}, status=400)
+
     username = username.strip()
+
     if User.objects.filter(username=username).exclude(id=user.id).exists():
         return Response({"error": "username already taken"}, status=400)
 
@@ -78,28 +163,54 @@ def change_username(request):
     user.save()
     return Response({"message": "username updated"})
 
-# delete account
-from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
+
+# -------------------------
+# DELETE ACCOUNT
+# -------------------------
+@extend_schema(
+    description="Delete user account and blacklist all JWT tokens",
+    responses={
+        200: {"example": {"message": "account deleted"}}
+    }
+)
 @api_view(['DELETE'])
 @permission_classes([IsAuthenticated])
 def delete_account(request):
     user = request.user
 
-    # blacklist all tokens
     tokens = OutstandingToken.objects.filter(user=user)
-    BlacklistedToken.objects.bulk_create([BlacklistedToken(token=t) for t in tokens], ignore_conflicts=True)
+    BlacklistedToken.objects.bulk_create(
+        [BlacklistedToken(token=t) for t in tokens],
+        ignore_conflicts=True
+    )
 
     user.delete()
-
     return Response({"message": "account deleted"})
 
-# logout
-from rest_framework_simplejwt.tokens import RefreshToken
+
+# -------------------------
+# LOGOUT
+# -------------------------
+@extend_schema(
+    description="Logout user by blacklisting refresh token",
+    request={
+        "application/json": {
+            "example": {
+                "refresh": "jwt_refresh_token_here"
+            }
+        }
+    },
+    responses={
+        200: {"example": {"message": "logged out"}},
+        400: {"example": {"error": "refresh token required"}}
+    }
+)
 @api_view(["POST"])
 @permission_classes([IsAuthenticated])
 def logout(request):
     try:
         refresh_token = request.data.get("refresh")
+
         if not refresh_token:
             return Response({"error": "refresh token required"}, status=400)
 
@@ -111,18 +222,19 @@ def logout(request):
         return Response({"error": "invalid or expired token"}, status=400)
 
 
-from rest_framework.response import Response
-from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
-from .models import Profile
-from .serializers import ProfileSerializer
-
-
+# -------------------------
+# PROFILE (GET / PATCH)
+# -------------------------
+@extend_schema(
+    description="Get or update user profile",
+    request=ProfileSerializer,
+    responses=ProfileSerializer,
+)
 @api_view(["GET", "PATCH"])
 @permission_classes([IsAuthenticated])
 def me_profile(request):
 
-    profile, created = Profile.objects.get_or_create(user=request.user)
+    profile, _ = Profile.objects.get_or_create(user=request.user)
 
     if request.method == "GET":
         return Response(ProfileSerializer(profile).data)

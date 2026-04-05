@@ -41,10 +41,12 @@ INSTALLED_APPS = [
     # 'debug_toolbar',
     'projects',
     'users',
+    'logs',
     'rest_framework',
     "rest_framework_simplejwt",
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
+    "drf_spectacular",
 ]
 
 
@@ -68,7 +70,8 @@ REST_FRAMEWORK = {
     ),
     "DEFAULT_PERMISSION_CLASSES": (
         "rest_framework.permissions.AllowAny",
-    )
+    ),
+    'DEFAULT_SCHEMA_CLASS': 'drf_spectacular.openapi.AutoSchema',
 }
 
 SIMPLE_JWT = {
@@ -78,6 +81,13 @@ SIMPLE_JWT = {
 
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
+}
+
+SPECTACULAR_SETTINGS = {
+    'TITLE': 'FT Transcendence API',
+    'DESCRIPTION': 'Backend API documentation',
+    'VERSION': '1.0.0',
+    'COMPONENT_SPLIT_REQUEST': True,
 }
 
 INTERNAL_IPS = [
