@@ -47,10 +47,15 @@ INSTALLED_APPS = [
     "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
+
+    # Added by Imbo
+    "django_prometheus",
 ]
 
 
 MIDDLEWARE = [
+    # first and last for prometheus added by Imbo
+    "django_prometheus.middleware.PrometheusBeforeMiddleware",
     # "debug_toolbar.middleware.DebugToolbarMiddleware",
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -60,6 +65,8 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "django_prometheus.middleware.PrometheusAfterMiddleware",
+
 ]
 
 from datetime import timedelta

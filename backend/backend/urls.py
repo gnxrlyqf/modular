@@ -26,7 +26,6 @@ from rest_framework_simplejwt.views import (
 # path('__debug__/', include('debug_toolbar.urls')),
 urlpatterns = [
     path('admin/', admin.site.urls),
-
     path('', include('projects.urls')), # HTML routes
     path('api/', include('projects.api_urls')), # API routes
     path('api/users/', include('users.urls')),
@@ -38,4 +37,9 @@ urlpatterns = [
 urlpatterns += [
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema')),
+]
+
+urlpatterns += [
+    # Added by Imbo
+    path('', include('django_prometheus.urls')),
 ]

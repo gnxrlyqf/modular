@@ -7,3 +7,4 @@ python-dotenv>=1.0
 django-cors-headers
 Pillow>=10.0           # only if you use image/avatar uploads
 drf-spectacular
+django-prometheus
