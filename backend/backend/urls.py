@@ -41,5 +41,5 @@ urlpatterns += [
 
 urlpatterns += [
     # Added by Imbo
-    path('', include('django_prometheus.urls')),
+    path('monitoring/', include('django_prometheus.urls')),
 ]
