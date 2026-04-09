@@ -2,7 +2,8 @@ from django.urls import path
 from .views import (
     RegisterView, me, change_email, 
     change_password, change_username, 
-    delete_account, logout, me_profile
+    delete_account, logout, me_profile,
+    UserSearchView
 )
 
 urlpatterns = [
@@ -23,4 +24,7 @@ urlpatterns = [
     
     # Profile
     path('profile/me/', me_profile),
+
+    # Search
+    path('search/', UserSearchView.as_view(), name='user-search'),
 ]

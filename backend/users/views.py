@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 
-from rest_framework import generics
+from rest_framework import generics, filters
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -12,7 +12,7 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
 from .models import Profile
-from .serializers import RegisterSerializer, ProfileSerializer
+from .serializers import RegisterSerializer, ProfileSerializer, UserSearchSerializer
 
 User = get_user_model()
 
@@ -246,3 +246,19 @@ def me_profile(request):
         return Response(serializer.data)
 
     return Response(serializer.errors, status=400)
+
+from rest_framework.pagination import PageNumberPagination
+
+User = get_user_model()
+
+class UserPagination(PageNumberPagination):
+    page_size = 9 # N~N+9 optimization
+    page_query_param = 'page'
+
+class UserSearchView(generics.ListAPIView):
+    queryset = User.objects.all().order_by('username')
+    serializer_class = UserSearchSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = UserPagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username', 'email']
