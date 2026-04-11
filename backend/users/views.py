@@ -262,3 +262,44 @@ class UserSearchView(generics.ListAPIView):
     pagination_class = UserPagination
     filter_backends = [filters.SearchFilter]
     search_fields = ['username', 'email']
+
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .services import update_user_xp
+
+class UpdateBioView(APIView):
+    def post(self, request):
+        profile = request.user.profile
+        profile.bio = request.data.get('bio')
+        profile.save()
+
+        # HERE IS THE UPDATE:
+        # We call the service and pass the profile + XP amount
+        leveled_up = update_user_xp(profile, amount=50)
+
+        return Response({
+            "message": "Bio updated!",
+            "xp": profile.xp,
+            "level": profile.level,
+            "leveled_up": leveled_up
+        })
+
+from rest_framework import viewsets, permissions
+from .services import update_user_xp  # The logic we wrote earlier
+
+class ProfileViewSet(viewsets.ModelViewSet):
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        summary="Update User Profile",
+        description="Updates profile bio/avatar and awards bonus XP.",
+        responses={200: ProfileSerializer}
+    )
+    def perform_update(self, serializer):
+        """
+        This method runs right before the data is saved to the database.
+        """
+        profile = serializer.save()
+        leveled_up = update_user_xp(profile, amount=25)
