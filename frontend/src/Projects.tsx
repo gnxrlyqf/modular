@@ -1,27 +1,151 @@
 import { useEffect, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import { AnimatedContent } from './ReactBits/ReactBits';
+import { authFetch, extractErrorMessage } from './api';
+import { Input, CloseButton } from './Reusables';
 
 const arrow = "M5.70711 9.71069C5.31658 10.1012 5.31658 10.7344 5.70711 11.1249L10.5993 16.0123C11.3805 16.7927 12.6463 16.7924 13.4271 16.0117L18.3174 11.1213C18.708 10.7308 18.708 10.0976 18.3174 9.70708C17.9269 9.31655 17.2937 9.31655 16.9032 9.70708L12.7176 13.8927C12.3271 14.2833 11.6939 14.2832 11.3034 13.8927L7.12132 9.71069C6.7308 9.32016 6.09763 9.32016 5.70711 9.71069Z"
 
 type ApiProject = {
-  time?: string;
-  image?: string;
-  title?: string;
-  thumbnailUrl?: string;
-  url?: string;
-  id?: number;
+  id: string;
+  name: string;
+  user: number;
+  config: Record<string, unknown> | null;
+  created_at: string;
+  updated_at: string;
 };
 
-const API_URL = "https://c7e73032-d72e-445c-bcf6-58f694a5f2ac.mock.pstmn.io/api/projects";
+type PaginatedResponse = {
+  count: number;
+  next: string | null;
+  previous: string | null;
+  results: ApiProject[];
+};
+
 const FALLBACK_IMAGE = "https://via.placeholder.com/1920x1080?text=Project";
 
-function NewButton() {
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ─── Create Modal ────────────────────────────────────────────────────────────
+
+function CreateModal(props: { onClose: () => void; onCreate: (name: string) => Promise<void> }) {
+  const [name, setName] = useState('');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await props.onCreate(name.trim());
+      props.onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create project.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
-    <button type="button" className="mr-3 items-center flex flex-row bg-white/30 hover:bg-white/50 hover:-translate-y-0.5 text-gray-900 rounded-md px-1 ease-in-out duration-100 cursor-pointer"
-    >
-      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-        <path d="M6 12H18M12 6V18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    <div className="modal-backdrop">
+      <div className="modal-card max-w-sm font-lexend">
+        <div className="flex items-center justify-between pb-4">
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">New Project</h3>
+          <CloseButton onClick={props.onClose} />
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            type="text"
+            autoFocus
+            required
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="Project name"
+            className="w-full"
+          />
+          {error && <p className="text-red-300/80 text-sm">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
+              {submitting ? 'Creating…' : 'Create'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Rename Modal ─────────────────────────────────────────────────────────────
+
+function RenameModal(props: {
+  currentName: string;
+  onClose: () => void;
+  onRename: (name: string) => Promise<void>;
+}) {
+  const [name, setName] = useState(props.currentName);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || name.trim() === props.currentName) { props.onClose(); return; }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await props.onRename(name.trim());
+      props.onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to rename project.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-card max-w-sm font-lexend">
+        <div className="flex items-center justify-between pb-4">
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">Rename Project</h3>
+          <CloseButton onClick={props.onClose} />
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            type="text"
+            autoFocus
+            required
+            value={name}
+            onChange={e => setName(e.target.value)}
+            className="w-full"
+          />
+          {error && <p className="text-red-300/80 text-sm">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
+              {submitting ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+// ─── Toolbar ──────────────────────────────────────────────────────────────────
+
+function NewButton(props: { onClick?: () => void }) {
+  return (
+    <button type="button" onClick={props.onClick} className="btn-new" aria-label="New project">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+        <path d="M6 12H18M12 6V18" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
       </svg>
     </button>
   )
@@ -37,12 +161,10 @@ function FilterButton(props: {text?: string; onClick?: () => void}) {
   }
 
   return (
-    <button type="button" className="items-center flex flex-row bg-white/30 hover:bg-white/50 hover:-translate-y-0.5 text-gray-900 rounded-md pl-2 pr-1 ease-in-out duration-100 cursor-pointer"
-    onClick={f}
-    >
+    <button type="button" className="btn-filter" onClick={f}>
       <span>{props.text}</span>
       <svg className={`${rotation[rot]} transition-transform duration-200`}
-      width="24" height="24" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1} fill="currentColor"
+      width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} fill="currentColor"
       >
         <path d={arrow} />
       </svg>
@@ -52,28 +174,26 @@ function FilterButton(props: {text?: string; onClick?: () => void}) {
 
 function Filters(props: {onDateSort?: () => void; onNameSort?: () => void}) {
   return (
-    <div className="font-lexend flex flex-row gap-3 mx-3">
-      <div className="flex flex-row gap-2">
-        <FilterButton text="Date" onClick={props.onDateSort} />
-        <FilterButton text="Name" onClick={props.onNameSort} />
-      </div>
+    <div className="font-lexend flex flex-row gap-2 mx-3">
+      <FilterButton text="Date" onClick={props.onDateSort} />
+      <FilterButton text="Name" onClick={props.onNameSort} />
     </div>
   )
 }
 
 function Search(props: { value: string; onChange: (value: string) => void }) {
   return (
-    <div className="relative ml-auto font-lexend mr-3 text-gray-900">
-      <input
-        placeholder="Search..."
-        className="input shadow-lg bg-white/30 px-3 py-1 rounded-md w-32 transition-all hover:w-56 focus:w-56 hover:bg-white/50 focus:bg-white/50 outline-none"
+    <div className="relative ml-auto mr-3">
+      <Input
+        placeholder="Search…"
         name="search"
         type="search"
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
+        className="w-32 focus:w-48 hover:w-48 transition-[width] pr-8"
       />
       <svg
-        className="size-6 absolute top-1 right-2 "
+        className="size-4 absolute top-1/2 -translate-y-1/2 right-2.5 text-indigo-300/30 pointer-events-none"
         stroke="currentColor"
         strokeWidth="2"
         viewBox="0 0 24 24"
@@ -85,41 +205,55 @@ function Search(props: { value: string; onChange: (value: string) => void }) {
   )
 }
 
-function MenuEntry(props: {children?: React.ReactNode; func?: () => void}) {
+// ─── Context Menu ─────────────────────────────────────────────────────────────
+
+function MenuEntry(props: {children?: React.ReactNode; func?: () => void; danger?: boolean}) {
   return (
-    <li className="cursor-pointer text-indigo-700">
-      <button className="hover:bg-indigo-300 cursor-pointer px-3 py-1 w-full text-left">
+    <li>
+      <button
+        className={`px-3 py-1.5 w-full text-left text-sm cursor-pointer duration-150 rounded-md ${props.danger ? 'text-red-300/80 hover:text-red-200 hover:bg-red-500/10' : 'text-indigo-300/80 hover:text-white hover:bg-white/6'}`}
+        onClick={props.func}
+      >
         {props.children}
       </button>
     </li>
   )
 }
 
-function ContextMenu() {
+function ContextMenu(props: {
+  onDelete?: () => void;
+  onRename?: () => void;
+  onCopyLink?: () => void;
+}) {
   return (
-    <ul className="bg-indigo-100 rounded-md shadow-lg py-1 font-lexend">
-      <MenuEntry>Delete</MenuEntry>
-      <MenuEntry>Rename</MenuEntry>
-      <MenuEntry>Copy link</MenuEntry>
+    <ul className="overlay-panel rounded-xl py-1.5 px-1 font-lexend min-w-36 space-y-0.5">
+      <MenuEntry func={props.onRename}>Rename</MenuEntry>
+      <MenuEntry func={props.onCopyLink}>Copy ID</MenuEntry>
+      <MenuEntry func={props.onDelete} danger>Delete</MenuEntry>
     </ul>
   );
 }
 
-function Card(props: {card: ApiProject; index: number}) {
+// ─── Card ─────────────────────────────────────────────────────────────────────
+
+function Card(props: {
+  card: ApiProject;
+  index: number;
+  onDelete?: (id: string) => Promise<void>;
+  onRename?: (id: string, currentName: string) => void;
+}) {
   const cardRef = useRef<HTMLAnchorElement>(null);
-  const cardTitle = props.card.title ?? `Untitled project ${props.index + 1}`;
-  const cardTime = props.card.time ?? `#${props.card.id ?? props.index + 1}`;
-  const cardImage = props.card.image ?? props.card.url ?? props.card.thumbnailUrl ?? FALLBACK_IMAGE;
+  const cardTitle = props.card.name || `Untitled project ${props.index + 1}`;
+  const cardTime = formatDate(props.card.created_at);
+  const cardImage = (props.card.config?.thumbnail as string | undefined) ?? FALLBACK_IMAGE;
 
   useEffect(() => {
     const handleRightClick = (event: MouseEvent) => {
       event.preventDefault();
-      
+
       const existingMenu = document.querySelector('[data-custom-menu]');
-      if (existingMenu) {
-        existingMenu.remove();
-      }
-      
+      if (existingMenu) existingMenu.remove();
+
       const menu = document.createElement('div');
       menu.setAttribute('data-custom-menu', 'true');
       menu.className = "fixed z-50"
@@ -128,12 +262,29 @@ function Card(props: {card: ApiProject; index: number}) {
       document.body.appendChild(menu);
 
       const root = createRoot(menu);
-      root.render(<ContextMenu />);
 
       const removeMenu = () => {
         root.unmount();
         menu.remove();
       };
+
+      root.render(
+        <ContextMenu
+          onDelete={() => {
+            removeMenu();
+            props.onDelete?.(props.card.id);
+          }}
+          onRename={() => {
+            removeMenu();
+            props.onRename?.(props.card.id, props.card.name);
+          }}
+          onCopyLink={() => {
+            removeMenu();
+            navigator.clipboard.writeText(props.card.id).catch(() => {});
+          }}
+        />
+      );
+
       document.addEventListener('click', removeMenu, { once: true });
     }
 
@@ -143,81 +294,204 @@ function Card(props: {card: ApiProject; index: number}) {
     return () => {
       cardElement?.removeEventListener('contextmenu', handleRightClick);
     };
-  }, [])
+  }, [props.card.id, props.card.name, props.onDelete, props.onRename])
 
   return (
-    <a href="#" ref={cardRef} className="block text-indigo-100 hover:text-indigo-700 bg-white/30 w-full rounded-md font-lexend hover:-translate-y-1 hover:bg-white/50 ease-in-out duration-100 cursor-pointer hover:shadow-xl">
-      <img className="p-2 rounded-xl h-40 w-full object-cover" src={cardImage} alt={cardTitle} />
-      <div className="flex flex-row pb-1">
-        <span className="ml-2 ">{cardTitle}</span>
-        <span className="mr-2 ml-auto">{cardTime}</span>
+    <a href="#" ref={cardRef} className="block glass card-lift w-full rounded-2xl font-lexend cursor-pointer overflow-hidden">
+      <img className="rounded-t-2xl h-36 w-full object-cover" src={cardImage} alt={cardTitle} />
+      <div className="flex flex-row items-center py-2.5 px-3 border-t border-white/6">
+        <span className="truncate text-sm text-indigo-100 font-medium">{cardTitle}</span>
+        <span className="ml-auto pl-3 whitespace-nowrap text-xs text-indigo-300/40">{cardTime}</span>
       </div>
     </a>
   )
 }
 
+// ─── Projects ─────────────────────────────────────────────────────────────────
+
 function Projects(props: {user?: string}) {
   const [cards, setCards] = useState<ApiProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
+  const [ordering, setOrdering] = useState('-created_at');
+  const [page, setPage] = useState(1);
+  const [totalCount, setTotalCount] = useState(0);
+  const [createModalOpen, setCreateModalOpen] = useState(false);
+  const [renameModal, setRenameModal] = useState<{ id: string; currentName: string } | null>(null);
 
+  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const PAGE_SIZE = 9;
+  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  // Debounce search input
+  const handleSearchChange = (value: string) => {
+    setSearchQuery(value);
+    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
+    searchTimerRef.current = setTimeout(() => {
+      setDebouncedSearch(value);
+      setPage(1);
+    }, 400);
+  };
+
+  const handleDateSort = () => {
+    setOrdering(prev => prev === '-created_at' ? 'created_at' : '-created_at');
+    setPage(1);
+  };
+
+  const handleNameSort = () => {
+    setOrdering(prev => prev === 'name' ? '-name' : 'name');
+    setPage(1);
+  };
+
+  // Fetch projects from real API
   useEffect(() => {
     const fetchProjects = async () => {
       setLoading(true);
       setError(null);
 
       try {
-        const response = await fetch(API_URL);
+        const params = new URLSearchParams();
+        if (debouncedSearch) params.set('search', debouncedSearch);
+        if (ordering) params.set('ordering', ordering);
+        params.set('page', String(page));
+
+        const response = await authFetch(`/api/search/?${params.toString()}`);
 
         if (!response.ok) {
-          throw new Error("Could not fetch projects");
+          throw new Error('Could not fetch projects.');
         }
 
-        const data: ApiProject[] = await response.json();
-
-        setCards(data);
+        const data: PaginatedResponse = await response.json();
+        setCards(data.results);
+        setTotalCount(data.count);
       } catch {
         setCards([]);
-        setError("Failed to load projects.");
+        setError('Failed to load projects.');
       } finally {
         setLoading(false);
       }
     };
 
     fetchProjects();
-  }, []);
+  }, [debouncedSearch, ordering, page]);
+
+  const handleCreate = async (name: string) => {
+    const response = await authFetch('/api/projects/', {
+      method: 'POST',
+      body: JSON.stringify({ name }),
+    });
+
+    if (!response.ok) {
+      const msg = await extractErrorMessage(response, 'Failed to create project.');
+      throw new Error(msg);
+    }
+
+    // Refresh list from page 1
+    setPage(1);
+    setOrdering('-created_at');
+    setDebouncedSearch('');
+    setSearchQuery('');
+  };
+
+  const handleDelete = async (id: string) => {
+    const response = await authFetch(`/api/projects/${id}/`, { method: 'DELETE' });
+    if (!response.ok && response.status !== 204) {
+      return; // Silently fail — show no error to avoid interrupting UX
+    }
+    setCards(prev => prev.filter(c => c.id !== id));
+    setTotalCount(prev => prev - 1);
+  };
+
+  const handleRename = async (name: string) => {
+    if (!renameModal) return;
+    const response = await authFetch(`/api/projects/${renameModal.id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify({ name }),
+    });
+
+    if (!response.ok) {
+      const msg = await extractErrorMessage(response, 'Failed to rename project.');
+      throw new Error(msg);
+    }
+
+    const updated: ApiProject = await response.json();
+    setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
+  };
 
   return (
     <>
-      <p className="text-center text-4xl pb-5 text-indigo-100">
-        {props.user ? "" : "Community projects"}
-      </p>
-      <div className="flex flex-row my-2">
-        <Filters />
-        <Search
-          value={searchQuery}
-          onChange={(value) => {
-            setSearchQuery(value);
-          }}
-        />
-        <NewButton />
+      {!props.user && (
+        <p className="font-lexend text-center text-2xl font-semibold pb-4 pt-1 bg-gradient-to-r from-indigo-200 via-blue-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">
+          Community Projects
+        </p>
+      )}
+      <div className="flex flex-row my-2 items-center">
+        <Filters onDateSort={handleDateSort} onNameSort={handleNameSort} />
+        <Search value={searchQuery} onChange={handleSearchChange} />
+        <NewButton onClick={() => setCreateModalOpen(true)} />
       </div>
-      <div className="mx-3">
+      <div className="mx-3 mb-3">
         <div className="grid grid-cols-3 gap-3">
-          {loading && <p className="col-span-3 text-indigo-100 py-5">Loading projects...</p>}
-          {!loading && error && <p className="col-span-3 text-red-100 py-5">{error}</p>}
+          {loading && <p className="col-span-3 text-indigo-300/40 py-8 text-center text-sm font-light">Loading projects…</p>}
+          {!loading && error && <p className="col-span-3 text-red-300/60 py-8 text-center text-sm">{error}</p>}
+          {!loading && !error && cards.length === 0 && (
+            <p className="col-span-3 text-indigo-300/40 py-8 text-center text-sm font-light">No projects found.</p>
+          )}
           {!loading && !error && cards.map((card, index) => (
-            <Card key={`${card.id ?? card.title ?? "project"}-${index}`} card={card} index={index} />
+            <Card
+              key={card.id}
+              card={card}
+              index={index}
+              onDelete={handleDelete}
+              onRename={(id, currentName) => setRenameModal({ id, currentName })}
+            />
           ))}
         </div>
-        <div className="flex flex-row py-3 text-zinc-900">
-          <p>{`${cards.length} results found`}</p>
+        <div className="flex flex-row items-center justify-between py-3 font-lexend text-xs text-indigo-300/40">
+          <p>{totalCount} {totalCount === 1 ? 'project' : 'projects'}</p>
+          {totalPages > 1 && (
+            <div className="flex flex-row gap-2 items-center">
+              <button
+                disabled={page <= 1}
+                onClick={() => setPage(p => p - 1)}
+                className="btn-page"
+              >
+                ←
+              </button>
+              <span className="tabular-nums">{page} / {totalPages}</span>
+              <button
+                disabled={page >= totalPages}
+                onClick={() => setPage(p => p + 1)}
+                className="btn-page"
+              >
+                →
+              </button>
+            </div>
+          )}
         </div>
       </div>
+
+      {createModalOpen && (
+        <CreateModal
+          onClose={() => setCreateModalOpen(false)}
+          onCreate={handleCreate}
+        />
+      )}
+
+      {renameModal && (
+        <RenameModal
+          currentName={renameModal.currentName}
+          onClose={() => setRenameModal(null)}
+          onRename={handleRename}
+        />
+      )}
     </>
   )
 }
+
+// ─── Container ────────────────────────────────────────────────────────────────
 
 function ProjectsContainer(props: {func?: (value: boolean) => void}) {
   const [visible, setVisible] = useState(true);
@@ -230,7 +504,7 @@ function ProjectsContainer(props: {func?: (value: boolean) => void}) {
       reverse={false}
       duration={1}
       ease="power3.out"
-      initialOpacity={0}
+      initialOpacity={1}
       animateOpacity
       scale={1}
       visible={visible}
@@ -245,20 +519,20 @@ function ProjectsContainer(props: {func?: (value: boolean) => void}) {
           reverse={false}
           duration={1}
           ease="power3.out"
-          initialOpacity={0}
+          initialOpacity={1}
           animateOpacity
           scale={1}
           visible={true}
           threshold={0.1}
           delay={.1}
         >
-          <div className="font-lexend backdrop-blur bg-indigo-400/50 rounded-2xl z-50 max-w-200 mx-auto">
-            <button onClick={() => setVisible(false)} className="m-3">
-              <img src="src/assets/close.svg" alt="close" className="w-7 ease-in-out duration-100 hover:scale-110 cursor-pointer"/>
-            </button>
+          <div className="font-lexend overlay-panel rounded-2xl z-50 max-w-200 mx-auto">
+            <div className="flex justify-end px-4 pt-4 pb-0">
+              <CloseButton onClick={() => setVisible(false)} />
+            </div>
             <Projects />
           </div>
-        </AnimatedContent>        
+        </AnimatedContent>
     </AnimatedContent>
   )
 }

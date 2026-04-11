@@ -57,3 +57,7 @@ docker-compose.override.yml
 .DS_Store
 Thumbs.db
 desktop.ini
+
+# Claude
+CLAUDE.md
+summary.md

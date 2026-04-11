@@ -355,7 +355,7 @@ To be determined:
 
 ### Metrics (Prometheus + Grafana)
 
-* Services expose `/metrics` endpoints
+* Services expose `monitoring/metrics` endpoints
 * Prometheus scrapes key metrics (request count, latency, error rate)
 * Grafana visualizes service-level and platform-level dashboards
 
