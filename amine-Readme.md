@@ -7,9 +7,8 @@
 
 ## What to do next
 
-- [ ] XP / Level system implementation
+- [ ] 42, ggl and face Oauth
 - [ ] Friends / Social system (Followers/Requests)
-- [ ] Default settings (JSONField for UI/Synth preferences)
 - [ ] Input validation + error handling standardization
 - [ ] Email verification system (activate account flow)
 - [ ] Password reset (forgot password flow)
