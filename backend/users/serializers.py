@@ -33,9 +33,11 @@ class RegisterSerializer(serializers.ModelSerializer):
         return user
 
 class ProfileSerializer(serializers.ModelSerializer):
+    def_settings = serializers.JSONField()
     class Meta:
         model = Profile
-        fields = ["display_name", "bio", "avatar"]
+        fields = ['bio', 'avatar', 'xp', 'level', 'def_settings', 'display_name']
+        read_only_fields = ['xp', 'level']
 
 class UserSearchSerializer(serializers.ModelSerializer):
     class Meta:
