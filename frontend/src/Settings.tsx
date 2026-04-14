@@ -2,6 +2,7 @@ import { AnimatedContent } from './ReactBits/ReactBits';
 import React, { useEffect, useState } from "react";
 import { authFetch, clearAuthCookies, getCookie, extractErrorMessage, REFRESH_COOKIE } from './api';
 import { Input, CloseButton } from './Reusables';
+import logger from './logger';
 
 function SettingsSection(props: {
   title: string;
@@ -37,9 +38,11 @@ function UsernameUpdateModal(props: { onClose: () => void; onSuccess: (newUserna
 
       if (!response.ok) {
         const msg = await extractErrorMessage(response, 'Failed to update username.');
+        logger.error('settings.username_change_failed', { status: response.status });
         throw new Error(msg);
       }
 
+      logger.action('settings.username_change');
       props.onSuccess(newUsername);
       props.onClose();
     } catch (error) {
@@ -119,9 +122,11 @@ function PasswordUpdateModal(props: { isOpen: boolean; onClose: () => void }) {
 
       if (!response.ok) {
         const msg = await extractErrorMessage(response, 'Failed to update password.');
+        logger.error('settings.password_change_failed', { status: response.status });
         throw new Error(msg);
       }
 
+      logger.action('settings.password_change');
       setSuccess(true);
       setTimeout(closeModal, 800);
     } catch (error) {
@@ -214,9 +219,11 @@ function EmailUpdateModal(props: { isOpen: boolean; onClose: () => void }) {
 
       if (!response.ok) {
         const msg = await extractErrorMessage(response, 'Failed to update email.');
+        logger.error('settings.email_change_failed', { status: response.status });
         throw new Error(msg);
       }
 
+      logger.action('settings.email_change');
       setSuccess(true);
       setTimeout(closeModal, 800);
     } catch (error) {
@@ -280,8 +287,10 @@ function DeleteAccountModal(props: { isOpen: boolean; onClose: () => void; onDel
       const response = await authFetch('/api/users/delete/', { method: 'DELETE' });
       if (!response.ok) {
         const msg = await extractErrorMessage(response, 'Failed to delete account.');
+        logger.error('settings.account_delete_failed', { status: response.status });
         throw new Error(msg);
       }
+      logger.action('settings.account_delete');
       clearAuthCookies();
       props.onDeleted();
     } catch (err) {
@@ -332,6 +341,7 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
   }, []);
 
   const handleLogout = async () => {
+    logger.action('auth.logout');
     const refresh = getCookie(REFRESH_COOKIE);
     if (refresh) {
       try {

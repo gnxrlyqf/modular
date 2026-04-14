@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from "react";
 import { AnimatedContent } from './ReactBits/ReactBits';
 import { Input, CloseButton } from './Reusables';
 import { authFetch } from './api';
+import logger from './logger';
 
 type ApiUser = {
   id: number;
@@ -79,6 +80,7 @@ function UserSearch() {
     setSearchQuery(value);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(() => {
+      if (value.trim()) logger.action('users.search', { query: value.trim() });
       setDebouncedSearch(value);
       setPage(1);
     }, 400);
@@ -103,6 +105,7 @@ function UserSearch() {
         setUsers(data.results);
         setTotalCount(data.count);
       } catch {
+        logger.error('users.search_error', { query: debouncedSearch });
         setUsers([]);
         setError('Failed to load users.');
       } finally {

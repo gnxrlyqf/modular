@@ -3,6 +3,7 @@ import { AnimatedContent } from './ReactBits/ReactBits';
 import { Projects } from "./Projects";
 import { authFetch } from "./api";
 import { CloseButton } from "./Reusables";
+import logger from './logger';
 
 type UserInfo = {
   id: number;
@@ -42,9 +43,11 @@ function Profile(props: { func: (value: boolean) => void; set: (value: boolean) 
           profileResp.json() as Promise<UserProfile>,
         ]);
 
+        logger.action('profile.view', { username: me.username });
         setUserInfo(me);
         setProfile(prof);
       } catch (err) {
+        logger.error('profile.load_error');
         setError(err instanceof Error ? err.message : 'Failed to load profile.');
       } finally {
         setLoading(false);
@@ -65,7 +68,7 @@ function Profile(props: { func: (value: boolean) => void; set: (value: boolean) 
       <div className="flex items-center justify-between px-4 pt-4">
         <CloseButton onClick={() => { props.set(false); props.func(false); }} />
         <button type="button" aria-label="Settings"
-          onClick={() => { props.func(false); props.set(true); }}
+          onClick={() => { logger.action('profile.open_settings'); props.func(false); props.set(true); }}
           className="btn-close"
         >
           <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">

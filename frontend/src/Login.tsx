@@ -1,6 +1,7 @@
 import AnimatedContent from './ReactBits/AnimatedContent.tsx'
 import { Input, CloseButton } from './Reusables.tsx'
 import { extractErrorMessage } from './api.ts'
+import logger from './logger'
 import { useState, type FormEvent } from 'react'
 import type React from 'react'
 
@@ -43,18 +44,6 @@ function PasswordInput(props: Omit<React.InputHTMLAttributes<HTMLInputElement>, 
   );
 }
 
-const LOG_ENDPOINT = '/api/logs/';
-
-function sendLog(level: 'info' | 'warn' | 'error', event: string, data?: Record<string, unknown>) {
-  const payload = { level, event, ...data, ts: new Date().toISOString() };
-  navigator.sendBeacon(LOG_ENDPOINT, new Blob([JSON.stringify(payload)], { type: 'application/json' }));
-}
-
-const logger = {
-  info:  (event: string, data?: Record<string, unknown>) => sendLog('info',  event, data),
-  warn:  (event: string, data?: Record<string, unknown>) => sendLog('warn',  event, data),
-  error: (event: string, data?: Record<string, unknown>) => sendLog('error', event, data),
-};
 
 const LOGIN_ENDPOINT = '/api/token/';
 const SIGNUP_ENDPOINT = '/api/users/register/';

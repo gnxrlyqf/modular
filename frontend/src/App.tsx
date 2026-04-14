@@ -7,6 +7,7 @@ import ProfileContainer from "./Profile";
 import SettingsContainer from "./Settings";
 import { UserSearchContainer } from "./UserSearch";
 import StarField from "./StarField";
+import logger from './logger';
 
 const ACCESS_COOKIE_NAME = "accessToken";
 
@@ -147,23 +148,28 @@ function App() {
   );
 
   const handleLoginSuccess = () => {
+    logger.info('auth.login_success');
     setIsLoggedIn(true);
     setShowLogin(false);
   };
 
   const handleLoginOpen = () => {
+    logger.action('nav.login_open');
     setShowProjects(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
     setShowLogin(true);
   };
   const handleProjectsOpen = () => {
+    logger.action('nav.projects_open');
     setShowLogin(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
     setShowProjects(true);
   };
   const handleProfileOpen = () => {
+    logger.action('nav.profile_open');
     setShowLogin(false); setShowProjects(false); setShowSettings(false); setShowUserSearch(false);
     setShowProfile(true);
   };
   const handleUserSearchOpen = () => {
+    logger.action('nav.user_search_open');
     setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
     setShowUserSearch(true);
   };

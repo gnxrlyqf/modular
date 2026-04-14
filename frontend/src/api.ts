@@ -45,14 +45,26 @@ export async function authFetch(url: string, options: RequestInit = {}): Promise
         const data: { access: string } = await refreshResp.json();
         const sec = window.location.protocol === 'https:' ? '; Secure' : '';
         document.cookie = `${ACCESS_COOKIE}=${encodeURIComponent(data.access)}; Max-Age=86400; Path=/; SameSite=Lax${sec}`;
+        sendInternalLog('info', 'auth.token_refresh', data.access);
         response = await fetch(url, { ...options, headers: buildHeaders(data.access) });
       } else {
+        sendInternalLog('warning', 'auth.session_expired', getCookie(ACCESS_COOKIE));
         clearAuthCookies();
       }
     }
   }
 
   return response;
+}
+
+/** Fire-and-forget log from inside api.ts (avoids circular import with logger.ts). */
+function sendInternalLog(level: string, message: string, token: string | null) {
+  if (!token) return;
+  fetch('/api/logs/', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+    body: JSON.stringify({ level, message, context: null }),
+  }).catch(() => {});
 }
 
 /** Extract a human-readable error message from a DRF error response body. */

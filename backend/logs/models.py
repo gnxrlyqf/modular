@@ -12,7 +12,7 @@ class Log(models.Model):
         ("action", "Action"),
     ]
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="logs")
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="logs", null=True, blank=True)
     level = models.CharField(max_length=10, choices=LEVELS, default="info")
     message = models.TextField()
     context = models.JSONField(null=True, blank=True)

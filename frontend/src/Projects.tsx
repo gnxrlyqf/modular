@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import { AnimatedContent } from './ReactBits/ReactBits';
 import { authFetch, extractErrorMessage } from './api';
 import { Input, CloseButton } from './Reusables';
+import logger from './logger';
 
 const arrow = "M5.70711 9.71069C5.31658 10.1012 5.31658 10.7344 5.70711 11.1249L10.5993 16.0123C11.3805 16.7927 12.6463 16.7924 13.4271 16.0117L18.3174 11.1213C18.708 10.7308 18.708 10.0976 18.3174 9.70708C17.9269 9.31655 17.2937 9.31655 16.9032 9.70708L12.7176 13.8927C12.3271 14.2833 11.6939 14.2832 11.3034 13.8927L7.12132 9.71069C6.7308 9.32016 6.09763 9.32016 5.70711 9.71069Z"
 
@@ -281,6 +282,7 @@ function Card(props: {
           onCopyLink={() => {
             removeMenu();
             navigator.clipboard.writeText(props.card.id).catch(() => {});
+            logger.action('project.copy_id', { id: props.card.id });
           }}
         />
       );
@@ -330,18 +332,23 @@ function Projects(props: {user?: string}) {
     setSearchQuery(value);
     if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
     searchTimerRef.current = setTimeout(() => {
+      if (value.trim()) logger.action('project.search', { query: value.trim() });
       setDebouncedSearch(value);
       setPage(1);
     }, 400);
   };
 
   const handleDateSort = () => {
-    setOrdering(prev => prev === '-created_at' ? 'created_at' : '-created_at');
+    const next = ordering === '-created_at' ? 'created_at' : '-created_at';
+    logger.action('project.sort_date', { ordering: next });
+    setOrdering(next);
     setPage(1);
   };
 
   const handleNameSort = () => {
-    setOrdering(prev => prev === 'name' ? '-name' : 'name');
+    const next = ordering === 'name' ? '-name' : 'name';
+    logger.action('project.sort_name', { ordering: next });
+    setOrdering(next);
     setPage(1);
   };
 
@@ -367,6 +374,7 @@ function Projects(props: {user?: string}) {
         setCards(data.results);
         setTotalCount(data.count);
       } catch {
+        logger.error('project.fetch_error', { search: debouncedSearch, page });
         setCards([]);
         setError('Failed to load projects.');
       } finally {
@@ -385,9 +393,11 @@ function Projects(props: {user?: string}) {
 
     if (!response.ok) {
       const msg = await extractErrorMessage(response, 'Failed to create project.');
+      logger.error('project.create_failed', { name, status: response.status });
       throw new Error(msg);
     }
 
+    logger.action('project.create', { name });
     // Refresh list from page 1
     setPage(1);
     setOrdering('-created_at');
@@ -398,8 +408,10 @@ function Projects(props: {user?: string}) {
   const handleDelete = async (id: string) => {
     const response = await authFetch(`/api/projects/${id}/`, { method: 'DELETE' });
     if (!response.ok && response.status !== 204) {
-      return; // Silently fail — show no error to avoid interrupting UX
+      logger.error('project.delete_failed', { id, status: response.status });
+      return;
     }
+    logger.action('project.delete', { id });
     setCards(prev => prev.filter(c => c.id !== id));
     setTotalCount(prev => prev - 1);
   };
@@ -413,9 +425,11 @@ function Projects(props: {user?: string}) {
 
     if (!response.ok) {
       const msg = await extractErrorMessage(response, 'Failed to rename project.');
+      logger.error('project.rename_failed', { id: renameModal.id, name, status: response.status });
       throw new Error(msg);
     }
 
+    logger.action('project.rename', { id: renameModal.id, name });
     const updated: ApiProject = await response.json();
     setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
   };
