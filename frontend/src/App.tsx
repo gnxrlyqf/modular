@@ -227,7 +227,7 @@ function App() {
             onUsersOpen={handleUserSearchOpen}
           />
         </div>
-        <div className="pb-8">
+        <div className="pt-4 pb-8">
           {showProjects && <ProjectsContainer func={setShowProjects} />}
           {showUserSearch && <UserSearchContainer func={setShowUserSearch} />}
           {showProfile && (

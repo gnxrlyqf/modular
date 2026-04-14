@@ -430,7 +430,9 @@ function Projects(props: {user?: string}) {
       <div className="flex flex-row my-2 items-center">
         <Filters onDateSort={handleDateSort} onNameSort={handleNameSort} />
         <Search value={searchQuery} onChange={handleSearchChange} />
-        <NewButton onClick={() => setCreateModalOpen(true)} />
+        <div className="mr-3">
+          <NewButton onClick={() => setCreateModalOpen(true)} />
+        </div>
       </div>
       <div className="mx-3 mb-3">
         <div className="grid grid-cols-3 gap-3">

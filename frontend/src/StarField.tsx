@@ -41,8 +41,12 @@ function createStar(width: number, height: number): Star {
   const baseRadius = 0.6 + Math.random() * 2;
   const baseBrightness = 0.25 + Math.random() * 0.75;
 
-  // Orbit speed: full revolution in ~120–300 seconds at 60fps, all counterclockwise
-  const orbitSpeed = 0.00021 + Math.random() * 0.00021;
+  // Orbit speed: derived from linear pixel speed so inner stars move faster.
+  // Linear speed ranges from ~0.04 px/frame near center to ~0.015 px/frame at edge.
+  const maxOrbit = Math.max(width, height) * 0.65;
+  const t = Math.min(1, orbitRadius / Math.max(maxOrbit, 1)); // 0=center, 1=edge
+  const linearSpeed = (0.04 - t * 0.025) * (0.8 + Math.random() * 0.4);
+  const orbitSpeed = linearSpeed / Math.max(orbitRadius, 10);
 
   // Self-rotation: slow spin of the note visual, same direction
   const rotationSpeed = 0.0003 + Math.random() * 0.0005;
@@ -56,7 +60,7 @@ function createStar(width: number, height: number): Star {
     baseBrightness,
     rotation: Math.random() * Math.PI * 2,
     rotationSpeed,
-    twinkleSpeed: 0.3 + Math.random() * 1.5,
+    twinkleSpeed: 0.3 + Math.random() * 0.8,
     twinkleOffset: Math.random() * Math.PI * 2,
     vx: 0,
     vy: 0,
