@@ -71,14 +71,14 @@ class Friendship(models.Model):
         ('blocked', 'Blocked'),
     )
 
-    from_user = models.ForeignKey(Profile, related_name='sent_friend_requests', on_delete=models.CASCADE)
-    to_user = models.ForeignKey(Profile, related_name='received_friend_requests', on_delete=models.CASCADE)
+    sender = models.ForeignKey(Profile, related_name='sent_friend_requests', on_delete=models.CASCADE)
+    receiver = models.ForeignKey(Profile, related_name='received_friend_requests', on_delete=models.CASCADE)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         # Prevents a user from sending multiple requests to the same person
-        unique_together = ('sender', 'reciever')
+        unique_together = ('sender', 'receiver')
         verbose_name = "Friendship"
         verbose_name_plural = "Friendships"
 

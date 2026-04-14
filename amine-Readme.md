@@ -8,7 +8,7 @@
 ## What to do next
 
 - [ ] 42, ggl and face Oauth
-- [ ] Friends / Social system (Followers/Requests)
+- [x] Friends / Social system (Followers/Requests)
 - [ ] Input validation + error handling standardization
 - [ ] Email verification system (activate account flow)
 - [ ] Password reset (forgot password flow)
