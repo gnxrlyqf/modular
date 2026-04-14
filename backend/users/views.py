@@ -303,3 +303,41 @@ class ProfileViewSet(viewsets.ModelViewSet):
         """
         profile = serializer.save()
         leveled_up = update_user_xp(profile, amount=25)
+
+from .models import Friendship, Profile
+from .serializers import FriendshipSerializer
+from .social_services import accept_friend_request, send_friend_request
+
+@extend_schema_view(
+    list=extend_schema(summary="List all user friendships (pending/accepted)"),
+    create=extend_schema(summary="Send a new friend request"),
+    retrieve=extend_schema(summary="Get details of a specific friendship"),
+)
+class FriendshipViewSet(viewsets.ModelViewSet):
+    serializer_class = FriendshipSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        # Only show requests where the user is either the sender or receiver
+        user_profile = self.request.user.profile
+        return Friendship.objects.filter(sender=user_profile) | \
+               Friendship.objects.filter(receiver=user_profile)
+
+    def perform_create(self, serializer):
+        # Automatically set the sender to the current user's profile
+        serializer.save(sender=self.request.user.profile)
+
+    @extend_schema(
+        summary="Accept a friend request",
+        description="Transitions a 'pending' request to 'accepted' and awards XP.",
+        responses={200: {"example": {"message": "Friendship accepted!"}}, 
+                   400: {"example": {"error": "Reason for failure"}}}
+    )
+    @action(detail=True, methods=['post'], url_path='accept')
+    def accept(self, request, pk=None):
+        """Endpoint: /api/friendships/{id}/accept/"""
+        success, message = accept_friend_request(pk, request.user.profile)
+        
+        if success:
+            return Response({"message": message}, status=status.HTTP_200_OK)
+        return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)

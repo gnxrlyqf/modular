@@ -3,8 +3,8 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework import serializers
 from .models import Profile, send_verification_email
 from django.contrib.auth import get_user_model
+from .models import Friendship, Profile
 User = get_user_model()
-
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True)
 
@@ -43,3 +43,12 @@ class UserSearchSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ['id', 'username', 'email']
+
+class FriendshipSerializer(serializers.ModelSerializer):
+    sender_name = serializers.ReadOnlyField(source='sender.display_name')
+    receiver_name = serializers.ReadOnlyField(source='receiver.display_name')
+
+    class Meta:
+        model = Friendship
+        fields = ['id', 'sender', 'sender_name', 'receiver', 'receiver_name', 'status', 'created_at']
+        read_only_fields = ['sender', 'status']

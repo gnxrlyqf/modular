@@ -38,6 +38,13 @@ class Profile(models.Model):
         help_text="Custom UI and Synth preferences stored as JSON."
     )
 
+    friends = models.ManyToManyField(
+        'self', 
+        through='Friendship', 
+        symmetrical=False, 
+        related_name='related_to'
+    )
+
 @receiver(post_save, sender=User)
 def create_profile(sender, instance, created, **kwargs):
     if created:
@@ -58,28 +65,20 @@ def send_verification_email(user, request):
     )
 
 class Friendship(models.Model):
-    """
-    Tracks the relationship between two users.
-    
-    Statuses:
-        PENDING: Request sent, waiting for response.
-        ACCEPTED: Users are now friends.
-        BLOCKED: One user has blocked the other.
-    """
     STATUS_CHOICES = (
         ('pending', 'Pending'),
         ('accepted', 'Accepted'),
         ('blocked', 'Blocked'),
     )
 
-    from_user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='sent_friend_requests', on_delete=models.CASCADE)
-    to_user = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='received_friend_requests', on_delete=models.CASCADE)
+    from_user = models.ForeignKey(Profile, related_name='sent_friend_requests', on_delete=models.CASCADE)
+    to_user = models.ForeignKey(Profile, related_name='received_friend_requests', on_delete=models.CASCADE)
     status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         # Prevents a user from sending multiple requests to the same person
-        unique_together = ('from_user', 'to_user')
+        unique_together = ('sender', 'reciever')
         verbose_name = "Friendship"
         verbose_name_plural = "Friendships"
 
