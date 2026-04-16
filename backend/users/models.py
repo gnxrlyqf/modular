@@ -64,6 +64,7 @@ def send_verification_email(user, request):
         fail_silently=False,
     )
 
+# Friends
 class Friendship(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -84,3 +85,12 @@ class Friendship(models.Model):
 
     def __str__(self):
         return f"{self.from_user} -> {self.to_user} ({self.status})"
+
+# Oauth
+class SocialAccount(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='social_auth')
+    provider = models.CharField(max_length=20)
+    provider_id = models.CharField(max_length=255)
+
+    class Meta:
+        unique_together = ('provider', 'provider_id')

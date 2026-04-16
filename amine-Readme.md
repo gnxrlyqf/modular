@@ -16,3 +16,4 @@
 - [ ] Permissions/roles (admin vs normal user)
 - [ ] Rate limiting (stop API abuse)
 - [ ] Basic tests (pytest or DRF tests)
+- [ ] 2FA

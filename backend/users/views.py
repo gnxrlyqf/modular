@@ -11,7 +11,7 @@ from drf_spectacular.utils import extend_schema, extend_schema_view
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
 
-from .models import Profile
+from .models import Profile 
 from .serializers import RegisterSerializer, ProfileSerializer, UserSearchSerializer
 
 User = get_user_model()
@@ -341,3 +341,32 @@ class FriendshipViewSet(viewsets.ModelViewSet):
         if success:
             return Response({"message": message}, status=status.HTTP_200_OK)
         return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
+
+
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
+from .services import OAuthService
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def social_auth_callback(request):
+    provider = request.data.get('provider')
+    access_token = request.data.get('access_token')
+
+    if provider == '42':
+        user_data = OAuthService.get_42_data(access_token)
+    elif provider == 'google':
+        user_data = OAuthService.get_google_data(access_token)
+    elif provider == 'facebook':
+        user_data = OAuthService.get_facebook_data(access_token)
+    else:
+        return Response({"error": "Unsupported provider"}, status=400)
+
+    if not user_data:
+        return Response({"error": f"Failed to fetch data from {provider}"}, status=400)
+
+    user = OAuthService.get_or_create_social_user(provider, user_data)
+    
+    tokens = get_tokens_for_user(user) 
+    return Response(tokens)

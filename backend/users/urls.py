@@ -4,6 +4,7 @@ from .views import (
     RegisterView, me, change_email, 
     change_password, change_username, 
     delete_account, logout, me_profile,
+    social_auth_callback,
     UserSearchView, FriendshipViewSet
 )
 
@@ -34,4 +35,5 @@ social_router = DefaultRouter()
 social_router.register(r'friendships', FriendshipViewSet, basename='friendship')
 urlpatterns += [
     path('social/', include(social_router.urls)),
+    path('social-auth/', social_auth_callback, name='social_auth_callback'),
 ]
