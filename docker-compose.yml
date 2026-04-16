@@ -30,6 +30,7 @@ services:
       # for now so you guys can test it using postman, later should be closed
     volumes:
       - ./logstash_ingest_data:/app/log_output
+      - backend-db:/app/data
     environment:
       - LOG_FILE_PATH=/app/log_output/app.log
     healthcheck:
@@ -318,6 +319,8 @@ networks:
   internals:
     driver: bridge
 volumes:
+  backend-db:
+    driver: local
   grafana-storage:
   certs:
     driver: local

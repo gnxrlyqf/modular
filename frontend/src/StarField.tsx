@@ -45,7 +45,7 @@ function createStar(width: number, height: number): Star {
   // Linear speed ranges from ~0.04 px/frame near center to ~0.015 px/frame at edge.
   const maxOrbit = Math.max(width, height) * 0.65;
   const t = Math.min(1, orbitRadius / Math.max(maxOrbit, 1)); // 0=center, 1=edge
-  const linearSpeed = (0.1 - t * 0.025) * (0.8 + Math.random() * 0.4);
+  const linearSpeed = (0.1 - t * 0.025) * (0.8 + Math.random() * 0.4) * (Math.random() < 0.5 ? -1 : 1); // Randomize direction
   const orbitSpeed = linearSpeed / Math.max(orbitRadius, 10);
 
   // Self-rotation: slow spin of the note visual, same direction
