@@ -7,12 +7,14 @@
 
 ## What to do next
 
-- [ ] 42, ggl and face Oauth
+- [x] 42, ggl and face Oauth
 - [x] Friends / Social system (Followers/Requests)
+
 - [ ] logs (explain in discord)
-- [ ] Input validation + error handling standardization
 - [ ] Email verification system (activate account flow)
 - [ ] Password reset (forgot password flow)
+
+- [ ] Input validation + error handling standardization
 - [ ] Permissions/roles (admin vs normal user)
 - [ ] Rate limiting (stop API abuse)
 - [ ] Basic tests (pytest or DRF tests)
