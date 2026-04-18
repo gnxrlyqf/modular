@@ -19,3 +19,10 @@
 - [ ] Rate limiting (stop API abuse)
 - [ ] Basic tests (pytest or DRF tests)
 - [ ] 2FA
+
+
+## now:
+friends
+script
+email and pswd
+the db change
