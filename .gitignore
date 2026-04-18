@@ -61,3 +61,6 @@ desktop.ini
 # Claude
 CLAUDE.md
 summary.md
+
+# Local log files
+logstash_ingest_data/

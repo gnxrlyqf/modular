@@ -30,9 +30,16 @@ services:
       # for now so you guys can test it using postman, later should be closed
     volumes:
       - ./logstash_ingest_data:/app/log_output
-      - backend-db:/app/data
     environment:
       - LOG_FILE_PATH=/app/log_output/app.log
+      - POSTGRES_DB=${POSTGRES_DB:-trandandan}
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_HOST=database
+      - POSTGRES_PORT=5432
+    depends_on:
+      database:
+        condition: service_healthy
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/monitoring/metrics')"]
       interval: 30s
@@ -40,6 +47,22 @@ services:
       retries: 3
       start_period: 15s
 
+  database:
+    image: postgres:17-alpine3.22
+    networks:
+      - internals
+    volumes:
+      - database-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-trandandan}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
   # prometheus:
   #   image: prom/prometheus
   #   networks:
@@ -318,8 +341,9 @@ configs:
 networks:
   internals:
     driver: bridge
+
 volumes:
-  backend-db:
+  database-data:
     driver: local
   grafana-storage:
   certs:

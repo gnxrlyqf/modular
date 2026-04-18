@@ -18,6 +18,7 @@ interface Star {
   angle: number;
   orbitRadius: number;
   orbitSpeed: number;
+  SpeedModifier: number;
   centerX: number;
   centerY: number;
 }
@@ -47,6 +48,7 @@ function createStar(width: number, height: number): Star {
   const t = Math.min(1, orbitRadius / Math.max(maxOrbit, 1)); // 0=center, 1=edge
   const linearSpeed = (0.1 - t * 0.025) * (0.8 + Math.random() * 0.4) * (Math.random() < 0.5 ? -1 : 1); // Randomize direction
   const orbitSpeed = linearSpeed / Math.max(orbitRadius, 10);
+  const speedModifier = 200;
 
   // Self-rotation: slow spin of the note visual, same direction
   const rotationSpeed = 0.003 + Math.random() * 0.0005;
@@ -69,6 +71,7 @@ function createStar(width: number, height: number): Star {
     angle,
     orbitRadius,
     orbitSpeed,
+    SpeedModifier: speedModifier,
     centerX: cx,
     centerY: cy,
   };
@@ -206,10 +209,11 @@ export default function StarField() {
       const mouse = mouseRef.current;
 
       ctx!.clearRect(0, 0, w, h);
-
       for (const star of starsRef.current) {
         // Orbital rotation — advance angle and move origin along the orbit path
-        star.angle += star.orbitSpeed;
+        star.SpeedModifier /= 1.03;
+        star.SpeedModifier = Math.max(1, star.SpeedModifier);
+        star.angle += star.orbitSpeed * star.SpeedModifier;
         star.originX = star.centerX + Math.cos(star.angle) * star.orbitRadius;
         star.originY = star.centerY + Math.sin(star.angle) * star.orbitRadius;
 
@@ -276,7 +280,7 @@ export default function StarField() {
           star.brightness
         );
       }
-
+      
       rafRef.current = requestAnimationFrame(animate);
     }
 
