@@ -348,13 +348,27 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from .services import OAuthService
 
+
+def get_tokens_for_user(user):
+    refresh = RefreshToken.for_user(user)
+    return {
+        'refresh': str(refresh),
+        'access': str(refresh.access_token),
+    }
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 def social_auth_callback(request):
     provider = request.data.get('provider')
     access_token = request.data.get('access_token')
+    code = request.data.get('code')
 
     if provider == '42':
+        if not access_token and code:
+            access_token = OAuthService.exchange_code_for_42_token(code)
+            if not access_token:
+                return Response({"error": "42 code exchange failed"}, status=400)
         user_data = OAuthService.get_42_data(access_token)
     elif provider == 'google':
         user_data = OAuthService.get_google_data(access_token)

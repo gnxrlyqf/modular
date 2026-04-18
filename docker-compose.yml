@@ -8,9 +8,12 @@ services:
     ports:
       - 5173:5173
       # 80:5173 if you want to access the frontend on port 80
-      # 443:5173 if you want to access the frontend on port 443
+      # 443:5173 if you want to access the frontend on port 
+    environment:
+      - VITE_FORTYTWO_CLIENT_ID=${VITE_FORTYTWO_CLIENT_ID}
     volumes:
       - ./frontend/src:/app/src
+      - ./frontend/public:/app/public
     healthcheck:
       test: ["CMD", "node", "-e", "const http = require('http'); http.get('http://localhost:5173', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 30s
@@ -37,6 +40,9 @@ services:
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
       - POSTGRES_HOST=database
       - POSTGRES_PORT=5432
+      - FORTYTWO_CLIENT_ID=${VITE_FORTYTWO_CLIENT_ID}
+      - FORTYTWO_CLIENT_SECRET=${FORTYTWO_CLIENT_SECRET}
+      - FORTYTWO_REDIRECT_URI=${FORTYTWO_REDIRECT_URI:-http://localhost:5173/auth-callback.html}
     depends_on:
       database:
         condition: service_healthy

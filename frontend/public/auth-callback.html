@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Completing sign-in…</title>
+    <style>
+      body { background: #020617; color: #a5b4fc; font-family: system-ui, sans-serif; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+    </style>
+  </head>
+  <body>
+    <p>Completing sign-in…</p>
+    <script>
+      (function () {
+        function parse(raw) {
+          var out = {};
+          (raw || '').replace(/^[#?]/, '').split('&').forEach(function (part) {
+            if (!part) return;
+            var idx = part.indexOf('=');
+            var k = decodeURIComponent(idx < 0 ? part : part.slice(0, idx));
+            var v = decodeURIComponent(idx < 0 ? '' : part.slice(idx + 1).replace(/\+/g, ' '));
+            out[k] = v;
+          });
+          return out;
+        }
+        var hash = parse(window.location.hash);
+        var query = parse(window.location.search);
+        var payload = {
+          type: 'oauth-callback',
+          state: hash.state || query.state || '',
+          access_token: hash.access_token || undefined,
+          code: query.code || undefined,
+          error: hash.error || query.error || hash.error_description || query.error_description || undefined,
+        };
+        if (window.opener) {
+          try { window.opener.postMessage(payload, window.location.origin); } catch (e) {}
+        }
+        setTimeout(function () { window.close(); }, 50);
+      })();
+    </script>
+  </body>
+</html>

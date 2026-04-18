@@ -1,6 +1,7 @@
 import AnimatedContent from './ReactBits/AnimatedContent.tsx'
 import { Input, CloseButton } from './Reusables.tsx'
 import { extractErrorMessage } from './api.ts'
+import { startOAuth, type OAuthProvider } from './oauth.ts'
 import logger from './logger'
 import { useState, type FormEvent } from 'react'
 import type React from 'react'
@@ -62,13 +63,20 @@ function isLoginResponse(data: unknown): data is LoginResponse {
   return typeof candidate.refresh === 'string' && typeof candidate.access === 'string';
 }
 
-// ─── Social buttons (OAuth placeholders) ──────────────────────────────────────
+// ─── Social buttons (OAuth) ───────────────────────────────────────────────────
 
-function GoogleButton() {
+type SocialButtonProps = {
+  onClick: () => void;
+  disabled?: boolean;
+};
+
+function GoogleButton({ onClick, disabled }: SocialButtonProps) {
   return (
     <button
       type="button"
-      className="glass glass-hover rounded-lg px-5 py-3 text-base font-medium text-white/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 flex items-center gap-3 w-full justify-center cursor-pointer border border-white/10 hover:border-white/20"
+      onClick={onClick}
+      disabled={disabled}
+      className="glass glass-hover rounded-lg px-5 py-3 text-base font-medium text-white/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 flex items-center gap-3 w-full justify-center cursor-pointer border border-white/10 hover:border-white/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
       style={{ boxShadow: '0 0 20px rgba(66,133,244,0.12)' }}
     >
       <svg viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" className="w-5 h-5 flex-shrink-0">
@@ -82,17 +90,36 @@ function GoogleButton() {
   );
 }
 
-function FacebookButton() {
+function FacebookButton({ onClick, disabled }: SocialButtonProps) {
   return (
     <button
       type="button"
-      className="glass glass-hover rounded-lg px-5 py-3 text-base font-medium text-white/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 flex items-center gap-3 w-full justify-center cursor-pointer border border-white/10 hover:border-white/20"
+      onClick={onClick}
+      disabled={disabled}
+      className="glass glass-hover rounded-lg px-5 py-3 text-base font-medium text-white/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 flex items-center gap-3 w-full justify-center cursor-pointer border border-white/10 hover:border-white/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
       style={{ boxShadow: '0 0 20px rgba(24,119,242,0.12)' }}
     >
       <svg className="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50">
         <path fill="#1877F2" d="M25,3C12.85,3,3,12.85,3,25c0,11.03,8.125,20.137,18.712,21.728V30.831h-5.443v-5.783h5.443v-3.848c0-6.371,3.104-9.168,8.399-9.168c2.536,0,3.877,0.188,4.512,0.274v5.048h-3.612c-2.248,0-3.033,2.131-3.033,4.533v3.161h6.588l-0.894,5.783h-5.694v15.944C38.716,45.318,47,36.137,47,25C47,12.85,37.15,3,25,3z"/>
       </svg>
-      Login with Facebook
+      Continue with Facebook
+    </button>
+  );
+}
+
+function FortyTwoButton({ onClick, disabled }: SocialButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={disabled}
+      className="glass glass-hover rounded-lg px-5 py-3 text-base font-medium text-white/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 flex items-center gap-3 w-full justify-center cursor-pointer border border-white/10 hover:border-white/20 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100"
+      style={{ boxShadow: '0 0 20px rgba(255,255,255,0.12)' }}
+    >
+      <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 38 26" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
+        <path d="M37.305 9.254h-8.04V0h-8.59l-8.59 9.254v7.594h9.137V26h8.043v-9.152h8.04V9.254zM8.59 9.254L17.18 0H8.59L0 9.254v7.594h8.59V9.254z"/>
+      </svg>
+      Continue with 42
     </button>
   );
 }
@@ -205,6 +232,24 @@ function Login(props: { onSuccess?: () => void; onToggle: () => void }) {
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [oauthPending, setOauthPending] = useState<OAuthProvider | null>(null);
+
+  const handleOAuth = async (provider: OAuthProvider) => {
+    if (oauthPending) return;
+    setError(null);
+    setOauthPending(provider);
+    try {
+      const result = await startOAuth(provider);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      props.onSuccess?.();
+      window.location.assign(REDIRECT_PATH);
+    } finally {
+      setOauthPending(null);
+    }
+  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -253,8 +298,9 @@ function Login(props: { onSuccess?: () => void; onToggle: () => void }) {
       <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-8">Log in</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 mb-5">
         <div className="flex flex-col gap-4">
-          <GoogleButton />
-          <FacebookButton />
+          <GoogleButton onClick={() => handleOAuth('google')} disabled={oauthPending !== null} />
+          <FacebookButton onClick={() => handleOAuth('facebook')} disabled={oauthPending !== null} />
+          <FortyTwoButton onClick={() => handleOAuth('42')} disabled={oauthPending !== null} />
         </div>
         <div className="flex items-center gap-3 my-3">
           <div className="flex-1 border-t border-white/10" />

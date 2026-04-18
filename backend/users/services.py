@@ -1,3 +1,4 @@
+import os
 import requests
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -31,12 +32,17 @@ def update_user_xp(profile, amount):
 class OAuthService:
     @staticmethod
     def exchange_code_for_42_token(code):
+        client_id = os.environ.get("FORTYTWO_CLIENT_ID")
+        client_secret = os.environ.get("FORTYTWO_CLIENT_SECRET")
+        redirect_uri = os.environ.get("FORTYTWO_REDIRECT_URI")
+        if not (client_id and client_secret and redirect_uri):
+            return None
         resp = requests.post("https://api.intra.42.fr/oauth/token", data={
             "grant_type": "authorization_code",
-            "client_id": "YOUR_UID",
-            "client_secret": "YOUR_SECRET",
+            "client_id": client_id,
+            "client_secret": client_secret,
             "code": code,
-            "redirect_uri": "YOUR_REDIRECT_URI"
+            "redirect_uri": redirect_uri,
         })
         return resp.json().get("access_token") if resp.status_code == 200 else None
 
@@ -105,5 +111,11 @@ class OAuthService:
             user = User.objects.create_user(
                 username=unique_username,
                 email=data['email'],
-                password=None
+                password=None,
+            )
+
+        SocialAccount.objects.get_or_create(
+            provider=provider, provider_id=data['id'],
+            defaults={'user': user},
         )
+        return user
