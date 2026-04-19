@@ -3,6 +3,7 @@ import requests
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from .models import SocialAccount
+from .models import Friendship
 User = get_user_model()
 
 def calculate_level_from_xp(xp):
@@ -28,6 +29,24 @@ def update_user_xp(profile, amount):
     
     return leveled_up
 
+@transaction.atomic
+def accept_friend_request(friendship_id, receiver_profile):
+    """Business logic for accepting a request."""
+    try:
+        friendship = Friendship.objects.get(id=friendship_id, receiver=receiver_profile)
+        
+        if friendship.status == 'pending':
+            friendship.status = 'accepted'
+            friendship.save()
+
+            update_user_xp(friendship.sender, 50)
+            update_user_xp(friendship.receiver, 50)
+
+            return True, "Friendship accepted! Both users earned 50 XP."
+        return False, "This request is not pending."
+        
+    except Friendship.DoesNotExist:
+        return False, "Friend request not found."
 
 class OAuthService:
     @staticmethod

@@ -285,8 +285,7 @@ class UpdateBioView(APIView):
         })
 
 from rest_framework import viewsets, permissions
-from .services import update_user_xp  # The logic we wrote earlier
-
+from .services import update_user_xp
 class ProfileViewSet(viewsets.ModelViewSet):
     queryset = Profile.objects.all()
     serializer_class = ProfileSerializer
@@ -304,10 +303,10 @@ class ProfileViewSet(viewsets.ModelViewSet):
         profile = serializer.save()
         leveled_up = update_user_xp(profile, amount=25)
 
+
 from .models import Friendship, Profile
 from .serializers import FriendshipSerializer
 from .social_services import accept_friend_request, send_friend_request
-
 @extend_schema_view(
     list=extend_schema(summary="List all user friendships (pending/accepted)"),
     create=extend_schema(summary="Send a new friend request"),
@@ -315,33 +314,40 @@ from .social_services import accept_friend_request, send_friend_request
 )
 class FriendshipViewSet(viewsets.ModelViewSet):
     serializer_class = FriendshipSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
-        # Only show requests where the user is either the sender or receiver
-        user_profile = self.request.user.profile
-        return Friendship.objects.filter(sender=user_profile) | \
-               Friendship.objects.filter(receiver=user_profile)
+        user_profile = self.request.user.Profile
+        # Q object checks both directions if one of them alrdy sent a request
+        return Friendship.objects.filter(
+            models.Q(sender=user_profile) | models.Q(receiver=user_profile)
+        )
 
     def perform_create(self, serializer):
-        # Automatically set the sender to the current user's profile
         serializer.save(sender=self.request.user.profile)
 
-    @extend_schema(
-        summary="Accept a friend request",
-        description="Transitions a 'pending' request to 'accepted' and awards XP.",
-        responses={200: {"example": {"message": "Friendship accepted!"}}, 
-                   400: {"example": {"error": "Reason for failure"}}}
-    )
     @action(detail=True, methods=['post'], url_path='accept')
     def accept(self, request, pk=None):
-        """Endpoint: /api/friendships/{id}/accept/"""
-        success, message = accept_friend_request(pk, request.user.profile)
+        """ Endpoint: /api/friendships/{id}/accept/ """
+        friendship = self.get_object()
+        user_profile = request.user.profile
+
+        if friendship.receiver != user_profile:
+            return Response(
+                {"error": "You cannot accept a request that was not sent to you."}, 
+                status=status.HTTP_403_FORBIDDEN
+            )
         
+        if friendship.status != 'pending':
+            return Response(
+                {"error": f"This request is already {friendship.status}."}, 
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        success, message = accept_friend_request(pk, user_profile)
         if success:
             return Response({"message": message}, status=status.HTTP_200_OK)
         return Response({"error": message}, status=status.HTTP_400_BAD_REQUEST)
-
 
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny

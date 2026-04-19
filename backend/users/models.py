@@ -84,7 +84,7 @@ class Friendship(models.Model):
         verbose_name_plural = "Friendships"
 
     def __str__(self):
-        return f"{self.from_user} -> {self.to_user} ({self.status})"
+        return f"{self.sender} -> {self.receiver} ({self.status})"
 
 # Oauth
 class SocialAccount(models.Model):
