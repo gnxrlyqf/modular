@@ -11,6 +11,7 @@
 - [x] Friends / Social system (Followers/Requests)
 - [x] Password reset (forgot password flow)
 - [x] Email verification system (activate account flow)
+- [x] 2FA
 
 - [ ] logs (explain in discord)
 
@@ -18,11 +19,4 @@
 - [ ] Permissions/roles (admin vs normal user)
 - [ ] Rate limiting (stop API abuse)
 - [ ] Basic tests (pytest or DRF tests)
-- [ ] 2FA
-
-
-## now:
-friends
-script
-email and pswd
-the db change
+- [ ] Database change
