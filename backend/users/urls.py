@@ -1,50 +1,54 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    RegisterView, me, change_email, 
-    change_password, change_username, 
-    delete_account, logout, me_profile,
-    social_auth_callback,
-    UserSearchView, FriendshipViewSet,
-    ChangePasswordView, RequestPasswordResetView,
-    ActivateAccountView, LoginView, Login2FAVerifyView
+    UserRegisterView, 
+    UserActivateView,
+    UserLoginView,
+    UserLogin2FAVerifyView,
+    UserLogoutView,
+    UserOAuthCallbackView,
+    MeBasicView,
+    MeProfileView,
+    UserUpdateBioView,
+    UserChangeEmailView,
+    UserChangeUsernameView,
+    UserChangePasswordView,
+    UserRequestPasswordResetView,
+    UserDeleteAccountView,
+    UserSearchListView,
+    FriendshipViewSet,
+    ProfileViewSet
 )
 
+# 1. Router for ViewSets
+router = DefaultRouter()
+router.register(r'friendships', FriendshipViewSet, basename='friendship')
+router.register(r'profiles', ProfileViewSet, basename='profile')
+
 urlpatterns = [
-    # Account
-    path('register/', RegisterView.as_view()), 
-    path('me/', me),
+    # --- Authentication ---
+    path('register/', UserRegisterView.as_view(), name='register'),
+    path('activate/<uidb64>/<token>/', UserActivateView.as_view(), name='activate_account'),
+    path('login/', UserLoginView.as_view(), name='login'),
+    path('login/2fa-verify/', UserLogin2FAVerifyView.as_view(), name='2fa_login_verify'),
+    path('logout/', UserLogoutView.as_view(), name='logout'),
+    path('social-auth/', UserOAuthCallbackView.as_view(), name='social_auth_callback'),
 
-    # Email Verification
-    path('activate/<uidb64>/<token>/', ActivateAccountView.as_view(), name='activate_account'),
+    # --- Current User Data (Me) ---
+    path('me/', MeBasicView.as_view(), name='me_basic'),
+    path('profile/me/', MeProfileView.as_view(), name='me_profile'),
+    path('profile/update-bio/', UserUpdateBioView.as_view(), name='update_bio'),
 
-    # Settings endpoints
-    path('change-password/', change_password),
-    path('change-email/', change_email),
-    path('change-username/', change_username),
-    
-    # Account actions
-    path('delete/', delete_account),
-    path('logout/', logout),
-    
-    # Profile
-    path('profile/me/', me_profile),
+    # --- Account Settings ---
+    path('change-email/', UserChangeEmailView.as_view(), name='change_email'),
+    path('change-username/', UserChangeUsernameView.as_view(), name='change_username'),
+    path('change-password/', UserChangePasswordView.as_view(), name='change_password'),
+    path('password-reset/', UserRequestPasswordResetView.as_view(), name='password_reset_request'),
+    path('delete/', UserDeleteAccountView.as_view(), name='delete_account'),
 
-    # Search
-    path('search/', UserSearchView.as_view(), name='user-search'),
+    # --- Search ---
+    path('search/', UserSearchListView.as_view(), name='user_search'),
 
-    # Password change
-    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
-    path('password-reset/', RequestPasswordResetView.as_view(), name='password_reset_request'),
-
-    # Login
-    path('login/', LoginView.as_view(), name='login'),
-    path('login/2fa-verify/', Login2FAVerifyView.as_view(), name='2fa_login_verify'),
-]
-
-social_router = DefaultRouter()
-social_router.register(r'friendships', FriendshipViewSet, basename='friendship')
-urlpatterns += [
-    path('social/', include(social_router.urls)),
-    path('social-auth/', social_auth_callback, name='social_auth_callback'),
+    # --- Router Includes ---
+    path('social/', include(router.urls)),
 ]
