@@ -5,7 +5,8 @@ from .views import (
     change_password, change_username, 
     delete_account, logout, me_profile,
     social_auth_callback,
-    UserSearchView, FriendshipViewSet
+    UserSearchView, FriendshipViewSet,
+    ChangePasswordView, RequestPasswordResetView
 )
 
 urlpatterns = [
@@ -29,6 +30,10 @@ urlpatterns = [
 
     # Search
     path('search/', UserSearchView.as_view(), name='user-search'),
+
+    # Password change
+    path('change-password/', ChangePasswordView.as_view(), name='change_password'),
+    path('password-reset/', RequestPasswordResetView.as_view(), name='password_reset_request'),
 ]
 
 social_router = DefaultRouter()

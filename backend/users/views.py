@@ -6,7 +6,7 @@ from rest_framework.decorators import api_view, permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from drf_spectacular.utils import extend_schema, extend_schema_view
+from drf_spectacular.utils import extend_schema, extend_schema_view, OpenApiTypes
 
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.token_blacklist.models import BlacklistedToken, OutstandingToken
@@ -384,3 +384,59 @@ def social_auth_callback(request):
     
     tokens = get_tokens_for_user(user) 
     return Response(tokens)
+
+
+
+from rest_framework import status, permissions
+from django.contrib.auth.forms import PasswordResetForm
+
+# 1. CHANGE PASSWORD
+class ChangePasswordView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        request={"application/json": {"type": "object", "properties": {
+            "old_password": {"type": "string"},
+            "new_password": {"type": "string"}
+        }}},
+        responses={200: OpenApiTypes.OBJECT},
+        description="Change password for authenticated users."
+    )
+    def post(self, request):
+        user = request.user
+        old_password = request.data.get("old_password")
+        new_password = request.data.get("new_password")
+
+        if not user.check_password(old_password):
+            return Response({"error": "Old password incorrect"}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            validate_password(new_password, user)
+            user.set_password(new_password)
+            user.save()
+            return Response({"message": "Password updated successfully"}, status=status.HTTP_200_OK)
+        except Exception as e:
+            return Response({"error": list(e.messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+# 2. FORGOT PASSWORD REQUEST
+class RequestPasswordResetView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        request={"application/json": {"type": "object", "properties": {
+            "email": {"type": "string", "format": "email"}
+        }}},
+        responses={200: OpenApiTypes.OBJECT},
+        description="Send a password reset link to the console/email."
+    )
+    def post(self, request):
+        form = PasswordResetForm(request.data)
+        if form.is_valid():
+            form.save(
+                request=request,
+                use_https=False, 
+                email_template_name='registration/password_reset_email.html',
+                subject_template_name='registration/password_reset_subject.txt'
+            )
+            return Response({"message": "If this email exists, a reset link has been sent."}, status=status.HTTP_200_OK)
+        return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)

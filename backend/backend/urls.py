@@ -1,6 +1,7 @@
 from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from django.contrib.auth import views as auth_views
 from rest_framework_simplejwt.views import (
     TokenObtainPairView,
     TokenRefreshView,
@@ -35,5 +36,9 @@ urlpatterns = [
     # -------------------------
     # 5. LEGACY / HTML ROUTES
     # -------------------------
-    path('', include('projects.urls')), 
+    path('', include('projects.urls')),
+
+    # Password Reset
+    path('api/password-reset-confirm/<uidb64>/<token>/', auth_views.PasswordResetConfirmView.as_view(), 
+        name='password_reset_confirm'),
 ]
