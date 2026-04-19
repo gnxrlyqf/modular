@@ -28,6 +28,12 @@ User = get_user_model()
 class RegisterView(generics.CreateAPIView):
     queryset = User.objects.all()
     serializer_class = RegisterSerializer
+    permission_classes = [permissions.AllowAny]
+
+    def perform_create(self, serializer):
+        # We save the user as is_active=False so they can't log in yet
+        user = serializer.save(is_active=False)
+        send_activation_email(user, self.request)
 
 
 # -------------------------
@@ -446,3 +452,34 @@ class RequestPasswordResetView(APIView):
             )
             return Response({"message": "If this email exists, a reset link has been sent."}, status=status.HTTP_200_OK)
         return Response(form.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+from django.utils.http import urlsafe_base64_decode
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+
+class ActivateAccountView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        summary="Verify Email/Activate Account",
+        description="Verifies the uidb64 and token sent via email to activate the user account.",
+        parameters=[
+            OpenApiParameter(name='uidb64', type=str, location=OpenApiParameter.PATH),
+            OpenApiParameter(name='token', type=str, location=OpenApiParameter.PATH),
+        ],
+        responses={200: {"example": {"message": "Account activated!"}}, 
+                   400: {"example": {"error": "Invalid token"}}}
+    )
+    def get(self, request, uidb64, token):
+        try:
+            uid = urlsafe_base64_decode(uidb64).decode()
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            user = None
+
+        if user is not None and default_token_generator.check_token(user, token):
+            user.is_active = True
+            user.save()
+            return Response({"message": "Account activated successfully! You can now log in."}, status=status.HTTP_200_OK)
+        
+        return Response({"error": "Activation link is invalid or expired."}, status=status.HTTP_400_BAD_REQUEST)

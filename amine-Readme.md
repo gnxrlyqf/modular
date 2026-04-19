@@ -9,10 +9,10 @@
 
 - [x] 42, ggl and face Oauth
 - [x] Friends / Social system (Followers/Requests)
+- [x] Password reset (forgot password flow)
+- [x] Email verification system (activate account flow)
 
 - [ ] logs (explain in discord)
-- [ ] Email verification system (activate account flow)
-- [ ] Password reset (forgot password flow)
 
 - [ ] Input validation + error handling standardization
 - [ ] Permissions/roles (admin vs normal user)

@@ -10,11 +10,12 @@ from .views import (
 )
 
 urlpatterns = [
-    # This will be: /api/users/
+    # Account
     path('register/', RegisterView.as_view()), 
-    
-    # This will be: /api/users/me/
     path('me/', me),
+
+    # Email Verification
+    path('activate/<uidb64>/<token>/', ActivateAccountView.as_view(), name='activate_account'),
 
     # Settings endpoints
     path('change-password/', change_password),

@@ -138,3 +138,22 @@ class OAuthService:
             defaults={'user': user},
         )
         return user
+
+
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+
+def send_activation_email(user, request):
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    
+    # In production, this would point to your Vite URL (e.g., localhost:5173/activate/...)
+    # For now, we point to the Django backend to test the logic
+    activation_url = f"http://{request.get_host()}/api/users/activate/{uid}/{token}/"
+    
+    subject = "Activate your Transcendence Account"
+    message = f"Hello {user.username},\n\nPlease click the link below to verify your email:\n{activation_url}"
+    
+    send_mail(subject, message, 'noreply@transcendence.com', [user.email])
