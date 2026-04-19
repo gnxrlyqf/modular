@@ -483,3 +483,145 @@ class ActivateAccountView(APIView):
             return Response({"message": "Account activated successfully! You can now log in."}, status=status.HTTP_200_OK)
         
         return Response({"error": "Activation link is invalid or expired."}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class Enable2FAView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        summary="Generate 2FA Secret",
+        description="Returns a secret and a provisioning URI for a QR code."
+    )
+    def post(self, request):
+        profile = request.user.profile
+        if not profile.two_factor_secret:
+            profile.two_factor_secret = generate_totp_secret()
+            profile.save()
+        
+        uri = get_totp_uri(request.user.email, profile.two_factor_secret)
+        return Response({
+            "secret": profile.two_factor_secret,
+            "qr_uri": uri
+        })
+
+class Verify2FAView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    @extend_schema(
+        summary="Verify and Enable 2FA",
+        request={"application/json": {"type": "object", "properties": {"code": {"type": "string"}}}},
+        responses={200: {"example": {"message": "2FA Enabled"}}}
+    )
+    def post(self, request):
+        code = request.data.get("code")
+        profile = request.user.profile
+        
+        if verify_totp_code(profile.two_factor_secret, code):
+            profile.two_factor_enabled = True
+            profile.save()
+            return Response({"message": "2FA has been enabled successfully!"})
+        
+        return Response({"error": "Invalid verification code."}, status=status.HTTP_400_BAD_REQUEST)
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+class LoginView(TokenObtainPairView):
+    def post(self, request, *args, **kwargs):
+        response = super().post(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            user = User.objects.get(username=request.data[User.USERNAME_FIELD])
+            profile = user.profile
+            
+            # If 2FA is on, don't give the tokens yet!
+            if profile.two_factor_enabled:
+                return Response({
+                    "requires_2fa": True,
+                    "user_id": user.id,
+                    "message": "2FA code required to complete login."
+                }, status=status.HTTP_200_OK)
+                
+        return response
+
+from rest_framework_simplejwt.views import TokenObtainPairView
+from drf_spectacular.utils import extend_schema, inline_serializer
+from rest_framework import serializers, status
+from rest_framework.response import Response
+
+class LoginView(TokenObtainPairView):
+    @extend_schema(
+        summary="Initial Login",
+        description="Standard login. Returns JWT tokens OR a 'requires_2fa' flag.",
+        responses={
+            200: inline_serializer(
+                name='LoginResponse',
+                fields={
+                    'access': serializers.CharField(required=False),
+                    'refresh': serializers.CharField(required=False),
+                    'requires_2fa': serializers.BooleanField(required=False),
+                    'user_id': serializers.IntegerField(required=False),
+                }
+            )
+        }
+    )
+    def post(self, request, *args, **kwargs):
+        # We use the default serializer to validate credentials
+        response = super().post(request, *args, **kwargs)
+        
+        if response.status_code == 200:
+            user = User.objects.get(username=request.data.get('username'))
+            profile = user.profile
+            
+            if profile.two_factor_enabled:
+                # Intercept the response and don't send tokens
+                return Response({
+                    "requires_2fa": True,
+                    "user_id": user.id,
+                    "message": "2FA code required."
+                }, status=status.HTTP_200_OK)
+                
+        return response
+
+class Login2FAVerifyView(APIView):
+    permission_classes = [permissions.AllowAny]
+
+    @extend_schema(
+        summary="Complete 2FA Login",
+        description="Verify the TOTP code from the app and receive JWT tokens.",
+        request=inline_serializer(
+            name='TwoFactorVerifyRequest',
+            fields={
+                'user_id': serializers.IntegerField(),
+                'code': serializers.CharField(),
+            }
+        ),
+        responses={
+            200: inline_serializer(
+                name='JWTResponse',
+                fields={
+                    'access': serializers.CharField(),
+                    'refresh': serializers.CharField(),
+                }
+            ),
+            401: OpenApiTypes.OBJECT
+        })
+    def post(self, request):
+        user_id = request.data.get("user_id")
+        code = request.data.get("code")
+        
+        try:
+            user = User.objects.get(id=user_id)
+            profile = user.profile
+        except (User.DoesNotExist, AttributeError):
+            return Response({"error": "Invalid request."}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Verify using the service function you already have
+        from .services import verify_totp_code
+        if verify_totp_code(profile.two_factor_secret, code):
+            refresh = RefreshToken.for_user(user)
+            return Response({
+                'refresh': str(refresh),
+                'access': str(refresh.access_token),
+            })
+        
+        return Response({"error": "Invalid 2FA code."}, status=status.HTTP_401_UNAUTHORIZED)

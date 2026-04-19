@@ -2,8 +2,15 @@ import os
 import requests
 from django.contrib.auth import get_user_model
 from django.db import transaction
-from .models import SocialAccount
-from .models import Friendship
+from .models import SocialAccount, Friendship
+
+from django.core.mail import send_mail
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
+from django.contrib.auth.tokens import default_token_generator
+
+import pyotp
+
 User = get_user_model()
 
 def calculate_level_from_xp(xp):
@@ -140,11 +147,6 @@ class OAuthService:
         return user
 
 
-from django.core.mail import send_mail
-from django.utils.http import urlsafe_base64_encode
-from django.utils.encoding import force_bytes
-from django.contrib.auth.tokens import default_token_generator
-
 def send_activation_email(user, request):
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
@@ -157,3 +159,18 @@ def send_activation_email(user, request):
     message = f"Hello {user.username},\n\nPlease click the link below to verify your email:\n{activation_url}"
     
     send_mail(subject, message, 'noreply@transcendence.com', [user.email])
+
+
+def generate_totp_secret():
+    return pyotp.random_base32()
+
+def get_totp_uri(user_email, secret):
+    # This creates the URI that the QR code will represent
+    return pyotp.totp.TOTP(secret).provisioning_uri(
+        name=user_email, 
+        issuer_name="Trandandan"
+    )
+
+def verify_totp_code(secret, code):
+    totp = pyotp.totp.TOTP(secret)
+    return totp.verify(code)

@@ -7,7 +7,7 @@ from .views import (
     social_auth_callback,
     UserSearchView, FriendshipViewSet,
     ChangePasswordView, RequestPasswordResetView,
-    ActivateAccountView
+    ActivateAccountView, LoginView, Login2FAVerifyView
 )
 
 urlpatterns = [
@@ -36,6 +36,10 @@ urlpatterns = [
     # Password change
     path('change-password/', ChangePasswordView.as_view(), name='change_password'),
     path('password-reset/', RequestPasswordResetView.as_view(), name='password_reset_request'),
+
+    # Login
+    path('login/', LoginView.as_view(), name='login'),
+    path('login/2fa-verify/', Login2FAVerifyView.as_view(), name='2fa_login_verify'),
 ]
 
 social_router = DefaultRouter()

@@ -2,11 +2,12 @@ Django>=5.0,<6.0
 djangorestframework>=3.15
 djangorestframework-simplejwt>=5.3
 
-psycopg2-binary>=2.9   # only if you're using PostgreSQL
+psycopg2-binary>=2.9
 python-dotenv>=1.0
 django-cors-headers
-Pillow>=10.0           # only if you use image/avatar uploads
+Pillow>=10.0           # for image/avatar uploads
 drf-spectacular
 django-prometheus
 requests
 gunicorn>=22.0
+pyotp
