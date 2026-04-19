@@ -33,6 +33,9 @@ class Profile(models.Model):
     xp = models.PositiveBigIntegerField(default=0)
     level = models.PositiveIntegerField(default=1)
 
+    two_factor_enabled = models.BooleanField(default=False)
+    two_factor_secret = models.CharField(max_length=32, blank=True, null=True)
+
     def_settings = models.JSONField(
         default=get_default_synth_settings,
         help_text="Custom UI and Synth preferences stored as JSON."

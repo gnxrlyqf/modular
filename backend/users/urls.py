@@ -6,7 +6,8 @@ from .views import (
     delete_account, logout, me_profile,
     social_auth_callback,
     UserSearchView, FriendshipViewSet,
-    ChangePasswordView, RequestPasswordResetView
+    ChangePasswordView, RequestPasswordResetView,
+    ActivateAccountView
 )
 
 urlpatterns = [
