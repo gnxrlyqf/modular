@@ -1,7 +1,7 @@
 from django.urls import path, include
 from rest_framework.routers import DefaultRouter
 from .views import (
-    UserRegisterView, 
+    UserRegisterView,
     UserActivateView,
     UserLoginView,
     UserLogin2FAVerifyView,
@@ -14,10 +14,18 @@ from .views import (
     UserChangeUsernameView,
     UserChangePasswordView,
     UserRequestPasswordResetView,
+    UserPasswordResetConfirmView,
     UserDeleteAccountView,
+    UserEnable2FAView,
+    UserVerify2FAView,
     UserSearchListView,
     FriendshipViewSet,
-    ProfileViewSet
+    ProfileViewSet,
+    UserAdminCheckView,
+    UserAdminListView,
+    UserAdminDeleteView,
+    UserAdminLogsView,
+    UserAdminAllLogsView,
 )
 
 # 1. Router for ViewSets
@@ -44,10 +52,22 @@ urlpatterns = [
     path('change-username/', UserChangeUsernameView.as_view(), name='change_username'),
     path('change-password/', UserChangePasswordView.as_view(), name='change_password'),
     path('password-reset/', UserRequestPasswordResetView.as_view(), name='password_reset_request'),
+    path('password-reset-confirm/', UserPasswordResetConfirmView.as_view(), name='password_reset_confirm_json'),
     path('delete/', UserDeleteAccountView.as_view(), name='delete_account'),
+
+    # --- 2FA Management ---
+    path('2fa/enable/', UserEnable2FAView.as_view(), name='enable_2fa'),
+    path('2fa/verify/', UserVerify2FAView.as_view(), name='verify_2fa'),
 
     # --- Search ---
     path('search/', UserSearchListView.as_view(), name='user_search'),
+
+    # --- Admin (env-driven) ---
+    path('admin/check/', UserAdminCheckView.as_view(), name='admin_check'),
+    path('admin/users/', UserAdminListView.as_view(), name='admin_users_list'),
+    path('admin/users/<int:user_id>/', UserAdminDeleteView.as_view(), name='admin_user_delete'),
+    path('admin/users/<int:user_id>/logs/', UserAdminLogsView.as_view(), name='admin_user_logs'),
+    path('admin/logs/', UserAdminAllLogsView.as_view(), name='admin_all_logs'),
 
     # --- Router Includes ---
     path('social/', include(router.urls)),

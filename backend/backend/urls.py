@@ -2,10 +2,8 @@ from django.contrib import admin
 from django.urls import path, include
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from django.contrib.auth import views as auth_views
-from rest_framework_simplejwt.views import (
-    TokenObtainPairView,
-    TokenRefreshView,
-)
+from rest_framework_simplejwt.views import TokenObtainPairView
+from users.endpoints.token import SafeTokenRefreshView
 
 urlpatterns = [
     # -------------------------
@@ -18,7 +16,7 @@ urlpatterns = [
     # 2. AUTHENTICATION (JWT)
     # -------------------------
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/token/refresh/', SafeTokenRefreshView.as_view(), name='token_refresh'),
 
     # -------------------------
     # 3. CORE API ENDPOINTS

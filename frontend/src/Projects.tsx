@@ -184,14 +184,14 @@ function Filters(props: {onDateSort?: () => void; onNameSort?: () => void}) {
 
 function Search(props: { value: string; onChange: (value: string) => void }) {
   return (
-    <div className="relative ml-auto mr-3">
+    <div className="relative sm:ml-auto mr-3 flex-1 sm:flex-none sm:max-w-xs">
       <Input
         placeholder="Search…"
         name="search"
         type="search"
         value={props.value}
         onChange={(event) => props.onChange(event.target.value)}
-        className="w-32 focus:w-48 hover:w-48 transition-[width] pr-8"
+        className="w-full sm:w-32 sm:focus:w-48 sm:hover:w-48 transition-[width] pr-8"
       />
       <svg
         className="size-4 absolute top-1/2 -translate-y-1/2 right-2.5 text-indigo-300/30 pointer-events-none"
@@ -322,6 +322,7 @@ function Projects(props: {user?: string}) {
   const [totalCount, setTotalCount] = useState(0);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [renameModal, setRenameModal] = useState<{ id: string; currentName: string } | null>(null);
+  const [refetchTick, setRefetchTick] = useState(0);
 
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const PAGE_SIZE = 9;
@@ -352,8 +353,11 @@ function Projects(props: {user?: string}) {
     setPage(1);
   };
 
+  const isCommunity = !props.user;
+
   // Fetch projects from real API
   useEffect(() => {
+    let cancelled = false;
     const fetchProjects = async () => {
       setLoading(true);
       setError(null);
@@ -364,26 +368,37 @@ function Projects(props: {user?: string}) {
         if (ordering) params.set('ordering', ordering);
         params.set('page', String(page));
 
-        const response = await authFetch(`/api/search/?${params.toString()}`);
+        const endpoint = isCommunity ? '/api/community/' : '/api/search/';
+        const response = await authFetch(`${endpoint}?${params.toString()}`);
 
         if (!response.ok) {
-          throw new Error('Could not fetch projects.');
+          const msg = await extractErrorMessage(response, 'Failed to load projects.');
+          throw new Error(msg);
         }
 
         const data: PaginatedResponse = await response.json();
+        if (cancelled) return;
         setCards(data.results);
         setTotalCount(data.count);
-      } catch {
-        logger.error('project.fetch_error', { search: debouncedSearch, page });
+      } catch (err) {
+        if (cancelled) return;
+        const msg = err instanceof Error ? err.message : 'Failed to load projects.';
+        logger.error('project.fetch_error', { search: debouncedSearch, page, msg });
         setCards([]);
-        setError('Failed to load projects.');
+        setError(msg);
       } finally {
-        setLoading(false);
+        if (!cancelled) setLoading(false);
       }
     };
 
     fetchProjects();
-  }, [debouncedSearch, ordering, page]);
+    return () => { cancelled = true; };
+  }, [debouncedSearch, ordering, page, isCommunity, refetchTick]);
+
+  const retry = () => {
+    setError(null);
+    setRefetchTick((t) => t + 1);
+  };
 
   const handleCreate = async (name: string) => {
     const response = await authFetch('/api/projects/', {
@@ -441,19 +456,32 @@ function Projects(props: {user?: string}) {
           Community Projects
         </p>
       )}
-      <div className="flex flex-row my-2 items-center">
+      <div className="flex flex-col sm:flex-row gap-2 my-2 sm:items-center">
         <Filters onDateSort={handleDateSort} onNameSort={handleNameSort} />
         <Search value={searchQuery} onChange={handleSearchChange} />
-        <div className="mr-3">
+        <div className="mr-3 sm:ml-0 ml-3">
           <NewButton onClick={() => setCreateModalOpen(true)} />
         </div>
       </div>
       <div className="mx-3 mb-3">
-        <div className="grid grid-cols-3 gap-3">
-          {loading && <p className="col-span-3 text-indigo-300/40 py-8 text-center text-sm font-light">Loading projects…</p>}
-          {!loading && error && <p className="col-span-3 text-red-300/60 py-8 text-center text-sm">{error}</p>}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          {loading && <p className="col-span-full text-indigo-300/40 py-8 text-center text-sm font-light">Loading projects…</p>}
+          {!loading && error && (
+            <div className="col-span-full py-8 text-center space-y-3">
+              <p className="text-red-300/80 text-sm">{error}</p>
+              <button
+                type="button"
+                onClick={retry}
+                className="glass glass-hover rounded-lg px-4 py-1.5 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer"
+              >
+                Retry
+              </button>
+            </div>
+          )}
           {!loading && !error && cards.length === 0 && (
-            <p className="col-span-3 text-indigo-300/40 py-8 text-center text-sm font-light">No projects found.</p>
+            <p className="col-span-full text-indigo-300/40 py-8 text-center text-sm font-light">
+              {isCommunity ? 'No community projects yet.' : 'No projects found.'}
+            </p>
           )}
           {!loading && !error && cards.map((card, index) => (
             <Card
@@ -542,7 +570,7 @@ function ProjectsContainer(props: {func?: (value: boolean) => void}) {
           threshold={0.1}
           delay={.1}
         >
-          <div className="font-lexend overlay-panel rounded-2xl z-50 max-w-200 mx-auto">
+          <div className="font-lexend overlay-panel rounded-2xl z-50 w-full max-w-[60rem] mx-3 sm:mx-auto">
             <div className="flex justify-end px-4 pt-4 pb-0">
               <CloseButton onClick={() => setVisible(false)} />
             </div>

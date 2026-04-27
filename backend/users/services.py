@@ -1,5 +1,7 @@
 import os
+import logging
 import requests
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from .models import SocialAccount, Friendship
@@ -10,6 +12,8 @@ from django.utils.encoding import force_bytes
 from django.contrib.auth.tokens import default_token_generator
 
 import pyotp
+
+logger = logging.getLogger('backend')
 
 User = get_user_model()
 
@@ -63,19 +67,28 @@ class OAuthService:
         redirect_uri = os.environ.get("FORTYTWO_REDIRECT_URI")
         if not (client_id and client_secret and redirect_uri):
             return None
-        resp = requests.post("https://api.intra.42.fr/oauth/token", data={
-            "grant_type": "authorization_code",
-            "client_id": client_id,
-            "client_secret": client_secret,
-            "code": code,
-            "redirect_uri": redirect_uri,
-        })
+        try:
+            resp = requests.post("https://api.intra.42.fr/oauth/token", data={
+                "grant_type": "authorization_code",
+                "client_id": client_id,
+                "client_secret": client_secret,
+                "code": code,
+                "redirect_uri": redirect_uri,
+            }, timeout=10)
+        except requests.RequestException:
+            return None
         return resp.json().get("access_token") if resp.status_code == 200 else None
 
     @staticmethod
     def get_42_data(token):
-        resp = requests.get("https://api.intra.42.fr/v2/me", 
-                            headers={"Authorization": f"Bearer {token}"})
+        try:
+            resp = requests.get(
+                "https://api.intra.42.fr/v2/me",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=10,
+            )
+        except requests.RequestException:
+            return None
         if resp.status_code != 200:
             return None
         data = resp.json()
@@ -88,8 +101,14 @@ class OAuthService:
 
     @staticmethod
     def get_google_data(token):
-        resp = requests.get("https://www.googleapis.com/oauth2/v3/userinfo", 
-                            headers={"Authorization": f"Bearer {token}"})
+        try:
+            resp = requests.get(
+                "https://www.googleapis.com/oauth2/v3/userinfo",
+                headers={"Authorization": f"Bearer {token}"},
+                timeout=10,
+            )
+        except requests.RequestException:
+            return None
         if resp.status_code != 200:
             return None
         data = resp.json()
@@ -104,7 +123,10 @@ class OAuthService:
     def get_facebook_data(token):
         # We request specific fields from the Graph API
         url = f"https://graph.facebook.com/me?fields=id,name,email,picture&access_token={token}"
-        resp = requests.get(url)
+        try:
+            resp = requests.get(url, timeout=10)
+        except requests.RequestException:
+            return None
         if resp.status_code != 200:
             return None
         data = resp.json()
@@ -148,17 +170,46 @@ class OAuthService:
 
 
 def send_activation_email(user, request):
+    from urllib.parse import urlparse
+
     uid = urlsafe_base64_encode(force_bytes(user.pk))
     token = default_token_generator.make_token(user)
-    
-    # In production, this would point to your Vite URL (e.g., localhost:5173/activate/...)
-    # For now, we point to the Django backend to test the logic
-    activation_url = f"http://{request.get_host()}/api/users/activate/{uid}/{token}/"
-    
+
+    frontend_base = (
+        os.environ.get('FRONTEND_URL')
+        or request.META.get('HTTP_REFERER', '').rstrip('/')
+        or 'http://localhost:5173'
+    )
+    if frontend_base.startswith('http'):
+        parsed = urlparse(frontend_base)
+        frontend_base = f"{parsed.scheme}://{parsed.netloc}"
+
+    activation_url = f"{frontend_base}/api/users/activate/{uid}/{token}/"
+
+    # Always print *just* the link (one line) so dev console stays clean.
+    print(f"[activation] {user.username} <{user.email}>: {activation_url}", flush=True)
+
+    backend = getattr(settings, 'EMAIL_BACKEND', '')
+    is_smtp = 'smtp' in backend.lower()
+
+    # In console mode, the link is already on stdout — skip send_mail to avoid the
+    # full RFC822 dump that the console backend emits.
+    if not is_smtp:
+        return
+
     subject = "Activate your Transcendence Account"
-    message = f"Hello {user.username},\n\nPlease click the link below to verify your email:\n{activation_url}"
-    
-    send_mail(subject, message, 'noreply@transcendence.com', [user.email])
+    message = (
+        f"Hello {user.username},\n\n"
+        f"Please click the link below to verify your email:\n{activation_url}\n"
+    )
+    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or 'noreply@transcendence.com'
+
+    try:
+        send_mail(subject, message, from_email, [user.email], fail_silently=False)
+        logger.info("Activation email sent to %s", user.email)
+    except Exception as e:
+        # Never break registration on a mail-server hiccup — the link is on stdout.
+        logger.error("send_mail failed for %s: %s — link printed above", user.email, e)
 
 
 def generate_totp_secret():

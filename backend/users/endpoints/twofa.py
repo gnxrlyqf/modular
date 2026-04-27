@@ -1,10 +1,15 @@
+import os
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.contrib.auth.tokens import default_token_generator
+from django.shortcuts import redirect
 from django.utils.http import urlsafe_base64_decode
 
 from rest_framework import status, permissions, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework.throttling import ScopedRateThrottle
 
 from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
@@ -44,12 +49,17 @@ class ActivateAccountView(APIView):
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             user = None
 
+        frontend_base = (
+            os.environ.get('FRONTEND_URL')
+            or 'http://localhost:5173'
+        ).rstrip('/')
+
         if user is not None and default_token_generator.check_token(user, token):
             user.is_active = True
             user.save()
-            return Response({"message": "Account activated successfully! You can now log in."}, status=status.HTTP_200_OK)
-        
-        return Response({"error": "Activation link is invalid or expired."}, status=status.HTTP_400_BAD_REQUEST)
+            return redirect(f"{frontend_base}/?verified=1")
+
+        return redirect(f"{frontend_base}/?verified=0")
 
 
 # --- 2FA SETUP ---
@@ -99,6 +109,9 @@ class Verify2FAView(APIView):
 # --- LOGIN & 2FA ENFORCEMENT ---
 
 class LoginView(TokenObtainPairView):
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
+
     @extend_schema(
         summary="Initial Login",
         description="Standard login. Returns JWT tokens OR a 'requires_2fa' flag.",
@@ -132,6 +145,8 @@ class LoginView(TokenObtainPairView):
 
 class Login2FAVerifyView(APIView):
     permission_classes = [permissions.AllowAny]
+    throttle_classes = [ScopedRateThrottle]
+    throttle_scope = 'login'
 
     @extend_schema(
         summary="Complete 2FA Login",

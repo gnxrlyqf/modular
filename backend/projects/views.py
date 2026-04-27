@@ -105,3 +105,19 @@ class UserProjectSearchView(generics.ListAPIView):
     def get_queryset(self):
         # This is the crucial part: it restricts the search to ONLY their projects
         return Project.objects.filter(user=self.request.user)
+
+
+@extend_schema(
+    summary="List all community projects (every user)",
+    description="Lists every project across all users. Paginated, supports search and ordering."
+)
+class CommunityProjectSearchView(generics.ListAPIView):
+    serializer_class = ProjectSerializer
+    pagination_class = ProjectSearchPagination
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+
+    search_fields = ['id', 'name']
+    ordering_fields = ['created_at', 'updated_at', 'name']
+    ordering = ['-created_at']
+    queryset = Project.objects.all()

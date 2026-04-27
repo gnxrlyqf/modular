@@ -11,7 +11,7 @@ from .endpoints.twofa import (
 )
 from .endpoints.users_view import UserSearchView, UpdateBioView
 from .endpoints.change_email import change_email
-from .endpoints.change_password import ChangePasswordView, RequestPasswordResetView
+from .endpoints.change_password import ChangePasswordView, RequestPasswordResetView, PasswordResetConfirmJSONView
 from .endpoints.change_username import change_username
 from .endpoints.delete_account import delete_account
 from .endpoints.friends import FriendshipViewSet
@@ -20,6 +20,13 @@ from .endpoints.me import me
 from .endpoints.profile import me_profile, ProfileViewSet
 from .endpoints.oauth import social_auth_callback
 from .endpoints.register import RegisterView
+from .endpoints.admin import (
+    AdminCheckView,
+    AdminUserListView,
+    AdminUserDeleteView,
+    AdminUserLogsView,
+    AdminAllLogsView,
+)
 
 # --- 2. AUTHENTICATION & REGISTRATION ---
 
@@ -78,6 +85,9 @@ class UserChangePasswordView(ChangePasswordView):
 class UserRequestPasswordResetView(RequestPasswordResetView):
     pass
 
+class UserPasswordResetConfirmView(PasswordResetConfirmJSONView):
+    pass
+
 class UserDeleteAccountView(APIView):
     permission_classes = [permissions.IsAuthenticated]
     def delete(self, request):
@@ -96,5 +106,22 @@ class UserVerify2FAView(Verify2FAView):
 class UserSearchListView(UserSearchView):
     pass
 
-# Note: FriendshipViewSet and ProfileViewSet should be used 
+# Note: FriendshipViewSet and ProfileViewSet should be used
 # directly in your urls.py with a DRF Router.
+
+# --- 6. ADMIN ---
+
+class UserAdminCheckView(AdminCheckView):
+    pass
+
+class UserAdminListView(AdminUserListView):
+    pass
+
+class UserAdminDeleteView(AdminUserDeleteView):
+    pass
+
+class UserAdminLogsView(AdminUserLogsView):
+    pass
+
+class UserAdminAllLogsView(AdminAllLogsView):
+    pass

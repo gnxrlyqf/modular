@@ -67,15 +67,54 @@ function sendInternalLog(level: string, message: string, token: string | null) {
   }).catch(() => {});
 }
 
-/** Extract a human-readable error message from a DRF error response body. */
+type ErrorEnvelope = {
+  error?: {
+    code?: string;
+    message?: string;
+    details?: Record<string, unknown>;
+  };
+  detail?: unknown;
+  message?: unknown;
+};
+
+function firstStringFromDetails(details: unknown): string | null {
+  if (!details) return null;
+  if (typeof details === 'string') return details;
+  if (Array.isArray(details)) {
+    for (const v of details) {
+      const s = firstStringFromDetails(v);
+      if (s) return s;
+    }
+    return null;
+  }
+  if (typeof details === 'object') {
+    for (const v of Object.values(details as Record<string, unknown>)) {
+      const s = firstStringFromDetails(v);
+      if (s) return s;
+    }
+  }
+  return null;
+}
+
+/** Extract a human-readable error message from an API error response. */
 export async function extractErrorMessage(response: Response, fallback: string): Promise<string> {
   try {
-    const data = await response.json();
-    const msg = data?.detail ?? data?.error ?? data?.message;
-    if (typeof msg === 'string' && msg.trim()) return msg;
-    // Handle field-level errors like { username: ["This field is required."] }
-    const firstField = Object.values(data ?? {})[0];
-    if (Array.isArray(firstField) && typeof firstField[0] === 'string') return firstField[0];
+    const data: ErrorEnvelope | Record<string, unknown> = await response.json();
+
+    if (data && typeof data === 'object' && 'error' in data && data.error && typeof data.error === 'object') {
+      const env = (data as ErrorEnvelope).error!;
+      const msgFromDetails = firstStringFromDetails(env.details);
+      if (msgFromDetails) return msgFromDetails;
+      if (typeof env.message === 'string' && env.message.trim()) return env.message;
+    }
+
+    const flat = data as Record<string, unknown>;
+    const direct = flat.detail ?? flat.message;
+    if (typeof direct === 'string' && direct.trim()) return direct;
+
+    const firstField = Object.values(flat)[0];
+    if (Array.isArray(firstField) && typeof firstField[0] === 'string') return firstField[0] as string;
+    if (typeof firstField === 'string') return firstField;
   } catch {
     // ignore parse errors
   }

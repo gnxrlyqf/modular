@@ -8,7 +8,10 @@ class OAuthHandler:
     def get_42_user_data(access_token):
         url = "https://api.intra.42.fr/v2/me"
         headers = {"Authorization": f"Bearer {access_token}"}
-        response = requests.get(url, headers=headers)
+        try:
+            response = requests.get(url, headers=headers, timeout=10)
+        except requests.RequestException:
+            return None
         return response.json() if response.status_code == 200 else None
 
     @staticmethod
@@ -28,20 +31,26 @@ from .models import SocialAccount
 
 def process_42_auth(code):
     # Trade the 'code' from frontend for an 'access_token'
-    token_resp = requests.post("https://api.intra.42.fr/oauth/token", data={
-        "grant_type": "authorization_code",
-        "client_id": "YOUR_42_UID",
-        "client_secret": "YOUR_42_SECRET",
-        "code": code,
-        "redirect_uri": "http://localhost:3000/auth/callback" # Must match Intra
-    })
+    try:
+        token_resp = requests.post("https://api.intra.42.fr/oauth/token", data={
+            "grant_type": "authorization_code",
+            "client_id": "YOUR_42_UID",
+            "client_secret": "YOUR_42_SECRET",
+            "code": code,
+            "redirect_uri": "http://localhost:3000/auth/callback" # Must match Intra
+        }, timeout=10)
+    except requests.RequestException:
+        return None
     token_data = token_resp.json()
     access_token = token_data.get("access_token")
 
     # Use token to get user info from 42
-    user_resp = requests.get("https://api.intra.42.fr/v2/me", headers={
-        "Authorization": f"Bearer {access_token}"
-    })
+    try:
+        user_resp = requests.get("https://api.intra.42.fr/v2/me", headers={
+            "Authorization": f"Bearer {access_token}"
+        }, timeout=10)
+    except requests.RequestException:
+        return None
     u_data = user_resp.json()
 
     # Handle YOUR Custom User

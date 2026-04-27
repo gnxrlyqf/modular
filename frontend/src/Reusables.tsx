@@ -1,20 +1,28 @@
 import React from "react";
+import type { XyloNote } from "./Xylophone";
 
-function Anchor(props : {text?: React.ReactNode}) {
+function Anchor(props : {text?: React.ReactNode; note?: XyloNote; href?: string; onClick?: () => void}) {
+    const note = props.note ?? "E4";
     return (
         <a
-            className="inline-flex items-center gap-2 font-lexend leading-6 text-indigo-300/80 hover:text-white cursor-pointer rounded-lg px-4 py-1.5 text-sm font-medium tracking-wide duration-200 ease-out hover:scale-105 glass glass-hover glow-indigo"
+            href={props.href}
+            onClick={props.onClick}
+            data-xylo-note={note}
+            tabIndex={0}
+            className={`xylo-note xylo-note--${note.toLowerCase()} font-lexend`}
         >
             {props.text}
         </a>
     )
 }
 
-function Button(props : {text?: React.ReactNode; func?: (value: boolean) => void}) {
+function Button(props : {text?: React.ReactNode; func?: (value: boolean) => void; note?: XyloNote}) {
+    const note = props.note ?? "G4";
     return (
         <button type="button"
             onClick={() => {props.func && props.func(true)}}
-            className="inline-flex items-center gap-2 font-lexend leading-6 text-indigo-300/80 hover:text-white cursor-pointer rounded-lg px-4 py-1.5 text-sm font-medium tracking-wide duration-200 ease-out hover:scale-105 glass glass-hover glow-indigo"
+            data-xylo-note={note}
+            className={`xylo-note xylo-note--${note.toLowerCase()} font-lexend`}
         >
             {props.text}
         </button>
@@ -28,6 +36,7 @@ function Input(props: React.InputHTMLAttributes<HTMLInputElement>) {
       <input
             {...inputProps}
             className={`
+                w-full block box-border h-12
                 px-4 py-3 rounded-lg outline-none font-lexend text-base
                 bg-white/5 text-indigo-100
                 border border-white/10

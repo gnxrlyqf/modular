@@ -3,6 +3,7 @@ from rest_framework.decorators import permission_classes, action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, extend_schema_view
+from django.db import models
 
 from ..models import Friendship, Profile
 from ..serializers import FriendshipSerializer

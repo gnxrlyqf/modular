@@ -1,13 +1,14 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { AnimatedContent } from './ReactBits/ReactBits';
 import { Input, CloseButton } from './Reusables';
-import { authFetch } from './api';
+import { authFetch, extractErrorMessage } from './api';
 import logger from './logger';
 
 type ApiUser = {
   id: number;
   username: string;
   email: string;
+  profile_id: number | null;
 };
 
 type PaginatedResponse = {
@@ -15,6 +16,21 @@ type PaginatedResponse = {
   next: string | null;
   previous: string | null;
   results: ApiUser[];
+};
+
+type FriendshipStatus = 'pending' | 'accepted' | 'blocked';
+
+type Friendship = {
+  id: number;
+  sender: number;
+  receiver: number;
+  status: FriendshipStatus;
+};
+
+type RelationKind = 'none' | 'pending_out' | 'pending_in' | 'friends';
+type Relation = {
+  kind: RelationKind;
+  friendshipId?: number;
 };
 
 // ─── Search Input ─────────────────────────────────────────────────────────────
@@ -43,13 +59,81 @@ function Search(props: { value: string; onChange: (value: string) => void }) {
   );
 }
 
+// ─── Action Button ────────────────────────────────────────────────────────────
+
+function ActionButton(props: {
+  relation: Relation;
+  busy: boolean;
+  onAdd: () => void;
+  onAccept: () => void;
+  onCancel: () => void;
+  onRemove: () => void;
+}) {
+  const base = "rounded-lg px-3 py-1 text-xs font-medium tracking-wide cursor-pointer transition-all duration-150 disabled:opacity-50";
+  if (props.busy) {
+    return <button disabled className={`${base} bg-indigo-500/10 text-indigo-300/50 border border-indigo-400/15`}>…</button>;
+  }
+  switch (props.relation.kind) {
+    case 'none':
+      return (
+        <button
+          type="button"
+          onClick={props.onAdd}
+          className={`${base} bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 text-indigo-200 hover:text-white`}
+        >
+          Add Friend
+        </button>
+      );
+    case 'pending_out':
+      return (
+        <button
+          type="button"
+          onClick={props.onCancel}
+          title="Click to cancel"
+          className={`${base} bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-400/30 text-yellow-200`}
+        >
+          Pending
+        </button>
+      );
+    case 'pending_in':
+      return (
+        <button
+          type="button"
+          onClick={props.onAccept}
+          className={`${base} bg-green-500/15 hover:bg-green-500/25 border border-green-400/30 text-green-200 hover:text-white`}
+        >
+          Accept
+        </button>
+      );
+    case 'friends':
+      return (
+        <button
+          type="button"
+          onClick={props.onRemove}
+          className={`${base} bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-red-200`}
+        >
+          Remove
+        </button>
+      );
+  }
+}
+
 // ─── User Row ─────────────────────────────────────────────────────────────────
 
-function UserRow(props: { user: ApiUser }) {
+function UserRow(props: {
+  user: ApiUser;
+  relation: Relation;
+  busy: boolean;
+  onAdd: (user: ApiUser) => void;
+  onAccept: (relation: Relation) => void;
+  onCancel: (relation: Relation) => void;
+  onRemove: (relation: Relation) => void;
+  isSelf: boolean;
+}) {
   const initials = props.user.username.slice(0, 2).toUpperCase();
 
   return (
-    <div className="user-row flex items-center gap-3 px-3 py-2.5 cursor-default">
+    <div className="user-row flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5">
       <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 border border-indigo-400/20 text-xs font-semibold text-indigo-200 tracking-wide">
         {initials}
       </div>
@@ -57,6 +141,20 @@ function UserRow(props: { user: ApiUser }) {
         <p className="truncate text-sm font-medium text-indigo-100">{props.user.username}</p>
         <p className="truncate text-xs text-indigo-300/40">{props.user.email}</p>
       </div>
+      {props.isSelf ? (
+        <span className="text-xs text-indigo-300/40 italic">you</span>
+      ) : props.user.profile_id == null ? (
+        <span className="text-xs text-indigo-300/30 italic">no profile</span>
+      ) : (
+        <ActionButton
+          relation={props.relation}
+          busy={props.busy}
+          onAdd={() => props.onAdd(props.user)}
+          onAccept={() => props.onAccept(props.relation)}
+          onCancel={() => props.onCancel(props.relation)}
+          onRemove={() => props.onRemove(props.relation)}
+        />
+      )}
     </div>
   );
 }
@@ -72,9 +170,35 @@ function UserSearch() {
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
 
+  const [myProfileId, setMyProfileId] = useState<number | null>(null);
+  const [friendships, setFriendships] = useState<Friendship[]>([]);
+  const [busyProfileId, setBusyProfileId] = useState<number | null>(null);
+
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const PAGE_SIZE = 9;
   const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+
+  const refreshFriendships = useCallback(async () => {
+    try {
+      const res = await authFetch('/api/users/social/friendships/');
+      if (!res.ok) return;
+      const data = await res.json();
+      const list: Friendship[] = Array.isArray(data) ? data : (data.results ?? []);
+      setFriendships(list);
+    } catch {
+      /* ignore */
+    }
+  }, []);
+
+  useEffect(() => {
+    authFetch('/api/users/me/')
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data?.profile_id != null) setMyProfileId(data.profile_id);
+      })
+      .catch(() => {});
+    refreshFriendships();
+  }, [refreshFriendships]);
 
   const handleSearchChange = (value: string) => {
     setSearchQuery(value);
@@ -100,14 +224,16 @@ function UserSearch() {
       try {
         const params = new URLSearchParams({ search: debouncedSearch, page: String(page) });
         const response = await authFetch(`/api/users/search/?${params.toString()}`);
-        if (!response.ok) throw new Error('Could not fetch users.');
+        if (!response.ok) {
+          throw new Error(await extractErrorMessage(response, 'Could not fetch users.'));
+        }
         const data: PaginatedResponse = await response.json();
         setUsers(data.results);
         setTotalCount(data.count);
-      } catch {
+      } catch (err) {
         logger.error('users.search_error', { query: debouncedSearch });
         setUsers([]);
-        setError('Failed to load users.');
+        setError(err instanceof Error ? err.message : 'Failed to load users.');
       } finally {
         setLoading(false);
       }
@@ -115,6 +241,88 @@ function UserSearch() {
 
     fetchUsers();
   }, [debouncedSearch, page]);
+
+  const computeRelation = useCallback((profileId: number | null): Relation => {
+    if (profileId == null || myProfileId == null) return { kind: 'none' };
+    const f = friendships.find(
+      (x) =>
+        (x.sender === myProfileId && x.receiver === profileId) ||
+        (x.sender === profileId && x.receiver === myProfileId)
+    );
+    if (!f) return { kind: 'none' };
+    if (f.status === 'accepted') return { kind: 'friends', friendshipId: f.id };
+    if (f.status === 'pending') {
+      if (f.sender === myProfileId) return { kind: 'pending_out', friendshipId: f.id };
+      return { kind: 'pending_in', friendshipId: f.id };
+    }
+    return { kind: 'none', friendshipId: f.id };
+  }, [friendships, myProfileId]);
+
+  const handleAdd = async (user: ApiUser) => {
+    if (user.profile_id == null) return;
+    setBusyProfileId(user.profile_id);
+    setError(null);
+    try {
+      const res = await authFetch('/api/users/social/friendships/', {
+        method: 'POST',
+        body: JSON.stringify({ receiver: user.profile_id }),
+      });
+      if (!res.ok) {
+        throw new Error(await extractErrorMessage(res, 'Could not send request.'));
+      }
+      logger.action('friend.request_sent', { receiver: user.profile_id });
+      await refreshFriendships();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not send request.');
+    } finally {
+      setBusyProfileId(null);
+    }
+  };
+
+  const runFriendshipAction = async (
+    relation: Relation,
+    profileIdForBusy: number,
+    method: 'POST' | 'DELETE',
+    pathSuffix: string,
+    actionLog: string
+  ) => {
+    if (!relation.friendshipId) return;
+    setBusyProfileId(profileIdForBusy);
+    setError(null);
+    try {
+      const res = await authFetch(
+        `/api/users/social/friendships/${relation.friendshipId}/${pathSuffix}`,
+        { method }
+      );
+      if (!res.ok && res.status !== 204) {
+        throw new Error(await extractErrorMessage(res, 'Action failed.'));
+      }
+      logger.action(actionLog, { friendship: relation.friendshipId });
+      await refreshFriendships();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Action failed.');
+    } finally {
+      setBusyProfileId(null);
+    }
+  };
+
+  const handleAccept = async (relation: Relation) => {
+    const u = users.find((x) => computeRelation(x.profile_id).friendshipId === relation.friendshipId);
+    const pid = u?.profile_id ?? -1;
+    await runFriendshipAction(relation, pid, 'POST', 'accept/', 'friend.accept');
+  };
+
+  const handleCancel = async (relation: Relation) => {
+    const u = users.find((x) => computeRelation(x.profile_id).friendshipId === relation.friendshipId);
+    const pid = u?.profile_id ?? -1;
+    await runFriendshipAction(relation, pid, 'DELETE', '', 'friend.cancel');
+  };
+
+  const handleRemove = async (relation: Relation) => {
+    const u = users.find((x) => computeRelation(x.profile_id).friendshipId === relation.friendshipId);
+    const pid = u?.profile_id ?? -1;
+    await runFriendshipAction(relation, pid, 'DELETE', '', 'friend.remove');
+  };
 
   return (
     <div className="font-lexend flex flex-col gap-4 p-5">
@@ -135,7 +343,17 @@ function UserSearch() {
           <p className="text-indigo-300/40 py-4 text-center text-xs">No users found.</p>
         )}
         {!loading && !error && users.map((user) => (
-          <UserRow key={user.id} user={user} />
+          <UserRow
+            key={user.id}
+            user={user}
+            relation={computeRelation(user.profile_id)}
+            busy={busyProfileId === user.profile_id}
+            isSelf={user.profile_id != null && user.profile_id === myProfileId}
+            onAdd={handleAdd}
+            onAccept={handleAccept}
+            onCancel={handleCancel}
+            onRemove={handleRemove}
+          />
         ))}
       </div>
 
@@ -202,7 +420,7 @@ function UserSearchContainer(props: { func?: (value: boolean) => void }) {
         threshold={0.1}
         delay={0.1}
       >
-        <div className="overlay-panel rounded-2xl w-[28rem] mx-auto">
+        <div className="overlay-panel rounded-2xl w-full max-w-[28rem] mx-3 sm:mx-auto">
           <div className="flex justify-end px-4 pt-4 pb-0">
             <CloseButton onClick={() => setVisible(false)} />
           </div>
