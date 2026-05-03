@@ -8,11 +8,6 @@ import React, {
 import { gsap } from "gsap";
 import drumstickImg from "./assets/drumstick.png";
 
-/* ─────────────────────────────────────────────────────────────
- *  Xylophone theme: global drumstick + synthesized xylo tones.
- *  Any element with [data-xylo-note="C4"] (etc.) participates.
- * ───────────────────────────────────────────────────────────── */
-
 export type XyloNote =
     | "C4" | "D4" | "E4" | "F4" | "G4" | "A4" | "B4"
     | "C5" | "D5" | "E5" | "F5" | "G5" | "A5" | "B5" | "C6";
@@ -24,13 +19,18 @@ const NOTE_FREQ: Record<XyloNote, number> = {
     G5: 783.99, A5: 880.00, B5: 987.77, C6: 1046.50,
 };
 
-const NOTE_ORDER: XyloNote[] = [
-    "C4","D4","E4","F4","G4","A4","B4",
-    "C5","D5","E5","F5","G5","A5","B5","C6",
+/* Twinkle Twinkle Little Star — full sequence, loops */
+const TWINKLE_NOTES: XyloNote[] = [
+    "C4","C4","G4","G4","A4","A4","G4",
+    "F4","F4","E4","E4","D4","D4","C4",
+    "G4","G4","F4","F4","E4","E4","D4",
+    "G4","G4","F4","F4","E4","E4","D4",
+    "C4","C4","G4","G4","A4","A4","G4",
+    "F4","F4","E4","E4","D4","D4","C4",
 ];
 
 interface XyloCtx {
-    strike: (el: Element, note?: XyloNote, pos?: { x: number; y: number }) => void;
+    strike: (pos?: { x: number; y: number }) => void;
 }
 const Ctx = createContext<XyloCtx | null>(null);
 
@@ -62,8 +62,6 @@ function makeAudioEngine() {
         if (!ac) return;
         const now = ac.currentTime;
 
-        // Xylophone bar = fundamental + strong odd partial at ~3x + faint 5x.
-        // Short bell-like envelope: fast attack, exponential decay.
         const gain = ac.createGain();
         gain.gain.setValueAtTime(0.0001, now);
         gain.gain.exponentialRampToValueAtTime(0.55, now + 0.005);
@@ -94,20 +92,8 @@ function makeAudioEngine() {
     };
 }
 
-/* ─── Note inference: map element properties to a pitch ─── */
-function inferNote(el: Element): XyloNote {
-    const explicit = (el as HTMLElement).dataset?.xyloNote as XyloNote | undefined;
-    if (explicit && explicit in NOTE_FREQ) return explicit;
-
-    // Fallback: hash horizontal position → pitch (left = low, right = high).
-    const rect = el.getBoundingClientRect();
-    const ratio = Math.max(0, Math.min(1, rect.left / Math.max(1, window.innerWidth)));
-    const idx = Math.floor(ratio * (NOTE_ORDER.length - 1));
-    return NOTE_ORDER[idx];
-}
-
-const REST_ROTATION = 0;   // straight at rest
-const STRIKE_ROTATION = 25; // clockwise tilt on hit
+const REST_ROTATION = 0;
+const STRIKE_ROTATION = 25;
 
 /* ─── Provider: drumstick + audio + global click/keydown handler ─── */
 export function XyloProvider({ children }: { children: React.ReactNode }) {
@@ -115,6 +101,7 @@ export function XyloProvider({ children }: { children: React.ReactNode }) {
     const engineRef = useRef(makeAudioEngine());
     const busyRef = useRef(false);
     const mouseYRef = useRef<number>(window.innerHeight * 0.5);
+    const noteIndexRef = useRef(0);
 
     function restX(): number {
         const stick = stickRef.current;
@@ -122,13 +109,17 @@ export function XyloProvider({ children }: { children: React.ReactNode }) {
         return window.innerWidth - w;
     }
 
-    // Y offset: shift stick up by height/2 so visual strike point aligns with cursor.
     function yOffset(): number {
         const stick = stickRef.current;
         return -((stick?.offsetHeight ?? 0) / 2);
     }
 
-    // Initial rest pose — pinned to right edge, vertically centered, straight.
+    function nextFreq(): number {
+        const note = TWINKLE_NOTES[noteIndexRef.current % TWINKLE_NOTES.length];
+        noteIndexRef.current++;
+        return NOTE_FREQ[note];
+    }
+
     useEffect(() => {
         const stick = stickRef.current;
         if (!stick) return;
@@ -147,56 +138,32 @@ export function XyloProvider({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener("resize", onResize);
     }, []);
 
-    const strike = useCallback((el: Element, note?: XyloNote, pos?: { x: number; y: number }) => {
+    const strike = useCallback((pos?: { x: number; y: number }) => {
         const stick = stickRef.current;
-        const n = note ?? inferNote(el);
-        const freq = NOTE_FREQ[n];
+        const freq = nextFreq();
+
         if (!stick || busyRef.current) {
             engineRef.current.play(freq);
             return;
         }
         busyRef.current = true;
 
-        // Prefer exact mouse position; fallback to element center (keyboard path).
-        let hitX: number, hitY: number;
-        if (pos) {
-            hitX = pos.x;
-            hitY = pos.y;
-        } else {
-            const r = el.getBoundingClientRect();
-            hitX = r.left + r.width / 2;
-            hitY = r.top + r.height / 2;
-        }
-
-        const reduced = window.matchMedia(
-            "(prefers-reduced-motion: reduce)"
-        ).matches;
-
-        if (reduced) {
+        if (!pos) {
             engineRef.current.play(freq);
-            gsap.fromTo(
-                el,
-                { filter: "brightness(1.6)" },
-                { filter: "brightness(1)", duration: 0.35, ease: "power2.out" }
-            );
             busyRef.current = false;
             return;
         }
 
-        const tl = gsap.timeline({
-            onComplete: () => { busyRef.current = false; },
-        });
+        const { x: hitX, y: hitY } = pos;
 
-        const flashKeyframes = {
-            keyframes: [
-                { scale: 0.96, filter: "brightness(1.8)", duration: 0.05 },
-                { scale: 1.04, filter: "brightness(1.3)", duration: 0.08 },
-                { scale: 1, filter: "brightness(1)", duration: 0.18 },
-            ],
-            ease: "power2.out",
-        };
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+            engineRef.current.play(freq);
+            busyRef.current = false;
+            return;
+        }
 
-        // 1. corner straight → mouse tilted (approach; no sound yet).
+        const tl = gsap.timeline({ onComplete: () => { busyRef.current = false; } });
+
         tl.to(stick, {
             x: hitX,
             y: hitY + yOffset(),
@@ -204,21 +171,13 @@ export function XyloProvider({ children }: { children: React.ReactNode }) {
             duration: 0.18,
             ease: "power2.out",
         })
-        // 2. mouse tilted → mouse straight.
-        .to(stick, {
-            rotation: REST_ROTATION,
-            duration: 0.1,
-            ease: "power2.out",
-        })
-        // 3. mouse straight → mouse tilted: actual strike, play sound + flash.
+        .to(stick, { rotation: REST_ROTATION, duration: 0.1, ease: "power2.out" })
         .to(stick, {
             rotation: STRIKE_ROTATION,
             duration: 0.08,
             ease: "power3.in",
             onStart: () => engineRef.current.play(freq),
         })
-        .to(el, flashKeyframes, "<")
-        // 4. mouse tilted → corner straight.
         .to(stick, {
             x: () => restX(),
             y: () => mouseYRef.current + yOffset(),
@@ -228,7 +187,7 @@ export function XyloProvider({ children }: { children: React.ReactNode }) {
         });
     }, []);
 
-    /* ─── Mouse-follow: stick tracks cursor Y only; X stays at right edge. ─── */
+    /* ─── Mouse-follow ─── */
     useEffect(() => {
         function onMove(e: MouseEvent) {
             mouseYRef.current = e.clientY;
@@ -244,20 +203,22 @@ export function XyloProvider({ children }: { children: React.ReactNode }) {
         return () => window.removeEventListener("mousemove", onMove);
     }, []);
 
-    /* ─── Global listeners: click + keyboard activation ─── */
+    /* ─── Global listeners: any button/link click plays next note ─── */
     useEffect(() => {
-        function findNoteEl(target: EventTarget | null): HTMLElement | null {
+        function findInteractive(target: EventTarget | null): HTMLElement | null {
             if (!(target instanceof Element)) return null;
-            return target.closest<HTMLElement>("[data-xylo-note]");
+            return target.closest<HTMLElement>("button, a, [role='button']");
         }
         function onClick(e: MouseEvent) {
-            const el = findNoteEl(e.target);
-            if (el) strike(el, undefined, { x: e.clientX, y: e.clientY });
+            const el = findInteractive(e.target);
+            if (el) strike({ x: e.clientX, y: e.clientY });
         }
         function onKey(e: KeyboardEvent) {
             if (e.key !== "Enter" && e.key !== " ") return;
-            const el = findNoteEl(document.activeElement);
-            if (el) strike(el);
+            const el = document.activeElement;
+            if (el instanceof HTMLButtonElement || el instanceof HTMLAnchorElement) {
+                engineRef.current.play(nextFreq());
+            }
         }
         document.addEventListener("click", onClick, true);
         document.addEventListener("keydown", onKey, true);
@@ -282,7 +243,7 @@ export function XyloProvider({ children }: { children: React.ReactNode }) {
     );
 }
 
-/* ─── Presentational: xylophone-bar styled button / anchor ─── */
+/* ─── Presentational button / anchor ─── */
 interface NoteProps {
     note?: XyloNote;
     children?: React.ReactNode;

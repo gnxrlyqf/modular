@@ -10,6 +10,7 @@ import { AdminContainer, useIsAdmin } from "./Admin";
 import PasswordResetConfirmPage, { parsePasswordResetRoute } from "./PasswordResetConfirm";
 import StarField from "./StarField";
 import { XyloProvider } from "./Xylophone";
+import CosmicLanding, { CosmicNebula } from "./Cosmic";
 import logger from './logger';
 import { authFetch, clearAuthCookies } from './api';
 
@@ -98,17 +99,7 @@ function TopBar(props: {
               <button type="button" data-xylo-note="G4" className="xylo-note xylo-note--g4">blog</button>
               <button type="button" data-xylo-note="B4" className="xylo-note xylo-note--b4">docs</button>
             </div>
-            {/* On mobile: just a Community button to keep core nav reachable */}
-            <div className="md:hidden flex items-center justify-center">
-              <button
-                type="button"
-                data-xylo-note="E4"
-                className="xylo-note xylo-note--e4 text-xs"
-                onClick={() => props.onProjectsOpen?.()}
-              >
-                community
-              </button>
-            </div>
+            {/* Hidden on mobile for clean minimal view */}
 
             {/* ── Right: Actions ── */}
             <div className="flex items-center gap-3 justify-end">
@@ -172,6 +163,7 @@ function App() {
   if (resetRoute) {
     return (
       <XyloProvider>
+        <CosmicNebula />
         <StarField />
         <PasswordResetConfirmPage uid={resetRoute.uid} token={resetRoute.token} />
       </XyloProvider>
@@ -274,56 +266,18 @@ function MainApp() {
     setShowAdmin(true);
   };
 
+  const anyOverlayOpen =
+    showProjects || showUserSearch || showAdmin || showProfile || showSettings;
+
   return (
     <XyloProvider>
     <div>
-      {/* ─── Star field background ─── */}
+      {/* ─── Cosmic background atmosphere ─── */}
+      <CosmicNebula />
+      {/* ─── Star field — rotating music notes ─── */}
       <StarField />
 
-      {/* ─── Hero section (normal flow, behind fixed layer) ─── */}
-      <div className="relative min-h-screen flex flex-col items-center justify-center pointer-events-none select-none px-4" style={{ zIndex: 1 }}>
-        <AnimatedContent
-          distance={40}
-          direction="vertical"
-          reverse={false}
-          duration={1.2}
-          ease="power3.out"
-          initialOpacity={0}
-          animateOpacity
-          scale={1}
-          threshold={0.1}
-          delay={0.3}
-        >
-          <h1 className="font-peachy text-4xl sm:text-5xl md:text-7xl text-center leading-tight">
-            <span className="bg-gradient-to-r from-indigo-300 via-blue-200 to-indigo-400 bg-clip-text text-transparent">
-              Your modular synthesizer
-            </span>
-            <br />
-            <span className="bg-gradient-to-r from-blue-300 via-indigo-200 to-purple-300 bg-clip-text text-transparent">
-              built in&nbsp;web.
-            </span>
-          </h1>
-        </AnimatedContent>
-
-        <AnimatedContent
-          distance={30}
-          direction="vertical"
-          reverse={false}
-          duration={1}
-          ease="power3.out"
-          initialOpacity={0}
-          animateOpacity
-          scale={1}
-          threshold={0.1}
-          delay={0.6}
-        >
-          <p className="font-lexend text-indigo-300/50 text-base sm:text-lg md:text-xl mt-6 sm:mt-8 text-center max-w-xl mx-auto font-light tracking-wide">
-            Learn how sound works. Create music. Share with the world.
-          </p>
-        </AnimatedContent>
-      </div>
-
-      {/* ─── Fixed layer: sticky navbar + overlay panels ─── */}
+      {/* ─── Fixed layer: sticky navbar + cosmic landing / overlay panels ─── */}
       <div className="fixed inset-0 z-10 overflow-y-auto">
         <div className="sticky top-0 z-20">
           <TopBar
@@ -348,6 +302,24 @@ function MainApp() {
               func={setShowSettings}
               setLoggedIn={setIsLoggedIn}
             />
+          )}
+          {!anyOverlayOpen && (
+            <AnimatedContent
+              distance={30}
+              direction="vertical"
+              reverse={false}
+              duration={1}
+              ease="power3.out"
+              initialOpacity={0}
+              animateOpacity
+              scale={1}
+              threshold={0.1}
+              delay={0.2}
+            >
+              <CosmicLanding
+                onGetStarted={isLoggedIn ? handleProjectsOpen : handleLoginOpen}
+              />
+            </AnimatedContent>
           )}
         </div>
       </div>
