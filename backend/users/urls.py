@@ -19,8 +19,11 @@ from .views import (
     UserEnable2FAView,
     UserVerify2FAView,
     UserSearchListView,
+    UserPublicProfileView,
     FriendshipViewSet,
     ProfileViewSet,
+    MessageViewSet,
+    NotificationViewSet,
     UserAdminCheckView,
     UserAdminListView,
     UserAdminDeleteView,
@@ -32,6 +35,7 @@ from .views import (
 router = DefaultRouter()
 router.register(r'friendships', FriendshipViewSet, basename='friendship')
 router.register(r'profiles', ProfileViewSet, basename='profile')
+router.register(r'messages', MessageViewSet, basename='message')
 
 urlpatterns = [
     # --- Authentication ---
@@ -61,6 +65,9 @@ urlpatterns = [
 
     # --- Search ---
     path('search/', UserSearchListView.as_view(), name='user_search'),
+
+    # --- Public profile (other users) ---
+    path('profile/<str:username>/', UserPublicProfileView.as_view(), name='public_profile'),
 
     # --- Admin (env-driven) ---
     path('admin/check/', UserAdminCheckView.as_view(), name='admin_check'),

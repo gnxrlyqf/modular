@@ -20,6 +20,9 @@ from .endpoints.me import me
 from .endpoints.profile import me_profile, ProfileViewSet
 from .endpoints.oauth import social_auth_callback
 from .endpoints.register import RegisterView
+from .endpoints.messages import MessageViewSet
+from .endpoints.notifications import NotificationViewSet
+from .endpoints.public_profile import public_profile
 from .endpoints.admin import (
     AdminCheckView,
     AdminUserListView,
@@ -106,8 +109,13 @@ class UserVerify2FAView(Verify2FAView):
 class UserSearchListView(UserSearchView):
     pass
 
-# Note: FriendshipViewSet and ProfileViewSet should be used
-# directly in your urls.py with a DRF Router.
+class UserPublicProfileView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def get(self, request, username):
+        return public_profile(request._request, username)
+
+# Note: FriendshipViewSet, ProfileViewSet, MessageViewSet, NotificationViewSet
+# should be used directly in your urls.py with a DRF Router.
 
 # --- 6. ADMIN ---
 

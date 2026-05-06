@@ -208,6 +208,10 @@ USE_TZ = True
 
 STATIC_URL = 'static/'
 
+# User-uploaded media (avatars, etc.)
+MEDIA_URL = '/media/'
+MEDIA_ROOT = BASE_DIR / 'media'
+
 # --- Logging ---
 LOGGING = {
     'version': 1,

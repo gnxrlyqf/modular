@@ -89,6 +89,48 @@ class Friendship(models.Model):
     def __str__(self):
         return f"{self.sender} -> {self.receiver} ({self.status})"
 
+def is_blocked_between(profile_a, profile_b):
+    """True if either profile has blocked the other."""
+    return Friendship.objects.filter(
+        models.Q(sender=profile_a, receiver=profile_b, status='blocked') |
+        models.Q(sender=profile_b, receiver=profile_a, status='blocked')
+    ).exists()
+
+
+class Message(models.Model):
+    sender = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='sent_messages')
+    receiver = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='received_messages')
+    content = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['created_at']
+        indexes = [
+            models.Index(fields=['sender', 'receiver', 'created_at']),
+        ]
+
+
+class Notification(models.Model):
+    TYPE_CHOICES = (
+        ('message', 'Message'),
+        ('friend_request', 'Friend Request'),
+    )
+
+    recipient = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='notifications')
+    actor = models.ForeignKey(Profile, on_delete=models.CASCADE, related_name='+')
+    type = models.CharField(max_length=20, choices=TYPE_CHOICES)
+    related_id = models.IntegerField(null=True, blank=True)
+    read_at = models.DateTimeField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes = [
+            models.Index(fields=['recipient', '-created_at']),
+        ]
+
+
 # Oauth
 class SocialAccount(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='social_auth')
