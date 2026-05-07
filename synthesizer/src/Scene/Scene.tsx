@@ -2,7 +2,6 @@ import Dock from "../Dock";
 import type {Module} from '../Modules/Modules'
 import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
-import sceneData from "../scene.json";
 import { wouldGhostOverlap } from "../Utils/wouldGhostOverlap";
 import { snapToGrid } from "../Utils/snapToGrid";
 import { createDockItems, GhostModule, instantiateModule, moduleObjects, type ModuleType } from './DockItems'
@@ -12,19 +11,17 @@ import { useContextMenu } from "../Utils/useContextMenu";
 import type {Cable} from '../Patch/Cable'
 import Context from "../Audio/Context";
 import {RenderModules, parseModules} from "../Modules/Modules";
+import { authFetch } from "../api";
 
-const initModules: Module[] = parseModules(sceneData.modules);
-const initCables: Cable[] = sceneData.cables as Cable[]
-const initCamera: {x: number, y: number} = sceneData.camera;
-const audioContext = new Context(initModules, initCables);
+const audioContext = new Context([], []);
 
 function Scene() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const cableDotCanvasRef = useRef<HTMLCanvasElement>(null);
-  const [modules, setModules] = useState<Module[]>(initModules);
-  const [cables, setCables] = useState<Cable[]>(initCables);
+  const [modules, setModules] = useState<Module[]>([]);
+  const [cables, setCables] = useState<Cable[]>([]);
   const [ghost, setGhost] = useState<{ type: ModuleType; x: number; y: number } | null>(null);
-  const [camera, setCamera] = useState(initCamera);
+  const [camera, setCamera] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
   const [isPanning, setIsPanning] = useState(false);
   const panRef = useRef<{ startX: number; startY: number; cameraX: number; cameraY: number } | null>(null);
   const [matrixToggle, setMatrixToggle] = useState<boolean>(false);
@@ -33,6 +30,68 @@ function Scene() {
   const [activeModuleId, setActiveModuleId] = useState<string | null>(null);
   const [audioStatus, setAudioStatus] = useState<boolean>(true);
   const [tempo, setTempo] = useState<number>(120);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  const projectIdRef = useRef<string | null>(null);
+  const hasFetched = useRef(false);
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Load project scene data on mount
+  useEffect(() => {
+    const run = async () => {
+      const pid = new URLSearchParams(window.location.search).get('project');
+      projectIdRef.current = pid;
+
+      if (!pid) {
+        // Guest / try-it-out mode: start with an empty canvas, nothing is saved.
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const resp = await authFetch(`/api/projects/${pid}/`);
+        if (!resp.ok) {
+          setLoadError(resp.status === 404 ? 'Project not found.' : `Failed to load project (${resp.status}).`);
+          setLoading(false);
+          return;
+        }
+        const data = await resp.json();
+        const scene = data.config ?? { camera: { x: 0, y: 0 }, modules: [], cables: [] };
+        const parsedModules = parseModules(scene.modules ?? []);
+        const parsedCables = (scene.cables ?? []) as Cable[];
+        const parsedCamera: { x: number; y: number } = scene.camera ?? { x: 0, y: 0 };
+
+        audioContext.initContext(parsedModules, parsedCables);
+        setModules(parsedModules);
+        setCables(parsedCables);
+        setCamera(parsedCamera);
+      } catch {
+        setLoadError('Network error loading project.');
+      } finally {
+        setLoading(false);
+        hasFetched.current = true;
+      }
+    };
+    run();
+  }, []);
+
+  // Autosave 1.5s after any scene change
+  useEffect(() => {
+    if (!hasFetched.current || !projectIdRef.current) return;
+
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      authFetch(`/api/projects/${projectIdRef.current}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ config: { camera, modules, cables } }),
+      }).catch(console.error);
+    }, 1500);
+
+    return () => {
+      if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    };
+  }, [modules, cables, camera]);
 
   useEffect(() => {
     const syncAudioContext = async () => {
@@ -65,7 +124,6 @@ function Scene() {
           setCables((prev) => prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id)));
           break;
         case 'RESET':
-          // Implementation for reset logic
           break;
       }
     };
@@ -74,13 +132,6 @@ function Scene() {
   }, [setModules, setCables]);
 
   useEffect(() => {
-    const update = {
-      "camera": camera,
-      "modules": modules,
-      "cables": cables
-    }
-    // api call here to POST this object to the server
-
     let rafId = 0;
 
     const frame = () => {
@@ -181,6 +232,22 @@ function Scene() {
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
+  if (loading) {
+    return (
+      <main className="font-lexend h-screen w-screen flex items-center justify-center bg-zinc-950 text-white">
+        <p className="text-zinc-400 text-sm">Loading project…</p>
+      </main>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <main className="font-lexend h-screen w-screen flex items-center justify-center bg-zinc-950 text-white">
+        <p className="text-red-400 text-sm">{loadError}</p>
+      </main>
+    );
+  }
+
 	return (
 		<main
       className={`font-lexend relative h-screen w-screen overflow-hidden bg-zinc-950 text-white ${isPanning ? "cursor-grabbing" : "cursor-auto"}`}
@@ -216,7 +283,7 @@ function Scene() {
       >
         <RenderModules modules={modules} cameraX={camera.x} cameraY={camera.y} f={setCables} cables={cables}/>
         {ghost && (
-          <div className="pointer-events-none"> {/* this one solves the ghost preventing the module instantiation */}
+          <div className="pointer-events-none">
           <GhostModule
             type={ghost.type}
             x={ghost.x}

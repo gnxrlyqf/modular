@@ -13,3 +13,12 @@ class Project(models.Model):
     updated_at = models.DateTimeField(auto_now=True, null=True)
     def __str__(self):
         return str(self.id)
+
+
+class ProjectVote(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='project_votes')
+    project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='votes')
+    vote = models.SmallIntegerField()  # 1 = upvote, -1 = downvote
+
+    class Meta:
+        unique_together = ('user', 'project')

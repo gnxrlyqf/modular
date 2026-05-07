@@ -1,15 +1,33 @@
-from django.shortcuts import render
-from rest_framework import generics
+from django.shortcuts import render, get_object_or_404
+from django.db.models import Sum, Case, When, IntegerField, Value
+from django.db.models.functions import Coalesce
+from rest_framework import generics, filters
+from rest_framework.pagination import PageNumberPagination
 from rest_framework.permissions import IsAuthenticated
-from drf_spectacular.utils import extend_schema
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from drf_spectacular.utils import extend_schema, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 
-from .models import Project
+from .models import Project, ProjectVote
 from .serializers import ProjectSerializer
 
 
-# -------------------------
-# LIST + CREATE PROJECTS
-# -------------------------
+def _net_votes_annotation():
+    return Coalesce(
+        Sum(Case(
+            When(votes__vote=1, then=Value(1)),
+            When(votes__vote=-1, then=Value(-1)),
+            default=Value(0),
+            output_field=IntegerField(),
+        )),
+        Value(0),
+        output_field=IntegerField(),
+    )
+
+
+# ─── List + Create ────────────────────────────────────────────────────────────
+
 @extend_schema(
     description="List all projects of the authenticated user, or create a new project.",
     request=ProjectSerializer,
@@ -20,15 +38,14 @@ class ProjectListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Project.objects.filter(user=self.request.user)
+        return Project.objects.filter(user=self.request.user).prefetch_related('votes')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
 
 
-# -------------------------
-# PROJECT DETAIL (GET / PUT / DELETE)
-# -------------------------
+# ─── Detail ───────────────────────────────────────────────────────────────────
+
 @extend_schema(
     description="Retrieve, update, or delete a specific project owned by the authenticated user.",
     request=ProjectSerializer,
@@ -39,85 +56,88 @@ class ProjectDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
-        return Project.objects.filter(user=self.request.user)
+        return Project.objects.filter(user=self.request.user).prefetch_related('votes')
 
 
-# -------------------------
-# INDEX (HTML VIEW - not API)
-# -------------------------
-def index(request):
-    return render(request, 'projects/index.html')
+# ─── Vote ─────────────────────────────────────────────────────────────────────
+
+class ProjectVoteView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk)
+        vote_value = request.data.get('vote')
+        if vote_value not in (1, -1, 0):
+            return Response({'error': 'vote must be 1, -1, or 0'}, status=400)
+
+        if vote_value == 0:
+            ProjectVote.objects.filter(user=request.user, project=project).delete()
+        else:
+            ProjectVote.objects.update_or_create(
+                user=request.user, project=project,
+                defaults={'vote': vote_value},
+            )
+
+        project_qs = Project.objects.prefetch_related('votes').get(pk=pk)
+        serializer = ProjectSerializer(project_qs, context={'request': request})
+        return Response(serializer.data)
 
 
-from rest_framework import generics, filters
-from rest_framework.pagination import PageNumberPagination
-from drf_spectacular.utils import extend_schema, OpenApiParameter
-from drf_spectacular.types import OpenApiTypes
-# -------------------------
-# CUSTOM PAGINATION
-# -------------------------
+# ─── Pagination ───────────────────────────────────────────────────────────────
+
 class ProjectSearchPagination(PageNumberPagination):
-    page_size = 9 # Forces exactly 9 items per page
+    page_size = 9
     page_query_param = 'page'
 
-# -------------------------
-# PROJECT SEARCH & LIST VIEW
-# -------------------------
+
+# ─── User search ──────────────────────────────────────────────────────────────
+
 @extend_schema(
     summary="Search and Filter Projects",
-    description="Allows Youssef to search by project name/ID and sort by creation date. Returns 9 items per page.",
+    description="Search by project name/ID and sort by creation date. Returns 9 items per page.",
     parameters=[
-        OpenApiParameter(
-            name='search',
-            description='Search by ID or project name',
-            required=False,
-            type=OpenApiTypes.STR,
-            location=OpenApiParameter.QUERY,
-        ),
-        OpenApiParameter(
-            name='ordering',
-            description='Sort results. Use "-created_at" for newest first or "created_at" for oldest.',
-            required=False,
-            type=OpenApiTypes.STR,
-            location=OpenApiParameter.QUERY,
-            enum=['created_at', '-created_at', 'updated_at', '-updated_at', 'id', '-id']
-        ),
-        OpenApiParameter(
-            name='page',
-            description='Page number (N = 9 * page_number)',
-            required=False,
-            type=OpenApiTypes.INT,
-            location=OpenApiParameter.QUERY,
-        ),
+        OpenApiParameter(name='search', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY),
+        OpenApiParameter(name='ordering', required=False, type=OpenApiTypes.STR, location=OpenApiParameter.QUERY,
+                         enum=['created_at', '-created_at', 'updated_at', '-updated_at', 'name', '-name']),
+        OpenApiParameter(name='page', required=False, type=OpenApiTypes.INT, location=OpenApiParameter.QUERY),
     ],
-    responses={200: ProjectSerializer(many=True)}
+    responses={200: ProjectSerializer(many=True)},
 )
 class UserProjectSearchView(generics.ListAPIView):
     serializer_class = ProjectSerializer
     pagination_class = ProjectSearchPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-
     search_fields = ['id', 'name']
     ordering_fields = ['created_at', 'updated_at', 'name']
     ordering = ['-created_at']
 
     def get_queryset(self):
-        # This is the crucial part: it restricts the search to ONLY their projects
-        return Project.objects.filter(user=self.request.user)
+        return Project.objects.filter(user=self.request.user).prefetch_related('votes')
 
+
+# ─── Community ────────────────────────────────────────────────────────────────
 
 @extend_schema(
-    summary="List all community projects (every user)",
-    description="Lists every project across all users. Paginated, supports search and ordering."
+    summary="List all community projects ordered by upvotes",
+    description="Lists every project across all users. Paginated, supports search and ordering. Default: most upvoted first.",
 )
 class CommunityProjectSearchView(generics.ListAPIView):
     serializer_class = ProjectSerializer
     pagination_class = ProjectSearchPagination
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter, filters.OrderingFilter]
-
     search_fields = ['id', 'name']
-    ordering_fields = ['created_at', 'updated_at', 'name']
-    ordering = ['-created_at']
-    queryset = Project.objects.all()
+    ordering_fields = ['created_at', 'updated_at', 'name', 'net_votes']
+    ordering = ['-net_votes']
+
+    def get_queryset(self):
+        return Project.objects.annotate(
+            net_votes=_net_votes_annotation()
+        ).prefetch_related('votes').all()
+
+
+# ─── HTML index (legacy) ──────────────────────────────────────────────────────
+
+def index(request):
+    return render(request, 'projects/index.html')

@@ -5,6 +5,8 @@ import { authFetch, extractErrorMessage } from './api';
 import { Input, CloseButton } from './Reusables';
 import logger from './logger';
 
+const SYNTH_URL = (import.meta.env.VITE_SYNTHESIZER_URL as string | undefined) ?? 'http://localhost:5174';
+
 const arrow = "M5.70711 9.71069C5.31658 10.1012 5.31658 10.7344 5.70711 11.1249L10.5993 16.0123C11.3805 16.7927 12.6463 16.7924 13.4271 16.0117L18.3174 11.1213C18.708 10.7308 18.708 10.0976 18.3174 9.70708C17.9269 9.31655 17.2937 9.31655 16.9032 9.70708L12.7176 13.8927C12.3271 14.2833 11.6939 14.2832 11.3034 13.8927L7.12132 9.71069C6.7308 9.32016 6.09763 9.32016 5.70711 9.71069Z"
 
 type ApiProject = {
@@ -14,6 +16,10 @@ type ApiProject = {
   config: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
+  net_votes: number;
+  upvotes: number;
+  downvotes: number;
+  user_vote: 0 | 1 | -1;
 };
 
 type PaginatedResponse = {
@@ -242,6 +248,8 @@ function Card(props: {
   index: number;
   onDelete?: (id: string) => Promise<void>;
   onRename?: (id: string, currentName: string) => void;
+  onVote?: (id: string, vote: 0 | 1 | -1) => void;
+  showVotes?: boolean;
 }) {
   const cardRef = useRef<HTMLAnchorElement>(null);
   const cardTitle = props.card.name || `Untitled project ${props.index + 1}`;
@@ -299,11 +307,30 @@ function Card(props: {
   }, [props.card.id, props.card.name, props.onDelete, props.onRename])
 
   return (
-    <a href="#" ref={cardRef} className="block glass card-lift w-full rounded-2xl font-lexend cursor-pointer overflow-hidden">
+    <a href={`${SYNTH_URL}?project=${props.card.id}`} target="_blank" rel="noreferrer" ref={cardRef} className="block glass card-lift w-full rounded-2xl font-lexend cursor-pointer overflow-hidden">
       <img className="rounded-t-2xl h-36 w-full object-cover" src={cardImage} alt={cardTitle} />
       <div className="flex flex-row items-center py-2.5 px-3 border-t border-white/6">
         <span className="truncate text-sm text-indigo-100 font-medium">{cardTitle}</span>
-        <span className="ml-auto pl-3 whitespace-nowrap text-xs text-indigo-300/40">{cardTime}</span>
+        {props.showVotes ? (
+          <div className="ml-auto flex items-center gap-1 pl-3" onClick={e => e.preventDefault()}>
+            <button
+              type="button"
+              className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-colors cursor-pointer ${props.card.user_vote === 1 ? 'text-indigo-300' : 'text-indigo-300/40 hover:text-indigo-300'}`}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); props.onVote?.(props.card.id, props.card.user_vote === 1 ? 0 : 1); }}
+            >
+              ▲ {props.card.upvotes}
+            </button>
+            <button
+              type="button"
+              className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-colors cursor-pointer ${props.card.user_vote === -1 ? 'text-red-300' : 'text-indigo-300/40 hover:text-red-300'}`}
+              onClick={e => { e.preventDefault(); e.stopPropagation(); props.onVote?.(props.card.id, props.card.user_vote === -1 ? 0 : -1); }}
+            >
+              ▼ {props.card.downvotes}
+            </button>
+          </div>
+        ) : (
+          <span className="ml-auto pl-3 whitespace-nowrap text-xs text-indigo-300/40">{cardTime}</span>
+        )}
       </div>
     </a>
   )
@@ -403,7 +430,10 @@ function Projects(props: {user?: string}) {
   const handleCreate = async (name: string) => {
     const response = await authFetch('/api/projects/', {
       method: 'POST',
-      body: JSON.stringify({ name }),
+      body: JSON.stringify({
+        name,
+        config: { camera: { x: 0, y: 0 }, modules: [], cables: [] },
+      }),
     });
 
     if (!response.ok) {
@@ -412,12 +442,24 @@ function Projects(props: {user?: string}) {
       throw new Error(msg);
     }
 
+    const created: ApiProject = await response.json();
     logger.action('project.create', { name });
-    // Refresh list from page 1
     setPage(1);
     setOrdering('-created_at');
     setDebouncedSearch('');
     setSearchQuery('');
+    setRefetchTick((t) => t + 1);
+    window.open(`${SYNTH_URL}?project=${created.id}`, '_blank', 'noreferrer');
+  };
+
+  const handleVote = async (id: string, vote: 0 | 1 | -1) => {
+    const response = await authFetch(`/api/projects/${id}/vote/`, {
+      method: 'POST',
+      body: JSON.stringify({ vote }),
+    });
+    if (!response.ok) return;
+    const updated: ApiProject = await response.json();
+    setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
   };
 
   const handleDelete = async (id: string) => {
@@ -490,6 +532,8 @@ function Projects(props: {user?: string}) {
               index={index}
               onDelete={handleDelete}
               onRename={(id, currentName) => setRenameModal({ id, currentName })}
+              onVote={handleVote}
+              showVotes={isCommunity}
             />
           ))}
         </div>

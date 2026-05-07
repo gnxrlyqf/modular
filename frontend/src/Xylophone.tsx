@@ -5,8 +5,6 @@ import React, {
     useEffect,
     useRef,
 } from "react";
-import { gsap } from "gsap";
-import drumstickImg from "./assets/drumstick.png";
 
 export type XyloNote =
     | "C4" | "D4" | "E4" | "F4" | "G4" | "A4" | "B4"
@@ -92,27 +90,10 @@ function makeAudioEngine() {
     };
 }
 
-const REST_ROTATION = 0;
-const STRIKE_ROTATION = 25;
-
-/* ─── Provider: drumstick + audio + global click/keydown handler ─── */
+/* ─── Provider: audio + global click/keydown handler ─── */
 export function XyloProvider({ children }: { children: React.ReactNode }) {
-    const stickRef = useRef<HTMLImageElement | null>(null);
     const engineRef = useRef(makeAudioEngine());
-    const busyRef = useRef(false);
-    const mouseYRef = useRef<number>(window.innerHeight * 0.5);
     const noteIndexRef = useRef(0);
-
-    function restX(): number {
-        const stick = stickRef.current;
-        const w = stick?.offsetWidth ?? 220;
-        return window.innerWidth - w;
-    }
-
-    function yOffset(): number {
-        const stick = stickRef.current;
-        return -((stick?.offsetHeight ?? 0) / 2);
-    }
 
     function nextFreq(): number {
         const note = TWINKLE_NOTES[noteIndexRef.current % TWINKLE_NOTES.length];
@@ -120,87 +101,8 @@ export function XyloProvider({ children }: { children: React.ReactNode }) {
         return NOTE_FREQ[note];
     }
 
-    useEffect(() => {
-        const stick = stickRef.current;
-        if (!stick) return;
-        const apply = () => gsap.set(stick, {
-            x: restX(),
-            y: mouseYRef.current + yOffset(),
-            rotation: REST_ROTATION,
-        });
-        if (stick.complete) apply();
-        else stick.addEventListener("load", apply, { once: true });
-        function onResize() {
-            if (busyRef.current || !stickRef.current) return;
-            gsap.set(stickRef.current, { x: restX() });
-        }
-        window.addEventListener("resize", onResize);
-        return () => window.removeEventListener("resize", onResize);
-    }, []);
-
-    const strike = useCallback((pos?: { x: number; y: number }) => {
-        const stick = stickRef.current;
-        const freq = nextFreq();
-
-        if (!stick || busyRef.current) {
-            engineRef.current.play(freq);
-            return;
-        }
-        busyRef.current = true;
-
-        if (!pos) {
-            engineRef.current.play(freq);
-            busyRef.current = false;
-            return;
-        }
-
-        const { x: hitX, y: hitY } = pos;
-
-        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
-            engineRef.current.play(freq);
-            busyRef.current = false;
-            return;
-        }
-
-        const tl = gsap.timeline({ onComplete: () => { busyRef.current = false; } });
-
-        tl.to(stick, {
-            x: hitX,
-            y: hitY + yOffset(),
-            rotation: STRIKE_ROTATION,
-            duration: 0.18,
-            ease: "power2.out",
-        })
-        .to(stick, { rotation: REST_ROTATION, duration: 0.1, ease: "power2.out" })
-        .to(stick, {
-            rotation: STRIKE_ROTATION,
-            duration: 0.08,
-            ease: "power3.in",
-            onStart: () => engineRef.current.play(freq),
-        })
-        .to(stick, {
-            x: () => restX(),
-            y: () => mouseYRef.current + yOffset(),
-            rotation: REST_ROTATION,
-            duration: 0.35,
-            ease: "power2.inOut",
-        });
-    }, []);
-
-    /* ─── Mouse-follow ─── */
-    useEffect(() => {
-        function onMove(e: MouseEvent) {
-            mouseYRef.current = e.clientY;
-            if (busyRef.current || !stickRef.current) return;
-            gsap.to(stickRef.current, {
-                y: e.clientY + yOffset(),
-                duration: 0.35,
-                ease: "power2.out",
-                overwrite: "auto",
-            });
-        }
-        window.addEventListener("mousemove", onMove);
-        return () => window.removeEventListener("mousemove", onMove);
+    const strike = useCallback((_pos?: { x: number; y: number }) => {
+        engineRef.current.play(nextFreq());
     }, []);
 
     /* ─── Global listeners: any button/link click plays next note ─── */
@@ -231,14 +133,6 @@ export function XyloProvider({ children }: { children: React.ReactNode }) {
     return (
         <Ctx.Provider value={{ strike }}>
             {children}
-            <img
-                ref={stickRef}
-                src={drumstickImg}
-                alt=""
-                aria-hidden="true"
-                className="xylo-drumstick"
-                draggable={false}
-            />
         </Ctx.Provider>
     );
 }

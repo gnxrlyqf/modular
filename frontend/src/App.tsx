@@ -15,6 +15,7 @@ import logger from './logger';
 import { authFetch, clearAuthCookies } from './api';
 
 const ACCESS_COOKIE_NAME = "accessToken";
+const SYNTH_URL = (import.meta.env.VITE_SYNTHESIZER_URL as string | undefined) ?? 'http://localhost:5174';
 
 function hasCookie(cookieName: string): boolean {
   if (typeof document === "undefined") {
@@ -266,6 +267,25 @@ function MainApp() {
     setShowAdmin(true);
   };
 
+  const handleNewProject = async () => {
+    try {
+      const response = await authFetch('/api/projects/', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: 'New Project',
+          config: { camera: { x: 0, y: 0 }, modules: [], cables: [] },
+        }),
+      });
+      if (!response.ok) return;
+      const created: { id: string } = await response.json();
+      window.open(`${SYNTH_URL}?project=${created.id}`, '_blank', 'noreferrer');
+    } catch { /* ignore */ }
+  };
+
+  const handleTryIt = () => {
+    window.open(SYNTH_URL, '_blank', 'noreferrer');
+  };
+
   const anyOverlayOpen =
     showProjects || showUserSearch || showAdmin || showProfile || showSettings;
 
@@ -318,6 +338,9 @@ function MainApp() {
             >
               <CosmicLanding
                 onGetStarted={isLoggedIn ? handleProjectsOpen : handleLoginOpen}
+                isLoggedIn={isLoggedIn}
+                onNewProject={handleNewProject}
+                onTryIt={handleTryIt}
               />
             </AnimatedContent>
           )}

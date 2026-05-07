@@ -11,11 +11,29 @@ services:
       # 443:5173 if you want to access the frontend on port 
     environment:
       - VITE_FORTYTWO_CLIENT_ID=${VITE_FORTYTWO_CLIENT_ID}
+      - VITE_SYNTHESIZER_URL=${VITE_SYNTHESIZER_URL:-http://localhost:5174}
     volumes:
       - ./frontend/src:/app/src
       - ./frontend/public:/app/public
     healthcheck:
       test: ["CMD", "node", "-e", "const http = require('http'); http.get('http://localhost:5173', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+  synthesizer:
+    build:
+      context: ./synthesizer
+      target: development
+    networks:
+      - internals
+    ports:
+      - 5174:5173
+    volumes:
+      - ./synthesizer/src:/app/src
+      - ./synthesizer/public:/app/public
+    healthcheck:
+      test: ["CMD", "node", "-e", "const http = require('http'); http.get('http://localhost:5174', (r) => process.exit(r.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"]
       interval: 30s
       timeout: 10s
       retries: 3

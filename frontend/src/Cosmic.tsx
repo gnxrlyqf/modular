@@ -143,7 +143,17 @@ function Knob({
   );
 }
 
-function CosmicHero({ onGetStarted }: { onGetStarted?: () => void }) {
+function CosmicHero({
+  onGetStarted,
+  isLoggedIn,
+  onNewProject,
+  onTryIt,
+}: {
+  onGetStarted?: () => void;
+  isLoggedIn?: boolean;
+  onNewProject?: () => void;
+  onTryIt?: () => void;
+}) {
   return (
     <div
       style={{
@@ -224,39 +234,83 @@ function CosmicHero({ onGetStarted }: { onGetStarted?: () => void }) {
           flexWrap: "wrap",
         }}
       >
-        <button
-          type="button"
-          onClick={onGetStarted}
-          style={{
-            padding: "14px 28px",
-            borderRadius: 14,
-            border: "none",
-            cursor: "pointer",
-            background: cosmicShared.text,
-            color: "#05060f",
-            fontFamily: cosmicFonts.ui,
-            fontSize: 15,
-            fontWeight: 600,
-          }}
-        >
-          Open the rack
-        </button>
-        <button
-          type="button"
-          style={{
-            padding: "14px 28px",
-            borderRadius: 14,
-            cursor: "pointer",
-            background: "transparent",
-            color: cosmicShared.text,
-            border: `1px solid ${cosmicShared.panelEdge}`,
-            fontFamily: cosmicFonts.ui,
-            fontSize: 15,
-            fontWeight: 500,
-          }}
-        >
-          ▶ Watch demo
-        </button>
+        {isLoggedIn ? (
+          <>
+            <button
+              type="button"
+              onClick={onNewProject}
+              style={{
+                padding: "16px 36px",
+                borderRadius: 14,
+                border: "none",
+                cursor: "pointer",
+                background: `linear-gradient(135deg, ${v.accent}, ${v.accent3})`,
+                color: "#05060f",
+                fontFamily: cosmicFonts.ui,
+                fontSize: 17,
+                fontWeight: 700,
+                letterSpacing: "-0.01em",
+                boxShadow: `0 0 32px ${v.accent}50`,
+              }}
+            >
+              + New Project
+            </button>
+            <button
+              type="button"
+              onClick={onGetStarted}
+              style={{
+                padding: "16px 28px",
+                borderRadius: 14,
+                cursor: "pointer",
+                background: "transparent",
+                color: cosmicShared.text,
+                border: `1px solid ${cosmicShared.panelEdge}`,
+                fontFamily: cosmicFonts.ui,
+                fontSize: 15,
+                fontWeight: 500,
+              }}
+            >
+              Open the rack
+            </button>
+          </>
+        ) : (
+          <>
+            <button
+              type="button"
+              onClick={onTryIt}
+              style={{
+                padding: "14px 28px",
+                borderRadius: 14,
+                border: "none",
+                cursor: "pointer",
+                background: cosmicShared.text,
+                color: "#05060f",
+                fontFamily: cosmicFonts.ui,
+                fontSize: 15,
+                fontWeight: 600,
+              }}
+            >
+              Try it out
+            </button>
+            <button
+              type="button"
+              onClick={onGetStarted}
+              style={{
+                padding: "14px 28px",
+                borderRadius: 14,
+                cursor: "pointer",
+                background: "transparent",
+                color: cosmicShared.text,
+                border: `1px solid ${cosmicShared.panelEdge}`,
+                fontFamily: cosmicFonts.ui,
+                fontSize: 15,
+                fontWeight: 500,
+              }}
+            >
+              Get started
+            </button>
+          </>
+        )}
       </div>
     </div>
   );
@@ -944,12 +998,18 @@ function CosmicFooter() {
 
 export default function CosmicLanding({
   onGetStarted,
+  isLoggedIn,
+  onNewProject,
+  onTryIt,
 }: {
   onGetStarted?: () => void;
+  isLoggedIn?: boolean;
+  onNewProject?: () => void;
+  onTryIt?: () => void;
 }) {
   return (
     <div style={{ fontFamily: cosmicFonts.ui }}>
-      <CosmicHero onGetStarted={onGetStarted} />
+      <CosmicHero onGetStarted={onGetStarted} isLoggedIn={isLoggedIn} onNewProject={onNewProject} onTryIt={onTryIt} />
       <CosmicSynthPreview />
       <CosmicModuleCatalog />
       <CosmicPatchOfTheWeek />
