@@ -1,4 +1,4 @@
-import type { Module } from "../Scene/Modules";
+import type { Module } from "../Modules/Modules";
 
 type PortPoint = { x: number; y: number };
 type ModulePorts = Partial<Record<string, PortPoint>>;
@@ -28,9 +28,10 @@ function getAnchorPointFromRect(
 
 function getModulePortViewportCoordinates(
   module: Module,
-  camera: { x: number; y: number },
+  camera: { x: number; y: number; scale?: number },
   portOffsets: Record<Module["type"], ModulePorts>
 ) {
+  const scale = camera.scale ?? 1;
   const modulePorts = portOffsets[module.type] ?? {};
   const moduleElement =
     typeof document !== "undefined"
@@ -44,8 +45,9 @@ function getModulePortViewportCoordinates(
         y: moduleRect ? moduleRect.top : moduleElement.getBoundingClientRect().top,
       }
     : {
-        x: module.x + camera.x,
-        y: module.y + camera.y,
+        // Fallback: world → screen conversion
+        x: module.x * scale + camera.x,
+        y: module.y * scale + camera.y,
       };
 
   const ports = Object.entries(modulePorts).reduce<Record<string, PortPoint>>((acc, [port, offset]) => {
@@ -82,7 +84,7 @@ function getModulePortViewportCoordinates(
 
 function getAllPortViewportCoordinates(
   modules: Module[],
-  camera: { x: number; y: number },
+  camera: { x: number; y: number; scale?: number },
   portOffsets: Record<Module["type"], ModulePorts>
 ) {
   return modules.map((module) => getModulePortViewportCoordinates(module, camera, portOffsets));

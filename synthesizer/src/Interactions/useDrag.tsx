@@ -1,29 +1,37 @@
+import type { Dispatch, SetStateAction, RefObject, MouseEvent as RMouseEvent } from "react";
+import { useLiveCamera } from "../Viewport/CameraContext";
 import { wouldOverlap } from "../Utils/wouldOverlap";
 
 type DragProps = {
   x: number;
   y: number;
-  cameraX: number;
-  cameraY: number;
 };
 
 const GRID_SIZE = 16;
 
 export function useDrag(
-    props: DragProps,
-    position: { x: number; y: number },
-    setPosition: React.Dispatch<React.SetStateAction<{ x: number; y: number }>>,
-    moduleRef: React.RefObject<HTMLDivElement | null>) {
-  return (e: React.MouseEvent<HTMLDivElement>) => {
-    if (!moduleRef || !moduleRef.current) return;
+  props: DragProps,
+  position: { x: number; y: number },
+  setPosition: Dispatch<SetStateAction<{ x: number; y: number }>>,
+  moduleRef: RefObject<HTMLDivElement | null>
+) {
+  const camera = useLiveCamera();
 
+  return (e: RMouseEvent<HTMLDivElement>) => {
+    if (e.button !== 0) return; // left-click only
+
+    const { x: camX, y: camY, scale } = camera;
     const start = position ?? { x: props.x, y: props.y };
-    const offsetX = e.clientX - props.cameraX - start.x;
-    const offsetY = e.clientY - props.cameraY - start.y;
+
+    // Convert screen drag-start to world space
+    const offsetX = (e.clientX - camX) / scale - start.x;
+    const offsetY = (e.clientY - camY) / scale - start.y;
 
     const handleMouseMove = (moveEvent: MouseEvent) => {
-      const worldX = moveEvent.clientX - props.cameraX - offsetX;
-      const worldY = moveEvent.clientY - props.cameraY - offsetY;
+      // Camera ref is live — always current even if user zoomed between mousedown and move
+      const { x: cx, y: cy, scale: sc } = camera;
+      const worldX = (moveEvent.clientX - cx) / sc - offsetX;
+      const worldY = (moveEvent.clientY - cy) / sc - offsetY;
 
       const snappedX = Math.round(worldX / GRID_SIZE) * GRID_SIZE;
       const snappedY = Math.round(worldY / GRID_SIZE) * GRID_SIZE;

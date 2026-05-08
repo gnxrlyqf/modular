@@ -70,7 +70,7 @@ function drawFrame({
 	dotCanvas: HTMLCanvasElement | null;
 	modules: Module[];
 	cables: Cable[];
-	camera: { x: number; y: number };
+	camera: { x: number; y: number; scale?: number };
 }) {
 	if (!canvas || !dotCanvas) return;
 

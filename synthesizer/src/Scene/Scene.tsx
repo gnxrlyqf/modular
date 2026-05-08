@@ -1,6 +1,6 @@
+import { useEffect, useMemo, useRef, useState } from "react";
 import Dock from "../Dock";
 import type {Module} from '../Modules/Modules'
-import { useEffect, useMemo, useRef, useState } from "react";
 import { AnimatePresence } from "motion/react";
 import { wouldGhostOverlap } from "../Utils/wouldGhostOverlap";
 import { snapToGrid } from "../Utils/snapToGrid";
@@ -12,18 +12,21 @@ import type {Cable} from '../Patch/Cable'
 import Context from "../Audio/Context";
 import {RenderModules, parseModules} from "../Modules/Modules";
 import { authFetch } from "../api";
+import { useViewport } from "../Viewport/useViewport";
+// import ViewportDebug from "../Viewport/ViewportDebug";
 
 const audioContext = new Context([], []);
 
 function Scene() {
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  // Viewport refs — updated directly by RAF, never by React
+  const sceneRef = useRef<HTMLElement>(null);
+  const containerRef = useRef<HTMLElement>(null);
+  const bgCanvasRef = useRef<HTMLCanvasElement>(null);
   const cableDotCanvasRef = useRef<HTMLCanvasElement>(null);
+
   const [modules, setModules] = useState<Module[]>([]);
   const [cables, setCables] = useState<Cable[]>([]);
   const [ghost, setGhost] = useState<{ type: ModuleType; x: number; y: number } | null>(null);
-  const [camera, setCamera] = useState<{ x: number; y: number }>({ x: 0, y: 0 });
-  const [isPanning, setIsPanning] = useState(false);
-  const panRef = useRef<{ startX: number; startY: number; cameraX: number; cameraY: number } | null>(null);
   const [matrixToggle, setMatrixToggle] = useState<boolean>(false);
   const [matrixView, setMatrixView] = useState<'modules' | 'cables'>('cables');
   const { menu, handleContextMenu } = useContextMenu();
@@ -37,6 +40,36 @@ function Scene() {
   const hasFetched = useRef(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // const [debugMode, setDebugMode] = useState(false);
+
+  // Viewport controller: smooth pan/zoom via RAF, direct DOM transforms
+  const viewport = useViewport({ containerRef, bgRef: bgCanvasRef });
+  const {
+    camera,
+    live: cameraLive,
+    // target: cameraTarget,
+    isPanning,
+    isSpaceHeld,
+    displayScale,
+    loadCamera,
+    screenToWorld,
+    zoomIn,
+    zoomOut,
+    resetZoom,
+    fitToContent,
+    tryStartPan,
+    handleDoubleClick,
+    onWheel,
+  } = viewport;
+
+  // Attach wheel event non-passively (required to call preventDefault inside)
+  useEffect(() => {
+    const el = sceneRef.current;
+    if (!el) return;
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [onWheel]);
+
   // Load project scene data on mount
   useEffect(() => {
     const run = async () => {
@@ -44,7 +77,6 @@ function Scene() {
       projectIdRef.current = pid;
 
       if (!pid) {
-        // Guest / try-it-out mode: start with an empty canvas, nothing is saved.
         setLoading(false);
         return;
       }
@@ -57,15 +89,15 @@ function Scene() {
           return;
         }
         const data = await resp.json();
-        const scene = data.config ?? { camera: { x: 0, y: 0 }, modules: [], cables: [] };
+        const scene = data.config ?? { camera: { x: 0, y: 0, scale: 1 }, modules: [], cables: [] };
         const parsedModules = parseModules(scene.modules ?? []);
         const parsedCables = (scene.cables ?? []) as Cable[];
-        const parsedCamera: { x: number; y: number } = scene.camera ?? { x: 0, y: 0 };
+        const parsedCamera = scene.camera ?? { x: 0, y: 0, scale: 1 };
 
         audioContext.initContext(parsedModules, parsedCables);
         setModules(parsedModules);
         setCables(parsedCables);
-        setCamera(parsedCamera);
+        loadCamera(parsedCamera);
       } catch {
         setLoadError('Network error loading project.');
       } finally {
@@ -74,7 +106,7 @@ function Scene() {
       }
     };
     run();
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Autosave 1.5s after any scene change
   useEffect(() => {
@@ -98,16 +130,14 @@ function Scene() {
       try {
         if (!audioStatus && audioContext.audioContext.state === "running")
           await audioContext.audioContext.suspend();
-
         if (audioStatus && audioContext.audioContext.state === "suspended")
           await audioContext.audioContext.resume();
       } catch (error) {
         console.error("Failed to change audio context state", error);
       }
     };
-
     void syncAudioContext();
-  }, [audioStatus])
+  }, [audioStatus]);
 
   useEffect(() => {
     const handleAction = (e: any) => {
@@ -131,61 +161,62 @@ function Scene() {
     return () => window.removeEventListener('MOD_ACTION', handleAction);
   }, [setModules, setCables]);
 
+  // Cable drawing RAF — reads live camera ref each frame for smooth tracking
   useEffect(() => {
     let rafId = 0;
-
     const frame = () => {
       drawFrame({
-        canvas: canvasRef.current,
+        canvas: bgCanvasRef.current,
         dotCanvas: cableDotCanvasRef.current,
         modules,
         cables,
-        camera,
+        camera: cameraLive.current,
       });
       rafId = requestAnimationFrame(frame);
     };
     rafId = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(rafId);
-  }, [cables, modules, camera]);
+  }, [cables, modules, cameraLive]);
 
   const canPlaceGhost = ghost
     ? !wouldGhostOverlap(modules, moduleObjects, ghost.type, ghost.x, ghost.y)
     : false;
 
+  // Dock items — use screenToWorld (stable ref, always reads live camera)
   const items = useMemo(
     () => createDockItems((type, e) => {
-      const spawnX = e.clientX - camera.x;
-      const spawnY = e.clientY - camera.y;
-      setGhost({ type, x: snapToGrid(spawnX), y: snapToGrid(spawnY) });
+      const { x, y } = screenToWorld(e.clientX, e.clientY);
+      setGhost({ type, x: snapToGrid(x), y: snapToGrid(y) });
     }),
-    [camera.x, camera.y]
+    [screenToWorld]
   );
 
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!panRef.current) return;
-      const dx = e.clientX - panRef.current.startX;
-      const dy = e.clientY - panRef.current.startY;
-      setCamera({
-        x: panRef.current.cameraX + dx,
-        y: panRef.current.cameraY + dy,
-      });
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setGhost(null);
+      // if (e.key === "d" || e.key === "D") {
+      //   const active = document.activeElement;
+      //   if (active instanceof HTMLInputElement || active instanceof HTMLTextAreaElement) return;
+      //   setDebugMode((prev: boolean) => !prev);
+      // }
     };
-
-    const handleMouseUp = () => {
-      panRef.current = null;
-      setIsPanning(false);
-    };
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
   }, []);
 
-  const handleSceneMouseDown = (e: React.MouseEvent<HTMLElement>) => {
+  const handleSceneMouseDown = (e: { button: number; target: EventTarget | null; preventDefault(): void; clientX: number; clientY: number }) => {
+    // Space+left or middle → pan takes priority over everything
+    if (viewport.spaceHeld.current && e.button === 0) {
+      tryStartPan(e);
+      e.preventDefault();
+      return;
+    }
+    if (e.button === 1) {
+      tryStartPan(e);
+      return;
+    }
+
+    // Left click + ghost active → place module
     if (e.button === 0 && ghost) {
       e.preventDefault();
       if (!canPlaceGhost) return;
@@ -195,111 +226,103 @@ function Scene() {
       setGhost(null);
       return;
     }
-    if (e.button !== 2) return;
-    const target = e.target as HTMLElement;
-    if (target.closest("[data-patch-module='true']")) return;
-    e.preventDefault();
-    setIsPanning(true);
-    panRef.current = {
-      startX: e.clientX,
-      startY: e.clientY,
-      cameraX: camera.x,
-      cameraY: camera.y,
-    };
+
+    // Right click on empty space → pan
+    if (e.button === 2) {
+      const target = e.target as HTMLElement;
+      if (target.closest("[data-patch-module='true']")) return;
+      e.preventDefault();
+      tryStartPan(e);
+    }
   };
 
-  const handleSceneMouseMove = (e: React.MouseEvent<HTMLElement>) => {
+  const handleSceneMouseMove = (e: { clientX: number; clientY: number }) => {
     if (!ghost) return;
-    const worldX = e.clientX - camera.x;
-    const worldY = e.clientY - camera.y;
+    const { x: worldX, y: worldY } = screenToWorld(e.clientX, e.clientY);
     setGhost((prev) => {
       if (!prev) return prev;
-      return {
-        ...prev,
-        x: snapToGrid(worldX),
-        y: snapToGrid(worldY),
-      };
+      return { ...prev, x: snapToGrid(worldX), y: snapToGrid(worldY) };
     });
   };
 
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setGhost(null);
-    };
+  const cursorClass = isPanning
+    ? "cursor-grabbing"
+    : isSpaceHeld
+    ? "cursor-grab"
+    : ghost
+    ? "cursor-crosshair"
+    : "cursor-auto";
 
-    console.log(modules);
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, []);
-
-  if (loading) {
-    return (
-      <main className="font-lexend h-screen w-screen flex items-center justify-center bg-zinc-950 text-white">
-        <p className="text-zinc-400 text-sm">Loading project…</p>
-      </main>
-    );
-  }
-
-  if (loadError) {
-    return (
-      <main className="font-lexend h-screen w-screen flex items-center justify-center bg-zinc-950 text-white">
-        <p className="text-red-400 text-sm">{loadError}</p>
-      </main>
-    );
-  }
-
-	return (
-		<main
-      className={`font-lexend relative h-screen w-screen overflow-hidden bg-zinc-950 text-white ${isPanning ? "cursor-grabbing" : "cursor-auto"}`}
+  return (
+    <main
+      ref={sceneRef}
+      className={`font-lexend relative h-screen w-screen overflow-hidden bg-zinc-950 text-white ${cursorClass}`}
       onMouseDown={handleSceneMouseDown}
       onMouseMove={handleSceneMouseMove}
-      onContextMenu={(e) => e.preventDefault()}
+      onDoubleClick={handleDoubleClick}
+      onContextMenu={(e: { preventDefault(): void }) => e.preventDefault()}
     >
+      {loading && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-950">
+          <p className="text-zinc-400 text-sm">Loading project…</p>
+        </div>
+      )}
+      {loadError && (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-zinc-950">
+          <p className="text-red-400 text-sm">{loadError}</p>
+        </div>
+      )}
+      {/* Background grid canvas — backgroundSize/Position/opacity set by viewport RAF */}
       <section className="absolute inset-0 z-0">
         <canvas
-          ref={canvasRef}
+          ref={bgCanvasRef}
           id="canvas"
-          width="150" height="150"
-          className="h-full w-full bg-zinc-900 bg-[radial-gradient(circle,rgba(255,255,255,0.24)_2px,transparent_1.5px)] bg-size-[32px_32px]"
-          style={{
-            backgroundPosition: `${camera.x}px ${camera.y}px`,
-          }}
+          width="150"
+          height="150"
+          className="h-full w-full bg-zinc-900 bg-[radial-gradient(circle,rgba(255,255,255,0.24)_2px,transparent_1.5px)]"
         />
       </section>
 
+      {/* Cable endpoint dots */}
       <section className="pointer-events-none absolute inset-0 z-15">
-        <canvas
-          ref={cableDotCanvasRef}
-          className="h-full w-full"
-        />
+        <canvas ref={cableDotCanvasRef} className="h-full w-full" />
       </section>
 
+      {/* Modules container — transform applied directly by viewport RAF, no React re-renders */}
       <section
+        ref={containerRef}
         className="absolute inset-0 z-10 pointer-events-auto"
-        style={{
-          transform: `translate3d(${camera.x}px, ${camera.y}px, 0)`,
-          transformOrigin: "0 0",
-        }}
+        style={{ transformOrigin: "0 0" }}
       >
-        <RenderModules modules={modules} cameraX={camera.x} cameraY={camera.y} f={setCables} cables={cables}/>
+        <RenderModules
+          modules={modules}
+          cameraLive={cameraLive}
+          f={setCables}
+          cables={cables}
+        />
         {ghost && (
           <div className="pointer-events-none">
-          <GhostModule
-            type={ghost.type}
-            x={ghost.x}
-            y={ghost.y}
-            className={canPlaceGhost ? "opacity-80" : "border-red-500/90 bg-red-500/10 opacity-90"}
-          />
+            <GhostModule
+              type={ghost.type}
+              x={ghost.x}
+              y={ghost.y}
+              className={canPlaceGhost ? "opacity-80" : "border-red-500/90 bg-red-500/10 opacity-90"}
+            />
           </div>
         )}
       </section>
-			<section className="pointer-events-none absolute inset-0 z-20">
-				<header className="pointer-events-auto absolute left-3 right-3 top-3 flex items-center justify-between rounded-xl border border-zinc-700/70 bg-zinc-900/85 pl-2 pr-4 py-2 backdrop-blur">
+
+      {/* HUD — header + zoom controls */}
+      <section className="pointer-events-none absolute inset-0 z-20">
+        <header className="pointer-events-auto absolute left-3 right-3 top-3 flex items-center justify-between rounded-xl border border-zinc-700/70 bg-zinc-900/85 pl-2 pr-4 py-2 backdrop-blur">
+          {/* Left: Matrix toggle */}
           <div className="flex items-center gap-4">
             <button
               onClick={() => setMatrixToggle(!matrixToggle)}
-              className="px-3 py-1 rounded-md cursor-pointer hover:bg-white/50 hover"
-            >Matrix</button>
+              className="px-3 py-1 rounded-md cursor-pointer hover:bg-white/50"
+            >
+              Matrix
+            </button>
             {matrixToggle && (
               <div className="flex gap-2">
                 <label className="flex items-center gap-1 cursor-pointer">
@@ -313,15 +336,26 @@ function Scene() {
               </div>
             )}
           </div>
-          <div className="inline-flex w-fit flex-row items-center gap-2">
+
+          {/* Center: module/cable count */}
+          <div className="text-sm text-zinc-400">
+            {modules.length} modules · {cables.length} cables
+          </div>
+
+          {/* Right: audio + tempo + zoom */}
+          <div className="flex items-center gap-3">
+            {/* Audio toggle */}
             <button
-            className={`cursor-pointer transition-colors rounded-md border-2 ${audioStatus ? 'text-red-500 p-1' : 'text-green-500 p-1.5'}`}
-            onClick={() => {setAudioStatus(!audioStatus)}}
+              className={`cursor-pointer transition-colors rounded-md border-2 ${audioStatus ? 'text-red-500 p-1' : 'text-green-500 p-1.5'}`}
+              onClick={() => setAudioStatus(!audioStatus)}
             >
               {audioStatus
-              ? <svg className="w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><g id="SVGRepo_bgCarrier" stroke-width="1"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><path fill-rule="evenodd" clip-rule="evenodd" d="M4 18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12z" fill="currentColor"></path></g></svg>
-              : <svg className="w-4" viewBox="-0.5 0 7 7" version="1.1" xmlns="http://www.w3.org/2000/svg"  fill="currentColor"><g id="SVGRepo_bgCarrier" stroke-width="20"></g><g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g><g id="SVGRepo_iconCarrier"><g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"> <g id="Dribbble-Light-Preview" transform="translate(-347.000000, -3766.000000)" fill="currentColor"> <g id="icons" transform="translate(56.000000, 160.000000)"> <path d="M296.494737,3608.57322 L292.500752,3606.14219 C291.83208,3605.73542 291,3606.25002 291,3607.06891 L291,3611.93095 C291,3612.7509 291.83208,3613.26444 292.500752,3612.85767 L296.494737,3610.42771 C297.168421,3610.01774 297.168421,3608.98319 296.494737,3608.57322" id="play-[#1003]"> </path> </g> </g> </g> </g></svg>}
+                ? <svg className="w-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path fillRule="evenodd" clipRule="evenodd" d="M4 18a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v12z" fill="currentColor"></path></svg>
+                : <svg className="w-4" viewBox="-0.5 0 7 7" version="1.1" xmlns="http://www.w3.org/2000/svg" fill="currentColor"><g><path d="M296.494737,3608.57322 L292.500752,3606.14219 C291.83208,3605.73542 291,3606.25002 291,3607.06891 L291,3611.93095 C291,3612.7509 291.83208,3613.26444 292.500752,3612.85767 L296.494737,3610.42771 C297.168421,3610.01774 297.168421,3608.98319 296.494737,3608.57322" transform="translate(-291, -3606)"></path></g></svg>
+              }
             </button>
+
+            {/* Tempo */}
             <div className="inline-flex items-center gap-1">
               <label className="px-2 text-sm">Tempo</label>
               <input
@@ -330,37 +364,69 @@ function Scene() {
                 value={tempo}
                 onChange={(e) => {
                   const n = Number(e.target.value);
-                  if (n < 0)
-                    setTempo(0);
-                  else if (n > 500)
-                    setTempo(500);
-                  else
-                    setTempo(n);
+                  if (n < 0) setTempo(0);
+                  else if (n > 500) setTempo(500);
+                  else setTempo(n);
                   audioContext.tempo = n;
                 }}
               />
             </div>
-          </div>
-					<div className="text-xl text-zinc-300">{modules.length} modules · {cables.length} cables</div>
-				</header>
-			</section>
 
+            {/* Zoom controls */}
+            <div className="flex items-center gap-1 border-l border-zinc-600 pl-3">
+              <button
+                onClick={zoomOut}
+                className="w-6 h-6 flex items-center justify-center rounded hover:bg-white/20 text-zinc-300 text-lg leading-none cursor-pointer"
+                title="Zoom out (Ctrl+scroll)"
+              >
+                −
+              </button>
+              <button
+                onClick={resetZoom}
+                className="w-14 text-center text-xs text-zinc-300 hover:text-white hover:bg-white/10 rounded py-0.5 cursor-pointer tabular-nums"
+                title="Reset zoom"
+              >
+                {displayScale}%
+              </button>
+              <button
+                onClick={zoomIn}
+                className="w-6 h-6 flex items-center justify-center rounded hover:bg-white/20 text-zinc-300 text-lg leading-none cursor-pointer"
+                title="Zoom in (Ctrl+scroll)"
+              >
+                +
+              </button>
+              <button
+                onClick={() => fitToContent(modules, moduleObjects)}
+                className="ml-1 px-2 py-0.5 text-xs rounded hover:bg-white/20 text-zinc-400 hover:text-white cursor-pointer"
+                title="Fit to content"
+              >
+                ⊞
+              </button>
+            </div>
+          </div>
+        </header>
+      </section>
+
+      {/* Matrix overlay */}
       <div className="absolute z-30 inset-y-20">
         <ul className="flex"></ul>
         <AnimatePresence>
-          {matrixToggle &&
+          {matrixToggle && (
             <Matrix
-            cables={cables}
-            modules={modules}
-            setCables={setCables}
-            setModules={setModules}
-            view={matrixView}
-            menu={menu}
-            activeModuleId={activeModuleId}
-            handleContextMenu={(e, id) => { setActiveModuleId(id); handleContextMenu(e); }}
-            />}
+              cables={cables}
+              modules={modules}
+              setCables={setCables}
+              setModules={setModules}
+              view={matrixView}
+              menu={menu}
+              activeModuleId={activeModuleId}
+              handleContextMenu={(e, id) => { setActiveModuleId(id); handleContextMenu(e); }}
+            />
+          )}
         </AnimatePresence>
       </div>
+
+      {/* Dock */}
       <div className="pointer-events-auto absolute inset-x-0 bottom-0 z-30">
         <Dock
           items={items}
@@ -369,8 +435,19 @@ function Scene() {
           magnification={80}
         />
       </div>
-		</main>
-	);
+
+      {/* Viewport debug overlay — toggle with D */}
+      {/* {debugMode && (
+        <ViewportDebug
+          live={cameraLive}
+          target={cameraTarget}
+          camera={camera}
+          displayScale={displayScale}
+          containerRef={containerRef}
+        />
+      )} */}
+    </main>
+  );
 }
 
 export type {Cable};

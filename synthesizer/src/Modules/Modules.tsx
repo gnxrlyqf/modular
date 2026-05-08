@@ -6,7 +6,10 @@ import LFO from "../Modules/LFO";
 import Filter from "./Filter";
 import Distortion from "../Modules/Distortion";
 import Modulator from "../Modules/Modulator";
+import type { RefObject, Dispatch, SetStateAction } from "react";
 import { ConnectionProvider } from "../ConnectionContext";
+import { CameraProvider } from "../Viewport/CameraContext";
+import type { Camera } from "../Viewport/useViewport";
 import type { Cable } from "../Patch/Cable";
 
 type BaseModule = {
@@ -84,52 +87,40 @@ export interface ModuleProps {
   id: string;
   x: number;
   y: number;
-  cameraX: number;
-  cameraY: number;
 }
 
-function RenderModules(props: { modules: Module[]; cameraX: number; cameraY: number; f: React.Dispatch<React.SetStateAction<Cable[]>>; cables: Cable[]}) {
-  console.log(props.modules);
+function RenderModules(props: {
+  modules: Module[];
+  cameraLive: RefObject<Camera>;
+  f: Dispatch<SetStateAction<Cable[]>>;
+  cables: Cable[];
+}) {
   return (
-    <ConnectionProvider setCables={props.f} cables={props.cables}>
-      {props.modules.map((m) => {
-        switch (m.type) {
-          case "oscillator":
-            return (
-              <Oscillator key={m.id} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} cameraX={props.cameraX} cameraY={props.cameraY} />
-            );
-          case "gain":
-            return (
-              <Gain key={m.id} id={m.id} x={m.x} y={m.y} g={m.params.g} cameraX={props.cameraX} cameraY={props.cameraY} />
-            );
-          case "envelope":
-            return (
-              <Envelope key={m.id} id={m.id} x={m.x} y={m.y} a={m.params.a} d={m.params.d} s={m.params.s} r={m.params.r} cameraX={props.cameraX} cameraY={props.cameraY} />
-            );
-          case "output":
-            return (
-              <Output key={m.id} id={m.id} x={m.x} y={m.y} m={m.params.m} cameraX={props.cameraX} cameraY={props.cameraY} />
-            );
-          case "lfo":
-            return (
-              <LFO key={m.id} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} s={m.params.s}  cameraX={props.cameraX} cameraY={props.cameraY} />
-            );
-          case "filter":
-            return (
-              <Filter key={m.id} id={m.id} x={m.x} y={m.y} f={m.params.f} q={m.params.q} t={m.params.t} cameraX={props.cameraX} cameraY={props.cameraY} />
-            );
-          case "distortion":
-            return (
-              <Distortion key={m.id} id={m.id} x={m.x} y={m.y} d={m.params.d} t={m.params.t} cameraX={props.cameraX} cameraY={props.cameraY} />
-            );
-          case "modulator":
-            return (
-              <Modulator key={m.id} id={m.id} x={m.x} y={m.y} m={m.params.m} d={m.params.d} cameraX={props.cameraX} cameraY={props.cameraY} />
-            );
-          default: return null;
-        }
-      })}
-    </ConnectionProvider>
+    <CameraProvider liveRef={props.cameraLive}>
+      <ConnectionProvider setCables={props.f} cables={props.cables}>
+        {props.modules.map((m) => {
+          switch (m.type) {
+            case "oscillator":
+              return <Oscillator key={m.id} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} />;
+            case "gain":
+              return <Gain key={m.id} id={m.id} x={m.x} y={m.y} g={m.params.g} />;
+            case "envelope":
+              return <Envelope key={m.id} id={m.id} x={m.x} y={m.y} a={m.params.a} d={m.params.d} s={m.params.s} r={m.params.r} />;
+            case "output":
+              return <Output key={m.id} id={m.id} x={m.x} y={m.y} m={m.params.m} />;
+            case "lfo":
+              return <LFO key={m.id} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} s={m.params.s} />;
+            case "filter":
+              return <Filter key={m.id} id={m.id} x={m.x} y={m.y} f={m.params.f} q={m.params.q} t={m.params.t} />;
+            case "distortion":
+              return <Distortion key={m.id} id={m.id} x={m.x} y={m.y} d={m.params.d} t={m.params.t} />;
+            case "modulator":
+              return <Modulator key={m.id} id={m.id} x={m.x} y={m.y} m={m.params.m} d={m.params.d} />;
+            default: return null;
+          }
+        })}
+      </ConnectionProvider>
+    </CameraProvider>
   );
 }
 
