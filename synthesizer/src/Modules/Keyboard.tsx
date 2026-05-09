@@ -1,5 +1,13 @@
+import { useEffect, useRef, useState, useMemo } from "react";
+import { useDrag } from "../Interactions/useDrag";
+import { Param } from "../Interactions/Params";
+import type { ModuleProps } from "./Modules";
+import { useContextMenu } from "../Utils/useContextMenu";
+import ModuleFrame from "./ModuleFrame";
 import styled from "styled-components";
-import { useEffect, useMemo, useRef, useState } from "react";
+
+const MODULE_WIDTH = 940; 
+const MODULE_HEIGHT = 350;
 
 type KeyType = "white" | "black";
 
@@ -15,6 +23,10 @@ interface KeyProps {
   left?: number;
   onPress: () => void;
   onRelease: () => void;
+}
+
+interface KeyboardProps extends ModuleProps {
+  // Add specific keyboard settings here if needed (e.g. octave)
 }
 
 const WHITE_KEY_WIDTH = 60;
@@ -36,20 +48,12 @@ const NOTE_TO_SEMITONE: Record<string, number> = {
   "F#": 6, G: 7, "G#": 8, A: 9, "A#": 10, B: 11,
 };
 
-const KeyboardWrapper = styled.div`
-  padding: 40px;
-  background: #111;
-  border-radius: 16px;
-  width: fit-content;
-  overflow-x: auto;
-`;
-
 const KeyboardBed = styled.div`
   position: relative;
   display: flex;
   height: 220px;
+  margin-top: 10px;
 `;
-
 const StyledKey = styled.div<{ $keyType: KeyType; $isActive: boolean; $left?: number;}>`
   position: ${(p) => (p.$keyType === "black" ? "absolute" : "relative")};
 
@@ -112,11 +116,23 @@ function Key({ keyType, isActive, left, onPress, onRelease }: KeyProps) {
   );
 }
 
-export default function Keyboard() {
+function Keyboard(props: KeyboardProps) {
+  const moduleRef = useRef<HTMLDivElement | null>(null);
+  const [position, setPosition] = useState<{ x: number; y: number }>({ x: props.x, y: props.y });
+  const { menu, handleContextMenu } = useContextMenu();
+  const color = "#4F6FAF";
   const [activeNotes, setActiveNotes] = useState<Record<string, boolean>>({});
   const audioCtx = useRef<AudioContext | null>(null);
   const oscillators = useRef<Record<string, OscillatorNode>>({});
   const gains = useRef<Record<string, GainNode>>({});
+
+  useEffect(() => {
+    if (!moduleRef.current || position) return;
+    const rect = moduleRef.current.getBoundingClientRect();
+    setPosition({ x: rect.left + window.scrollX, y: rect.top + window.scrollY });
+  }, [position]);
+
+  const onMouseDown = useDrag(props, position, setPosition, moduleRef);
 
   const keys = useMemo(() => {
     const arr: PianoKeyData[] = [];
@@ -222,19 +238,43 @@ export default function Keyboard() {
   }, []);
 
   return (
-    <KeyboardWrapper>
-      <KeyboardBed>
-        {keys.map((key) => (
-          <Key
-            key={key.note}
-            keyType={key.type}
-            left={key.left}
-            isActive={!!activeNotes[key.note]}
-            onPress={() => handleNoteDown(key.note)}
-            onRelease={() => handleNoteUp(key.note)}
-          />
-        ))}
-      </KeyboardBed>
-    </KeyboardWrapper>
+      <ModuleFrame
+        id={props.id}
+        title="Keyboard 25"
+        width={MODULE_WIDTH}
+        height={MODULE_HEIGHT}
+        position={position}
+        baseColor={color}
+        menu={menu}
+        moduleRef={moduleRef}
+        onContextMenu={handleContextMenu}
+        onHeaderMouseDown={onMouseDown}
+      >
+        <div className="flex flex-col w-full">
+          {/* The Playable Keys Area */}
+          <KeyboardBed>
+            {keys.map((key) => (
+              <Key
+                key={key.note}
+                keyType={key.type}
+                left={key.left}
+                isActive={!!activeNotes[key.note]}
+                onPress={() => handleNoteDown(key.note)}
+                onRelease={() => handleNoteUp(key.note)}
+              />
+            ))}
+          </KeyboardBed>
+          {/* Modular Patch Points */}
+          <div className="w-full flex flex-row gap-4 mt-6">
+            <Param id={props.id} name="gate" polarity="source" color={color}/>
+            <Param id={props.id} name="pitch" polarity="source" color={color}/>
+            <Param id={props.id} name="velocity" polarity="source" color={color}/>
+          </div>
+        </div>
+      </ModuleFrame>
   );
 }
+
+export const KYBD_W = MODULE_WIDTH;
+export const KYBD_H = MODULE_HEIGHT;
+export default Keyboard;

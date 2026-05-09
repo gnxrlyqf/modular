@@ -316,7 +316,7 @@ function Scene() {
         className="absolute inset-0 z-10 pointer-events-auto"
         style={{ transformOrigin: "0 0" }}
       >
-          <Keyboard/>
+          {/* <Keyboard/> */}
 
         <RenderModules
           modules={modules}

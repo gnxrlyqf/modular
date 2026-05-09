@@ -10,6 +10,7 @@ import LFO, { LFO_W, LFO_H } from '../Modules/LFO';
 import Filter, { FLT_W, FLT_H } from '../Modules/Filter';
 import Distortion, { DIST_W, DIST_H } from '../Modules/Distortion';
 import Modulator, { MOD_W, MOD_H } from '../Modules/Modulator';
+import Keyboard, { KYBD_W, KYBD_H } from "../Modules/Keyboard";
 
 function OscIcon(props: {size: number}) {
   return (
@@ -129,7 +130,8 @@ type ModuleType =
   | "lfo" 
   | "filter" 
   | "distortion" 
-  | "modulator";
+  | "modulator"
+  | "keyboard";
 
 const objects: Record<ModuleType, { component: unknown; w: number; h: number }> = {
   // here is the issue of the ghost not taking the true dimensions
@@ -140,7 +142,8 @@ const objects: Record<ModuleType, { component: unknown; w: number; h: number }> 
   "lfo":        { component: LFO,        w: LFO_W,  h: LFO_H },
   "filter":     { component: Filter,     w: FLT_W,  h: FLT_H },
   "distortion": { component: Distortion, w: DIST_W, h: DIST_H },
-  "modulator":  { component: Modulator,  w: MOD_W,  h: MOD_H }
+  "modulator":  { component: Modulator,  w: MOD_W,  h: MOD_H },
+  "keyboard":   { component: Keyboard,   w: KYBD_W, h: KYBD_H}
 };
 
 function GhostModule(props: { type: ModuleType; x: number; y: number; className?: string }) {
@@ -174,6 +177,8 @@ function instantiateModule(type: ModuleType, x: number, y: number): Module {
       return { id, type: "distortion", x, y, params: { d: 50, t: "soft" } };
     case "modulator":
       return { id, type: "modulator", x, y, params: { m: "AM", d: 50 } };
+    case "keyboard":
+      return { id, type: "keyboard", x, y};
     default:
       return { id, type: "gain", x, y, params: { g: 0 } };
   }
@@ -220,6 +225,11 @@ function createDockItems(onInstantiate: (type: ModuleType, e:React.MouseEvent) =
       icon: <ModIcon size={40} />,
       label: 'Modulator',
       onClick: (e: React.MouseEvent) => onInstantiate("modulator", e)
+    },
+    {
+      icon: <ModIcon size={40} />,
+      label: 'Keyboard',
+      onClick: (e: React.MouseEvent) => onInstantiate("keyboard", e)
     },
   ];
 }

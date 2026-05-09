@@ -6,6 +6,7 @@ import LFO from "../Modules/LFO";
 import Filter from "./Filter";
 import Distortion from "../Modules/Distortion";
 import Modulator from "../Modules/Modulator";
+import Keyboard from "../Modules/Keyboard";
 import type { RefObject, Dispatch, SetStateAction } from "react";
 import { ConnectionProvider } from "../ConnectionContext";
 import { CameraProvider } from "../Viewport/CameraContext";
@@ -14,7 +15,7 @@ import type { Cable } from "../Patch/Cable";
 
 type BaseModule = {
   id: string;
-  type: 'oscillator' | 'gain' | 'envelope' | 'output' | 'lfo' | 'filter' | 'distortion' | 'modulator';
+  type: 'oscillator' | 'gain' | 'envelope' | 'output' | 'lfo' | 'filter' | 'distortion' | 'modulator' | 'keyboard';
   x: number;
   y: number;
 }
@@ -58,7 +59,7 @@ type LfoModule = BaseModule & {
 
 type FilterModule = BaseModule & {
     type: "filter";
-	params: { f: number; q: number; t: string };
+	params: { f: number; q: number; t: "lowpass" | "highpass" | "bandpass" | "notch" };
 }
 
 type DistortModule = BaseModule & {
@@ -71,7 +72,11 @@ type ModulateModule = BaseModule & {
     params: { m: "AM" | "FM" | "PM" | "RM"; d: number };
 }
 
-type Module = OscModule | EnvModule | GainModule | OutModule | LfoModule | FilterModule | DistortModule | ModulateModule;
+type KeyboardModule = BaseModule & {
+  type: "keyboard";
+}
+
+type Module = OscModule | EnvModule | GainModule | OutModule | LfoModule | FilterModule | DistortModule | ModulateModule | KeyboardModule;
 
 type ModuleType =
 	| "oscillator"
@@ -81,7 +86,8 @@ type ModuleType =
 	| "lfo"
 	| "filter"
 	| "distortion"
-	| "modulator";
+	| "modulator"
+  | "keyboard";
 
 export interface ModuleProps {
   id: string;
@@ -116,6 +122,8 @@ function RenderModules(props: {
               return <Distortion key={m.id} id={m.id} x={m.x} y={m.y} d={m.params.d} t={m.params.t} />;
             case "modulator":
               return <Modulator key={m.id} id={m.id} x={m.x} y={m.y} m={m.params.m} d={m.params.d} />;
+            case "keyboard":
+              return <Keyboard key={m.id} id={m.id} x={m.x} y={m.y} />;
             default: return null;
           }
         })}
@@ -218,6 +226,13 @@ function parseModules(modules: any[]): Module[] {
           params: {
             m: m.params.m ?? -6,
           },
+        };
+      case "keyboard":
+        return {
+          id: m.id,
+          type: "keyboard",
+          x: m.x,
+          y: m.y,
         };
       default:
         throw new Error(`Unknown module type: ${m.type}`);
