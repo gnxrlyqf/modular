@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import Dock from "../Dock";
 import type {Module} from '../Modules/Modules'
+import Keyboard from '../Modules/Keyboard'
 import { AnimatePresence } from "motion/react";
 import { wouldGhostOverlap } from "../Utils/wouldGhostOverlap";
 import { snapToGrid } from "../Utils/snapToGrid";
@@ -293,6 +294,7 @@ function Scene() {
           <p className="text-red-400 text-sm">{loadError}</p>
         </div>
       )}
+      
       {/* Background grid canvas — backgroundSize/Position/opacity set by viewport RAF */}
       <section className="absolute inset-0 z-0">
         <canvas
@@ -320,6 +322,11 @@ function Scene() {
           cameraLive={cameraLive}
           f={setCables}
           cables={cables}
+        />
+        <Keyboard
+          id="keyboard"
+          x={600}
+          y={400}
         />
         {ghost && (
           <div className="pointer-events-none">

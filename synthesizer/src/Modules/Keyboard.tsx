@@ -6,9 +6,6 @@ import { useContextMenu } from "../Utils/useContextMenu";
 import ModuleFrame from "./ModuleFrame";
 import styled from "styled-components";
 
-const MODULE_WIDTH = 940; 
-const MODULE_HEIGHT = 350;
-
 type KeyType = "white" | "black";
 
 interface PianoKeyData {
@@ -29,8 +26,14 @@ interface KeyboardProps extends ModuleProps {
   // Add specific keyboard settings here if needed (e.g. octave)
 }
 
-const WHITE_KEY_WIDTH = 60;
-const BLACK_KEY_WIDTH = 38;
+const MODULE_WIDTH = 704; 
+const MODULE_HEIGHT = 320;
+
+const WHITE_KEY_WIDTH = 45;
+const BLACK_KEY_WIDTH = 28;
+
+const BLACK_KEY_HEIGHT = 100;
+const WHITE_KEY_HEIGHT = 180;
 const OCTAVES = 2;
 
 const WHITE_PATTERN = ["C", "D", "E", "F", "G", "A", "B"];
@@ -51,9 +54,9 @@ const NOTE_TO_SEMITONE: Record<string, number> = {
 const KeyboardBed = styled.div`
   position: relative;
   display: flex;
-  height: 220px;
-  margin-top: 10px;
+  margin-top: 0px;
 `;
+
 const StyledKey = styled.div<{ $keyType: KeyType; $isActive: boolean; $left?: number;}>`
   position: ${(p) => (p.$keyType === "black" ? "absolute" : "relative")};
 
@@ -65,7 +68,7 @@ const StyledKey = styled.div<{ $keyType: KeyType; $isActive: boolean; $left?: nu
   `}
 
   width: ${(p) => p.$keyType === "black" ? `${BLACK_KEY_WIDTH}px` : `${WHITE_KEY_WIDTH}px`};
-  height: ${(p) => p.$keyType === "black" ? "130px" : "220px"};
+  height: ${(p) => p.$keyType === "black" ? `${BLACK_KEY_HEIGHT}px`: `${WHITE_KEY_HEIGHT}px`};
 
   border-radius: 0 0 10px 10px;
   cursor: pointer;
@@ -120,7 +123,7 @@ function Keyboard(props: KeyboardProps) {
   const moduleRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: props.x, y: props.y });
   const { menu, handleContextMenu } = useContextMenu();
-  const color = "#4F6FAF";
+  const color = "#696969ff";
   const [activeNotes, setActiveNotes] = useState<Record<string, boolean>>({});
   const audioCtx = useRef<AudioContext | null>(null);
   const oscillators = useRef<Record<string, OscillatorNode>>({});
@@ -155,9 +158,6 @@ function Keyboard(props: KeyboardProps) {
         });
       });
     }
-
-    arr.push({ note: `C${OCTAVES + 2}`, type: "white" });
-
     return arr;
   }, []);
 
@@ -240,7 +240,7 @@ function Keyboard(props: KeyboardProps) {
   return (
       <ModuleFrame
         id={props.id}
-        title="Keyboard 25"
+        title="Keyboard"
         width={MODULE_WIDTH}
         height={MODULE_HEIGHT}
         position={position}
@@ -250,7 +250,7 @@ function Keyboard(props: KeyboardProps) {
         onContextMenu={handleContextMenu}
         onHeaderMouseDown={onMouseDown}
       >
-        <div className="flex flex-col w-full">
+        <div className="flex flex-col ">
           {/* The Playable Keys Area */}
           <KeyboardBed>
             {keys.map((key) => (
@@ -264,12 +264,6 @@ function Keyboard(props: KeyboardProps) {
               />
             ))}
           </KeyboardBed>
-          {/* Modular Patch Points */}
-          <div className="w-full flex flex-row gap-4 mt-6">
-            <Param id={props.id} name="gate" polarity="source" color={color}/>
-            <Param id={props.id} name="pitch" polarity="source" color={color}/>
-            <Param id={props.id} name="velocity" polarity="source" color={color}/>
-          </div>
         </div>
       </ModuleFrame>
   );

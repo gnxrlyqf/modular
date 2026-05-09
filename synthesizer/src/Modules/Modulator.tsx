@@ -25,7 +25,7 @@ function Modulator(props: ModuleProps & {
   const [depth, setDepth] = useState(props.d);
   const [mode, setMode] = useState<"AM" | "FM" | "PM" | "RM">(props.m);
 
-  const color = "#456882";
+  const color = "#005fadff";
   const onMouseDown = useDrag(props, position, setPosition, moduleRef);
   const { menu, handleContextMenu } = useContextMenu();
 
