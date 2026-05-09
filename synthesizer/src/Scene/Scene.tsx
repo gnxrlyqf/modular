@@ -13,6 +13,7 @@ import Context from "../Audio/Context";
 import {RenderModules, parseModules} from "../Modules/Modules";
 import { authFetch } from "../api";
 import { useViewport } from "../Viewport/useViewport";
+import Keyboard from "../Modules/Keyboard";
 // import ViewportDebug from "../Viewport/ViewportDebug";
 
 const audioContext = new Context([], []);
@@ -315,6 +316,8 @@ function Scene() {
         className="absolute inset-0 z-10 pointer-events-auto"
         style={{ transformOrigin: "0 0" }}
       >
+          <Keyboard/>
+
         <RenderModules
           modules={modules}
           cameraLive={cameraLive}
@@ -362,7 +365,6 @@ function Scene() {
           <div className="text-sm text-zinc-400">
             {modules.length} modules · {cables.length} cables
           </div>
-
           {/* Right: audio + tempo + zoom */}
           <div className="flex items-center gap-3">
             {/* Audio toggle */}
@@ -427,7 +429,6 @@ function Scene() {
           </div>
         </header>
       </section>
-
       {/* Matrix overlay */}
       <div className="absolute z-30 inset-y-20">
         <ul className="flex"></ul>
