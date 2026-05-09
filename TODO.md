@@ -8,3 +8,7 @@
 - [X] play with logs and install ELK to manage them and visualize stuff
 - [ ] Go back to the default inotify system for better CPU usage, or find a better concept than mounting a windows volume
 - [ ] when entering instead of pressing button, the drum goes the the 0, 0 position, it should not move 
+
+- [ ] verification email not working
+- [ ] changing error output (like login and sign up)
+- [ ] did u do the admin ?
