@@ -33,12 +33,8 @@ const ResetOption = ({ onDispatch, color }: { id: string, color: string, onDispa
   <button
     className={`${optionClass} text-zinc-300 hover:bg-zinc-800/80`}
     style={{ boxShadow: `0 0 0px ${color}` }}
-    onMouseEnter={(e) => {
-      e.currentTarget.style.boxShadow = `0 0 18px ${color}55`;
-    }}
-    onMouseLeave={(e) => {
-      e.currentTarget.style.boxShadow = `0 0 0px ${color}`;
-    }}
+    onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 0 18px ${color}55`; }}
+    onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 0 0px ${color}`; }}
     onClick={() => onDispatch('RESET')}
   >
     <span>Reset</span>
@@ -76,9 +72,7 @@ const DeleteOption = ({ onDispatch, color }: { id: string, color: string, onDisp
     onMouseLeave={(e) => {
       e.currentTarget.style.boxShadow = `0 0 0px ${color}`;
     }}
-    onClick={() => {
-      if (confirm("Are you sure?")) onDispatch('DELETE');
-    }}
+    onClick={() => {onDispatch('DELETE');}}
   >
     <span className="font-semibold">Delete</span>
     <span className="text-lg leading-none">🗑</span>

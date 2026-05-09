@@ -121,7 +121,29 @@ function ModIcon(props: { size: number }) {
   );
 }
 
-// type ModuleType = "oscillator" | "gain" | "envelope" | "output";
+function KeyIcon(props: { size: number }) {
+  return (
+    <svg
+      width={props.size}
+      height={props.size}
+      viewBox="-10 0 400 400"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+    >
+      <rect x="60" y="120" width="260" height="160" rx="20" stroke="white" strokeWidth="20" />
+
+      {/* white keys */}
+      <rect x="80" y="140" width="60" height="120" fill="white" />
+      <rect x="160" y="140" width="60" height="120" fill="white" />
+      <rect x="240" y="140" width="60" height="120" fill="white" />
+
+      {/* black keys */}
+      <rect x="130" y="140" width="40" height="80" fill="black" />
+      <rect x="210" y="140" width="40" height="80" fill="black" />
+    </svg>
+  );
+}
+
 type ModuleType = 
   | "oscillator" 
   | "gain" 
@@ -227,7 +249,7 @@ function createDockItems(onInstantiate: (type: ModuleType, e:React.MouseEvent) =
       onClick: (e: React.MouseEvent) => onInstantiate("modulator", e)
     },
     {
-      icon: <ModIcon size={40} />,
+      icon: <KeyIcon size={50} />,
       label: 'Keyboard',
       onClick: (e: React.MouseEvent) => onInstantiate("keyboard", e)
     },
