@@ -13,3 +13,4 @@
 - [ ] changing error output (like login and sign up)
 - [ ] did u do the admin ?
 - [ ] when i double click on an item fl grid it zooms (like double clickin the top bar or the matrix)
+- [ ] same for scrolling we cant scroll in the matrix or scroll fl modules
