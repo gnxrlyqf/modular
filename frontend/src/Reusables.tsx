@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useCallback } from "react";
 import type { XyloNote } from "./Xylophone";
 
 function Anchor(props : {text?: React.ReactNode; note?: XyloNote; href?: string; onClick?: () => void}) {
@@ -66,4 +66,62 @@ function CloseButton(props: { onClick?: () => void; className?: string }) {
     )
 }
 
-export {Anchor, Button, Input, CloseButton};
+// ─── Confirm Modal ───────────────────────────────────────────────────────────
+
+type ConfirmOptions = {
+  title: string;
+  message: string;
+  confirmText?: string;
+  danger?: boolean;
+};
+
+type ConfirmState = ConfirmOptions & { resolve: (v: boolean) => void };
+
+function ConfirmModal(props: { state: ConfirmState; onClose: (v: boolean) => void }) {
+  const { title, message, confirmText = 'Confirm', danger } = props.state;
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-card max-w-sm font-lexend">
+        <h3 className="text-lg font-semibold text-indigo-200 tracking-wide pb-2">{title}</h3>
+        <p className="text-sm text-indigo-300/70 pb-5">{message}</p>
+        <div className="flex justify-end gap-2">
+          <button
+            type="button"
+            onClick={() => props.onClose(false)}
+            className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer"
+          >
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={() => props.onClose(true)}
+            className={`glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium tracking-wide duration-200 ease-out hover:scale-105 cursor-pointer ${danger ? 'text-red-300 hover:text-red-200 glow-red' : 'text-indigo-300/80 hover:text-white glow-indigo'}`}
+          >
+            {confirmText}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function useConfirm() {
+  const [state, setState] = useState<ConfirmState | null>(null);
+
+  const confirm = useCallback((options: ConfirmOptions): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setState({ ...options, resolve });
+    });
+  }, []);
+
+  const handleClose = useCallback((value: boolean) => {
+    state?.resolve(value);
+    setState(null);
+  }, [state]);
+
+  const node = state ? <ConfirmModal state={state} onClose={handleClose} /> : null;
+
+  return { confirm, node };
+}
+
+export {Anchor, Button, Input, CloseButton, ConfirmModal, useConfirm};

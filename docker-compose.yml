@@ -10,6 +10,7 @@ services:
       # 80:5173 if you want to access the frontend on port 80
       # 443:5173 if you want to access the frontend on port 
     environment:
+      - VITE_GOOGLE_CLIENT_ID=${VITE_GOOGLE_CLIENT_ID}
       - VITE_FORTYTWO_CLIENT_ID=${VITE_FORTYTWO_CLIENT_ID}
       - VITE_SYNTHESIZER_URL=${VITE_SYNTHESIZER_URL:-http://localhost:5174}
     volumes:

@@ -8,6 +8,7 @@ import SettingsContainer from "./Settings";
 import { UserSearchContainer } from "./UserSearch";
 import { AdminContainer, useIsAdmin } from "./Admin";
 import PasswordResetConfirmPage, { parsePasswordResetRoute } from "./PasswordResetConfirm";
+import PublicProfileContainer from "./PublicProfile";
 import StarField from "./StarField";
 import { XyloProvider } from "./Xylophone";
 import CosmicLanding, { CosmicNebula } from "./Cosmic";
@@ -34,6 +35,7 @@ function TopBar(props: {
   isAdmin?: boolean;
   onProfileOpen?: () => void;
   onProjectsOpen?: () => void;
+  onLeaderboardOpen?: () => void;
   onUsersOpen?: () => void;
   onAdminOpen?: () => void;
 }) {
@@ -83,22 +85,22 @@ function TopBar(props: {
             {/* ── Left: Logo ── */}
             <div className="flex items-center gap-2.5 justify-start">
               <div className="navbar-logo-icon" />
-              <span className="navbar-logo-text">lhrba</span>
+              <span className="navbar-logo-text">Lmoussiqar</span>
             </div>
 
             {/* ── Center: Nav links styled as xylophone bars ── */}
             <div className="hidden md:flex items-center gap-3 justify-center">
-              <button type="button" data-xylo-note="C4" className="xylo-note xylo-note--c4">leaderboard</button>
+              <button type="button" data-xylo-note="C4" className="xylo-note xylo-note--c4" onClick={() => props.isLoggedIn ? props.onLeaderboardOpen?.() : props.func?.()}>leaderboard</button>
               <button
                 type="button"
                 data-xylo-note="E4"
                 className="xylo-note xylo-note--e4"
-                onClick={() => props.onProjectsOpen?.()}
+                onClick={() => props.isLoggedIn ? props.onProjectsOpen?.() : props.func?.()}
               >
                 community
               </button>
-              <button type="button" data-xylo-note="G4" className="xylo-note xylo-note--g4">blog</button>
-              <button type="button" data-xylo-note="B4" className="xylo-note xylo-note--b4">docs</button>
+              <button type="button" data-xylo-note="G4" className="xylo-note xylo-note--g4" onClick={() => { if (!props.isLoggedIn) props.func?.(); }}>blog</button>
+              <button type="button" data-xylo-note="B4" className="xylo-note xylo-note--b4" onClick={() => { if (!props.isLoggedIn) props.func?.(); }}>docs</button>
             </div>
             {/* Hidden on mobile for clean minimal view */}
 
@@ -177,10 +179,13 @@ function App() {
 function MainApp() {
   const [showLogin, setShowLogin] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
+  const [projectsInitialOrdering, setProjectsInitialOrdering] = useState('-created_at');
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [publicProfileUser, setPublicProfileUser] = useState<string | null>(null);
+  const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() =>
     hasCookie(ACCESS_COOKIE_NAME)
   );
@@ -216,6 +221,8 @@ function MainApp() {
         if (cancelled) return;
         if (response.ok) {
           setIsLoggedIn(true);
+          const me: { username: string } = await response.json();
+          if (!cancelled) setCurrentUsername(me.username);
         } else {
           clearAuthCookies();
           setIsLoggedIn(false);
@@ -240,31 +247,48 @@ function MainApp() {
   const handleLoginOpen = () => {
     logger.action('nav.login_open');
     setShowProjects(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
-    setShowAdmin(false);
+    setShowAdmin(false); setPublicProfileUser(null);
     setShowLogin(true);
   };
   const handleProjectsOpen = () => {
     logger.action('nav.projects_open');
     setShowLogin(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
-    setShowAdmin(false);
+    setShowAdmin(false); setPublicProfileUser(null);
+    setProjectsInitialOrdering('-created_at');
+    setShowProjects(true);
+  };
+
+  const handleLeaderboardOpen = () => {
+    logger.action('nav.leaderboard_open');
+    setShowLogin(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
+    setShowAdmin(false); setPublicProfileUser(null);
+    setProjectsInitialOrdering('-net_votes');
     setShowProjects(true);
   };
   const handleProfileOpen = () => {
     logger.action('nav.profile_open');
     setShowLogin(false); setShowProjects(false); setShowSettings(false); setShowUserSearch(false);
-    setShowAdmin(false);
+    setShowAdmin(false); setPublicProfileUser(null);
     setShowProfile(true);
   };
   const handleUserSearchOpen = () => {
     logger.action('nav.user_search_open');
     setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
-    setShowAdmin(false);
+    setShowAdmin(false); setPublicProfileUser(null);
     setShowUserSearch(true);
   };
   const handleAdminOpen = () => {
     logger.action('nav.admin_open');
     setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
+    setPublicProfileUser(null);
     setShowAdmin(true);
+  };
+
+  const handlePublicProfileOpen = (username: string) => {
+    logger.action('nav.public_profile_open', { username });
+    setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
+    setShowUserSearch(false); setShowAdmin(false);
+    setPublicProfileUser(username);
   };
 
   const handleNewProject = async () => {
@@ -287,7 +311,7 @@ function MainApp() {
   };
 
   const anyOverlayOpen =
-    showProjects || showUserSearch || showAdmin || showProfile || showSettings;
+    showProjects || showUserSearch || showAdmin || showProfile || showSettings || publicProfileUser !== null;
 
   return (
     <XyloProvider>
@@ -306,13 +330,15 @@ function MainApp() {
             isAdmin={Boolean(isAdmin)}
             onProfileOpen={handleProfileOpen}
             onProjectsOpen={handleProjectsOpen}
+            onLeaderboardOpen={handleLeaderboardOpen}
             onUsersOpen={handleUserSearchOpen}
             onAdminOpen={handleAdminOpen}
           />
         </div>
         <div className="pt-4 pb-8">
-          {showProjects && <ProjectsContainer func={setShowProjects} />}
-          {showUserSearch && <UserSearchContainer func={setShowUserSearch} />}
+          {showProjects && <ProjectsContainer func={setShowProjects} currentUsername={currentUsername ?? undefined} onUserClick={handlePublicProfileOpen} initialOrdering={projectsInitialOrdering} />}
+          {publicProfileUser && <PublicProfileContainer username={publicProfileUser} func={(v) => { if (!v) setPublicProfileUser(null); }} onMessage={() => {}} />}
+          {showUserSearch && <UserSearchContainer func={setShowUserSearch} onUserClick={handlePublicProfileOpen} />}
           {showAdmin && isAdmin && <AdminContainer func={setShowAdmin} />}
           {showProfile && (
             <ProfileContainer func={setShowProfile} set={setShowSettings} setLoggedIn={setIsLoggedIn} />
@@ -341,6 +367,7 @@ function MainApp() {
                 isLoggedIn={isLoggedIn}
                 onNewProject={handleNewProject}
                 onTryIt={handleTryIt}
+                onOpenLeaderboard={isLoggedIn ? handleLeaderboardOpen : handleLoginOpen}
               />
             </AnimatedContent>
           )}

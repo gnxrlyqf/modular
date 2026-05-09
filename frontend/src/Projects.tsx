@@ -13,6 +13,7 @@ type ApiProject = {
   id: string;
   name: string;
   user: number;
+  username?: string;
   config: Record<string, unknown> | null;
   created_at: string;
   updated_at: string;
@@ -158,7 +159,35 @@ function NewButton(props: { onClick?: () => void }) {
   )
 }
 
-function FilterButton(props: {text?: string; onClick?: () => void}) {
+function ViewToggle(props: { mode: 'grid' | 'list'; onChange: (mode: 'grid' | 'list') => void }) {
+  return (
+    <div className="flex items-center glass rounded-lg overflow-hidden">
+      <button
+        type="button"
+        aria-label="Grid view"
+        onClick={() => props.onChange('grid')}
+        className={`px-2 py-1.5 transition-colors cursor-pointer ${props.mode === 'grid' ? 'text-indigo-300' : 'text-indigo-300/30 hover:text-indigo-300/70'}`}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+          <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+          <rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/>
+        </svg>
+      </button>
+      <button
+        type="button"
+        aria-label="List view"
+        onClick={() => props.onChange('list')}
+        className={`px-2 py-1.5 transition-colors cursor-pointer ${props.mode === 'list' ? 'text-indigo-300' : 'text-indigo-300/30 hover:text-indigo-300/70'}`}
+      >
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+    </div>
+  )
+}
+
+function FilterButton(props: {text?: string; onClick?: () => void; isActive?: boolean}) {
   const [rot, setRot] = useState(0);
   const rotation = ["rotate-0", "rotate-180"]
 
@@ -168,7 +197,7 @@ function FilterButton(props: {text?: string; onClick?: () => void}) {
   }
 
   return (
-    <button type="button" className="btn-filter" onClick={f}>
+    <button type="button" className={`btn-filter transition-colors ${props.isActive ? 'text-indigo-300' : 'text-indigo-300/40 hover:text-indigo-300/70'}`} onClick={f}>
       <span>{props.text}</span>
       <svg className={`${rotation[rot]} transition-transform duration-200`}
       width="18" height="18" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5} fill="currentColor"
@@ -179,11 +208,14 @@ function FilterButton(props: {text?: string; onClick?: () => void}) {
   )
 }
 
-function Filters(props: {onDateSort?: () => void; onNameSort?: () => void}) {
+function Filters(props: {onDateSort?: () => void; onNameSort?: () => void; ordering?: string}) {
+  const isDateActive = props.ordering?.includes('created_at');
+  const isNameActive = props.ordering?.includes('name');
+
   return (
     <div className="font-lexend flex flex-row gap-2 mx-3">
-      <FilterButton text="Date" onClick={props.onDateSort} />
-      <FilterButton text="Name" onClick={props.onNameSort} />
+      <FilterButton text="Date" onClick={props.onDateSort} isActive={isDateActive} />
+      <FilterButton text="Name" onClick={props.onNameSort} isActive={isNameActive} />
     </div>
   )
 }
@@ -249,7 +281,11 @@ function Card(props: {
   onDelete?: (id: string) => Promise<void>;
   onRename?: (id: string, currentName: string) => void;
   onVote?: (id: string, vote: 0 | 1 | -1) => void;
+  onFork?: (id: string, config: Record<string, unknown> | null) => void; // sync — no backend project created
+  onUserClick?: (username: string) => void;
   showVotes?: boolean;
+  isOwn?: boolean;
+  listView?: boolean;
 }) {
   const cardRef = useRef<HTMLAnchorElement>(null);
   const cardTitle = props.card.name || `Untitled project ${props.index + 1}`;
@@ -306,30 +342,100 @@ function Card(props: {
     };
   }, [props.card.id, props.card.name, props.onDelete, props.onRename])
 
-  return (
-    <a href={`${SYNTH_URL}?project=${props.card.id}`} target="_blank" rel="noreferrer" ref={cardRef} className="block glass card-lift w-full rounded-2xl font-lexend cursor-pointer overflow-hidden">
-      <img className="rounded-t-2xl h-36 w-full object-cover" src={cardImage} alt={cardTitle} />
-      <div className="flex flex-row items-center py-2.5 px-3 border-t border-white/6">
-        <span className="truncate text-sm text-indigo-100 font-medium">{cardTitle}</span>
+  const handleClick = (e: React.MouseEvent) => {
+    if (!props.isOwn && props.onFork) {
+      e.preventDefault();
+      props.onFork(props.card.id, props.card.config);
+    }
+  };
+
+  if (props.listView) {
+    return (
+      <a
+        href={`${SYNTH_URL}?project=${props.card.id}`}
+        target="_blank"
+        rel="noreferrer"
+        ref={cardRef}
+        onClick={handleClick}
+        className="flex items-center gap-3 glass card-lift w-full rounded-xl font-lexend cursor-pointer px-3 py-2.5 border border-white/6"
+      >
+        <img className="rounded-lg h-10 w-16 object-cover shrink-0" src={cardImage} alt={cardTitle} />
+        <div className="min-w-0 flex-1">
+          <span className="truncate text-sm text-indigo-100 font-medium block">{cardTitle}</span>
+          {!props.isOwn && props.card.username && (
+            <button
+              type="button"
+              className="text-xs text-indigo-400/60 hover:text-indigo-300 transition-colors cursor-pointer"
+              onClick={e => { e.preventDefault(); e.stopPropagation(); props.onUserClick?.(props.card.username!); }}
+            >
+              by @{props.card.username}
+            </button>
+          )}
+        </div>
         {props.showVotes ? (
-          <div className="ml-auto flex items-center gap-1 pl-3" onClick={e => e.preventDefault()}>
+          <div className="flex items-center gap-1 shrink-0" onClick={e => e.preventDefault()}>
             <button
               type="button"
               className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-colors cursor-pointer ${props.card.user_vote === 1 ? 'text-indigo-300' : 'text-indigo-300/40 hover:text-indigo-300'}`}
               onClick={e => { e.preventDefault(); e.stopPropagation(); props.onVote?.(props.card.id, props.card.user_vote === 1 ? 0 : 1); }}
-            >
-              ▲ {props.card.upvotes}
-            </button>
+            >▲ {props.card.upvotes}</button>
             <button
               type="button"
               className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-colors cursor-pointer ${props.card.user_vote === -1 ? 'text-red-300' : 'text-indigo-300/40 hover:text-red-300'}`}
               onClick={e => { e.preventDefault(); e.stopPropagation(); props.onVote?.(props.card.id, props.card.user_vote === -1 ? 0 : -1); }}
-            >
-              ▼ {props.card.downvotes}
-            </button>
+            >▼ {props.card.downvotes}</button>
           </div>
         ) : (
-          <span className="ml-auto pl-3 whitespace-nowrap text-xs text-indigo-300/40">{cardTime}</span>
+          <span className="shrink-0 text-xs text-indigo-300/40">{cardTime}</span>
+        )}
+      </a>
+    );
+  }
+
+  return (
+    <a
+      href={`${SYNTH_URL}?project=${props.card.id}`}
+      target="_blank"
+      rel="noreferrer"
+      ref={cardRef}
+      onClick={handleClick}
+      className="block glass card-lift w-full rounded-2xl font-lexend cursor-pointer overflow-hidden"
+    >
+      <img className="rounded-t-2xl h-36 w-full object-cover" src={cardImage} alt={cardTitle} />
+      <div className="flex flex-col border-t border-white/6">
+        <div className="flex flex-row items-center py-2.5 px-3">
+          <span className="truncate text-sm text-indigo-100 font-medium">{cardTitle}</span>
+          {props.showVotes ? (
+            <div className="ml-auto flex items-center gap-1 pl-3" onClick={e => e.preventDefault()}>
+              <button
+                type="button"
+                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-colors cursor-pointer ${props.card.user_vote === 1 ? 'text-indigo-300' : 'text-indigo-300/40 hover:text-indigo-300'}`}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); props.onVote?.(props.card.id, props.card.user_vote === 1 ? 0 : 1); }}
+              >
+                ▲ {props.card.upvotes}
+              </button>
+              <button
+                type="button"
+                className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded text-xs transition-colors cursor-pointer ${props.card.user_vote === -1 ? 'text-red-300' : 'text-indigo-300/40 hover:text-red-300'}`}
+                onClick={e => { e.preventDefault(); e.stopPropagation(); props.onVote?.(props.card.id, props.card.user_vote === -1 ? 0 : -1); }}
+              >
+                ▼ {props.card.downvotes}
+              </button>
+            </div>
+          ) : (
+            <span className="ml-auto pl-3 whitespace-nowrap text-xs text-indigo-300/40">{cardTime}</span>
+          )}
+        </div>
+        {!props.isOwn && props.card.username && (
+          <div className="px-3 pb-2 -mt-1">
+            <button
+              type="button"
+              className="text-xs text-indigo-400/60 hover:text-indigo-300 transition-colors cursor-pointer"
+              onClick={e => { e.preventDefault(); e.stopPropagation(); props.onUserClick?.(props.card.username!); }}
+            >
+              by @{props.card.username}
+            </button>
+          </div>
         )}
       </div>
     </a>
@@ -338,18 +444,19 @@ function Card(props: {
 
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
-function Projects(props: {user?: string}) {
+function Projects(props: {user?: string; currentUsername?: string; onUserClick?: (username: string) => void; initialOrdering?: string}) {
   const [cards, setCards] = useState<ApiProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [ordering, setOrdering] = useState('-created_at');
+  const [ordering, setOrdering] = useState(props.initialOrdering ?? '-created_at');
   const [page, setPage] = useState(1);
   const [totalCount, setTotalCount] = useState(0);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [renameModal, setRenameModal] = useState<{ id: string; currentName: string } | null>(null);
   const [refetchTick, setRefetchTick] = useState(0);
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
   const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const PAGE_SIZE = 9;
@@ -452,6 +559,14 @@ function Projects(props: {user?: string}) {
     window.open(`${SYNTH_URL}?project=${created.id}`, '_blank', 'noreferrer');
   };
 
+  const handleFork = (id: string, config: Record<string, unknown> | null) => {
+    const scene = config ?? { camera: { x: 0, y: 0 }, modules: [], cables: [] };
+    const bytes = new TextEncoder().encode(JSON.stringify(scene));
+    const encoded = btoa(String.fromCharCode(...bytes));
+    logger.action('project.fork', { source_id: id });
+    window.open(`${SYNTH_URL}?fork_config=${encoded}`, '_blank', 'noreferrer');
+  };
+
   const handleVote = async (id: string, vote: 0 | 1 | -1) => {
     const response = await authFetch(`/api/projects/${id}/vote/`, {
       method: 'POST',
@@ -501,15 +616,16 @@ function Projects(props: {user?: string}) {
       <div className="flex flex-col sm:flex-row gap-2 my-2 sm:items-center">
         <Filters onDateSort={handleDateSort} onNameSort={handleNameSort} />
         <Search value={searchQuery} onChange={handleSearchChange} />
-        <div className="mr-3 sm:ml-0 ml-3">
+        <div className="mr-3 sm:ml-0 ml-3 flex items-center gap-2">
+          <ViewToggle mode={viewMode} onChange={setViewMode} />
           <NewButton onClick={() => setCreateModalOpen(true)} />
         </div>
       </div>
       <div className="mx-3 mb-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {loading && <p className="col-span-full text-indigo-300/40 py-8 text-center text-sm font-light">Loading projects…</p>}
+        <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" : "flex flex-col gap-1.5"}>
+          {loading && <p className={`${viewMode === 'grid' ? 'col-span-full' : ''} text-indigo-300/40 py-8 text-center text-sm font-light`}>Loading projects…</p>}
           {!loading && error && (
-            <div className="col-span-full py-8 text-center space-y-3">
+            <div className={`${viewMode === 'grid' ? 'col-span-full' : ''} py-8 text-center space-y-3`}>
               <p className="text-red-300/80 text-sm">{error}</p>
               <button
                 type="button"
@@ -521,21 +637,28 @@ function Projects(props: {user?: string}) {
             </div>
           )}
           {!loading && !error && cards.length === 0 && (
-            <p className="col-span-full text-indigo-300/40 py-8 text-center text-sm font-light">
+            <p className={`${viewMode === 'grid' ? 'col-span-full' : ''} text-indigo-300/40 py-8 text-center text-sm font-light`}>
               {isCommunity ? 'No community projects yet.' : 'No projects found.'}
             </p>
           )}
-          {!loading && !error && cards.map((card, index) => (
-            <Card
-              key={card.id}
-              card={card}
-              index={index}
-              onDelete={handleDelete}
-              onRename={(id, currentName) => setRenameModal({ id, currentName })}
-              onVote={handleVote}
-              showVotes={isCommunity}
-            />
-          ))}
+          {!loading && !error && cards.map((card, index) => {
+            const isOwn = props.user !== undefined || (props.currentUsername !== undefined && card.username === props.currentUsername);
+            return (
+              <Card
+                key={card.id}
+                card={card}
+                index={index}
+                onDelete={isOwn ? handleDelete : undefined}
+                onRename={isOwn ? (id, currentName) => setRenameModal({ id, currentName }) : undefined}
+                onVote={handleVote}
+                onFork={!isOwn ? handleFork : undefined}
+                onUserClick={props.onUserClick}
+                showVotes={isCommunity}
+                isOwn={isOwn}
+                listView={viewMode === 'list'}
+              />
+            );
+          })}
         </div>
         <div className="flex flex-row items-center justify-between py-3 font-lexend text-xs text-indigo-300/40">
           <p>{totalCount} {totalCount === 1 ? 'project' : 'projects'}</p>
@@ -581,7 +704,7 @@ function Projects(props: {user?: string}) {
 
 // ─── Container ────────────────────────────────────────────────────────────────
 
-function ProjectsContainer(props: {func?: (value: boolean) => void}) {
+function ProjectsContainer(props: {func?: (value: boolean) => void; currentUsername?: string; onUserClick?: (username: string) => void; initialOrdering?: string}) {
   const [visible, setVisible] = useState(true);
 
   return (
@@ -618,7 +741,7 @@ function ProjectsContainer(props: {func?: (value: boolean) => void}) {
             <div className="flex justify-end px-4 pt-4 pb-0">
               <CloseButton onClick={() => setVisible(false)} />
             </div>
-            <Projects />
+            <Projects currentUsername={props.currentUsername} onUserClick={props.onUserClick} initialOrdering={props.initialOrdering} />
           </div>
         </AnimatedContent>
     </AnimatedContent>

@@ -129,16 +129,24 @@ function UserRow(props: {
   onCancel: (relation: Relation) => void;
   onRemove: (relation: Relation) => void;
   isSelf: boolean;
+  onUserClick?: (username: string) => void;
 }) {
   const initials = props.user.username.slice(0, 2).toUpperCase();
+  const canClick = !props.isSelf && props.user.profile_id != null && props.onUserClick;
 
   return (
     <div className="user-row flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 border border-indigo-400/20 text-xs font-semibold text-indigo-200 tracking-wide">
+      <div
+        className={`flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 border border-indigo-400/20 text-xs font-semibold text-indigo-200 tracking-wide ${canClick ? 'cursor-pointer hover:bg-indigo-500/35 transition-colors' : ''}`}
+        onClick={canClick ? () => props.onUserClick!(props.user.username) : undefined}
+      >
         {initials}
       </div>
-      <div className="min-w-0 flex-1">
-        <p className="truncate text-sm font-medium text-indigo-100">{props.user.username}</p>
+      <div
+        className={`min-w-0 flex-1 ${canClick ? 'cursor-pointer' : ''}`}
+        onClick={canClick ? () => props.onUserClick!(props.user.username) : undefined}
+      >
+        <p className={`truncate text-sm font-medium text-indigo-100 ${canClick ? 'hover:text-white transition-colors' : ''}`}>{props.user.username}</p>
         <p className="truncate text-xs text-indigo-300/40">{props.user.email}</p>
       </div>
       {props.isSelf ? (
@@ -161,7 +169,7 @@ function UserRow(props: {
 
 // ─── UserSearch ───────────────────────────────────────────────────────────────
 
-function UserSearch() {
+function UserSearch(props: { onUserClick?: (username: string) => void }) {
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -353,6 +361,7 @@ function UserSearch() {
             onAccept={handleAccept}
             onCancel={handleCancel}
             onRemove={handleRemove}
+            onUserClick={props.onUserClick}
           />
         ))}
       </div>
@@ -387,7 +396,7 @@ function UserSearch() {
 
 // ─── Container ────────────────────────────────────────────────────────────────
 
-function UserSearchContainer(props: { func?: (value: boolean) => void }) {
+function UserSearchContainer(props: { func?: (value: boolean) => void; onUserClick?: (username: string) => void }) {
   const [visible, setVisible] = useState(true);
 
   return (
@@ -424,7 +433,7 @@ function UserSearchContainer(props: { func?: (value: boolean) => void }) {
           <div className="flex justify-end px-4 pt-4 pb-0">
             <CloseButton onClick={() => setVisible(false)} />
           </div>
-          <UserSearch />
+          <UserSearch onUserClick={props.onUserClick} />
         </div>
       </AnimatedContent>
     </AnimatedContent>

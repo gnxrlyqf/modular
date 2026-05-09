@@ -1,4 +1,4 @@
-# lhrba — Visual Style Guide
+# Lmoussiqar — Visual Style Guide
 
 A living reference for maintaining visual consistency across the platform. Every new component, overlay, or page should follow these rules.
 

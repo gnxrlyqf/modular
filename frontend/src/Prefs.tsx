@@ -49,7 +49,7 @@ export const DEFAULT_PREFS: UserPrefs = {
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
 const RTL_LANGS = new Set(['ar', 'he', 'fa', 'ur']);
-const LS_KEY = 'lhrba_prefs';
+const LS_KEY = 'Lmoussiqar_prefs';
 const SAVE_DEBOUNCE_MS = 900;
 
 function deepMerge(base: UserPrefs, patch: Partial<UserPrefs>): UserPrefs {

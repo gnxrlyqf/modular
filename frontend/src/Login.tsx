@@ -122,23 +122,6 @@ function GoogleButton({ onClick, disabled }: SocialButtonProps) {
   );
 }
 
-function FacebookButton({ onClick, disabled }: SocialButtonProps) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled}
-      data-xylo-note="A4"
-      className="xylo-note xylo-note--facebook"
-    >
-      <svg className="w-5 h-5 flex-shrink-0" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 50 50">
-        <path fill="#1877F2" d="M25,3C12.85,3,3,12.85,3,25c0,11.03,8.125,20.137,18.712,21.728V30.831h-5.443v-5.783h5.443v-3.848c0-6.371,3.104-9.168,8.399-9.168c2.536,0,3.877,0.188,4.512,0.274v5.048h-3.612c-2.248,0-3.033,2.131-3.033,4.533v3.161h6.588l-0.894,5.783h-5.694v15.944C38.716,45.318,47,36.137,47,25C47,12.85,37.15,3,25,3z"/>
-      </svg>
-      Continue with Facebook
-    </button>
-  );
-}
-
 function FortyTwoButton({ onClick, disabled }: SocialButtonProps) {
   return (
     <button
@@ -575,8 +558,7 @@ function Login(props: {
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 mb-5">
         <div className="flex flex-col gap-4">
           <GoogleButton onClick={() => handleOAuth('google')} disabled={oauthPending !== null} />
-          <FacebookButton onClick={() => handleOAuth('facebook')} disabled={oauthPending !== null} />
-          <FortyTwoButton onClick={() => handleOAuth('42')} disabled={oauthPending !== null} />
+<FortyTwoButton onClick={() => handleOAuth('42')} disabled={oauthPending !== null} />
         </div>
         <div className="flex items-center gap-3 my-3">
           <div className="flex-1 border-t border-white/10" />

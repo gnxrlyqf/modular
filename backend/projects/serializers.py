@@ -7,6 +7,7 @@ class ProjectSerializer(serializers.ModelSerializer):
     upvotes = serializers.SerializerMethodField()
     downvotes = serializers.SerializerMethodField()
     user_vote = serializers.SerializerMethodField()
+    username = serializers.CharField(source='user.username', read_only=True)
 
     def _vote_list(self, obj):
         return list(obj.votes.all())

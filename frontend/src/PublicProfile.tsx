@@ -8,6 +8,7 @@ import { t } from './i18n';
 type ProjectRow = {
   id: string;
   name: string;
+  config: Record<string, unknown> | null;
   updated_at: string | null;
   created_at: string | null;
 };
@@ -23,6 +24,7 @@ type PublicProfileData = {
   is_blocked_by_me: boolean;
 };
 
+const SYNTH_URL = (import.meta.env.VITE_SYNTHESIZER_URL as string | undefined) ?? 'http://localhost:5174';
 const FALLBACK_AVATAR = "https://picsum.photos/600/600";
 
 function PublicProfile(props: {
@@ -100,6 +102,14 @@ function PublicProfile(props: {
     } finally {
       setActing(false);
     }
+  };
+
+  const handleFork = (project: ProjectRow) => {
+    const scene = project.config ?? { camera: { x: 0, y: 0 }, modules: [], cables: [] };
+    const bytes = new TextEncoder().encode(JSON.stringify(scene));
+    const encoded = btoa(String.fromCharCode(...bytes));
+    logger.action('project.fork', { source_id: project.id });
+    window.open(`${SYNTH_URL}?fork_config=${encoded}`, '_blank', 'noreferrer');
   };
 
   if (blockedByOther) {
@@ -193,16 +203,20 @@ function PublicProfile(props: {
             ) : (
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {data.projects.map((p) => (
-                  <li
-                    key={p.id}
-                    className="user-row px-3 py-2 rounded-lg bg-white/3 border border-white/8"
-                  >
-                    <p className="truncate text-sm text-indigo-100">{p.name}</p>
-                    {p.updated_at && (
-                      <p className="text-[10px] text-indigo-300/40">
-                        Updated {new Date(p.updated_at).toLocaleDateString()}
-                      </p>
-                    )}
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleFork(p)}
+                      className="user-row w-full text-left px-3 py-2 rounded-lg bg-white/3 border border-white/8 hover:bg-white/6 transition-colors cursor-pointer"
+                    >
+                      <p className="truncate text-sm text-indigo-100">{p.name}</p>
+                      {p.updated_at && (
+                        <p className="text-[10px] text-indigo-300/40">
+                          Updated {new Date(p.updated_at).toLocaleDateString()}
+                        </p>
+                      )}
+                      <p className="text-[10px] text-indigo-400/40 mt-0.5">Click to open a copy</p>
+                    </button>
                   </li>
                 ))}
               </ul>

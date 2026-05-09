@@ -766,7 +766,7 @@ function CosmicPatchOfTheWeek() {
   );
 }
 
-function CosmicLeaderboard() {
+function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
   const rows = [
     { rank: 1, user: "@nebular", patch: "Voidcaller", plays: "12.4k", delta: "+2" },
     { rank: 2, user: "@kira_oss", patch: "Submarine Bells", plays: "9.8k", delta: "—" },
@@ -821,15 +821,21 @@ function CosmicLeaderboard() {
             <em style={{ color: v.accent2 }}>signal.</em>
           </h2>
         </div>
-        <div
+        <button
+          type="button"
+          onClick={onOpen}
           style={{
             fontFamily: cosmicFonts.mono,
             fontSize: 12,
             color: cosmicShared.sub,
+            background: "none",
+            border: "none",
+            cursor: onOpen ? "pointer" : "default",
+            padding: 0,
           }}
         >
-          updated 2m ago
-        </div>
+          View all →
+        </button>
       </div>
       <GlassPanel style={{ padding: 0, borderRadius: 18, overflow: "hidden" }}>
         <div
@@ -1001,11 +1007,13 @@ export default function CosmicLanding({
   isLoggedIn,
   onNewProject,
   onTryIt,
+  onOpenLeaderboard,
 }: {
   onGetStarted?: () => void;
   isLoggedIn?: boolean;
   onNewProject?: () => void;
   onTryIt?: () => void;
+  onOpenLeaderboard?: () => void;
 }) {
   return (
     <div style={{ fontFamily: cosmicFonts.ui }}>
@@ -1013,7 +1021,7 @@ export default function CosmicLanding({
       <CosmicSynthPreview />
       <CosmicModuleCatalog />
       <CosmicPatchOfTheWeek />
-      <CosmicLeaderboard />
+      <CosmicLeaderboard onOpen={onOpenLeaderboard} />
       <CosmicFooter />
     </div>
   );

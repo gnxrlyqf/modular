@@ -73,8 +73,29 @@ function Scene() {
   // Load project scene data on mount
   useEffect(() => {
     const run = async () => {
-      const pid = new URLSearchParams(window.location.search).get('project');
-      projectIdRef.current = pid;
+      const params = new URLSearchParams(window.location.search);
+      const pid = params.get('project');
+      const forkConfig = params.get('fork_config');
+
+      projectIdRef.current = pid; // stays null for fork — autosave won't trigger
+
+      if (!pid && forkConfig) {
+        try {
+          const bytes = Uint8Array.from(atob(forkConfig), c => c.charCodeAt(0));
+          const scene = JSON.parse(new TextDecoder().decode(bytes));
+          const parsedModules = parseModules(scene.modules ?? []);
+          const parsedCables = (scene.cables ?? []) as Cable[];
+          const parsedCamera = scene.camera ?? { x: 0, y: 0, scale: 1 };
+          audioContext.initContext(parsedModules, parsedCables);
+          setModules(parsedModules);
+          setCables(parsedCables);
+          loadCamera(parsedCamera);
+        } catch {
+          // malformed fork_config — start empty
+        }
+        setLoading(false);
+        return;
+      }
 
       if (!pid) {
         setLoading(false);
