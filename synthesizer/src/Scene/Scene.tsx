@@ -13,7 +13,6 @@ import Context from "../Audio/Context";
 import {RenderModules, parseModules} from "../Modules/Modules";
 import { authFetch } from "../api";
 import { useViewport } from "../Viewport/useViewport";
-import Keyboard from "../Modules/Keyboard";
 // import ViewportDebug from "../Viewport/ViewportDebug";
 
 const audioContext = new Context([], []);
@@ -316,8 +315,6 @@ function Scene() {
         className="absolute inset-0 z-10 pointer-events-auto"
         style={{ transformOrigin: "0 0" }}
       >
-          {/* <Keyboard/> */}
-
         <RenderModules
           modules={modules}
           cameraLive={cameraLive}
