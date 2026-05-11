@@ -1,36 +1,41 @@
 import React from "react";
-interface RadioSelectOptionProps<T extends string> {
+interface RadioSelectOptionProps<T> {
   value: T;
+  label?: string;
   children: React.ReactNode;
 }
 
-interface RadioSelectProps<T extends string> {
+interface RadioSelectProps<T> {
   value: T;
   onChange: (value: T) => void;
   name?: string;
   children: React.ReactElement<RadioSelectOptionProps<T>>[];
 }
 
-function RadioSelectOption<T extends string>({ children }: RadioSelectOptionProps<T>) {
+function RadioSelectOption<T>({ children }: RadioSelectOptionProps<T>) {
   return <>{children}</>;
 }
 
-function RadioSelect<T extends string>({ value, onChange, name = 'radio-select', children }: RadioSelectProps<T>) {
+function RadioSelect<T>({ value, onChange, name = 'radio-select', children }: RadioSelectProps<T>) {
   const options = React.Children.toArray(children) as React.ReactElement<RadioSelectOptionProps<T>>[];
   return (
     <div className="flex justify-center">
       <div className="inline-flex">
         {options.map((child, index) => {
           const optionValue = child.props.value;
+          const optionLabel =
+            child.props.label ??
+            (typeof child.props.children === "string" || typeof child.props.children === "number"
+              ? String(child.props.children)
+              : String(optionValue));
           const isFirst = index === 0;
           const isLast = index === options.length - 1;
           return (
-            <label key={optionValue} className="cursor-pointer">
+            <label key={index} className="cursor-pointer">
               <input
                 type="radio"
                 name={name}
-                value={optionValue}
-                checked={value === optionValue}
+                checked={Object.is(value, optionValue)}
                 onChange={() => onChange(optionValue)}
                 className="peer absolute h-px w-px overflow-hidden whitespace-nowrap [clip:rect(0_0_0_0)] [clip-path:inset(100%)]"
               />
@@ -39,7 +44,7 @@ function RadioSelect<T extends string>({ value, onChange, name = 'radio-select',
                   isFirst ? 'ml-0 rounded-l-md' : ''
                 } ${isLast ? 'rounded-r-md' : ''}`}
               >
-                <span className="sr-only">{optionValue}</span>
+                <span className="sr-only">{optionLabel}</span>
                 {child.props.children}
               </span>
             </label>

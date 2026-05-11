@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState, useMemo } from "react";
+import { useRef, useState } from "react";
 import { useDrag } from "../Interactions/useDrag";
-import { KnobParam, Param } from "../Interactions/Params";
+import { Param } from "../Interactions/Params";
 import { useContextMenu } from "../Utils/useContextMenu";
 import ModuleFrame from "./ModuleFrame";
-import { audioContext } from "../Scene/Scene";
 import { type ModuleProps } from "./Modules";
+import { RadioSelect, RadioSelectOption } from "../Interactions/RadioSelect";
 
 interface SequencerProps extends ModuleProps {}
 
@@ -13,8 +13,9 @@ const MODULE_HEIGHT = 320;
 
 function Trig(props: {on: boolean}) {
   return (
-    <>
-    </>
+    <div className={`${props.on ? "bg-red-500" : "bg-black"}`}>
+      test
+    </div>
   )
 }
 
@@ -22,7 +23,7 @@ function Sequencer(props: SequencerProps) {
   const moduleRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number }>({x: props.x, y: props.y});
   const { menu, handleContextMenu } = useContextMenu();
-  const [sequence, setSequence] = useState<string>("1010");
+  const [sequence] = useState<boolean[]>([true, false, true, false]);
   const [seqLen, setSeqLen] = useState<number>(4);
   const color = "#63748d"
 
@@ -43,9 +44,17 @@ function Sequencer(props: SequencerProps) {
     >
       <div className="flex flex-row w-full">
         <div className="ml-10 mr-20">
-          lhrba
+          <RadioSelect value={seqLen} onChange={setSeqLen} >
+            <RadioSelectOption value={4}>4</RadioSelectOption>
+            <RadioSelectOption value={8}>8</RadioSelectOption>
+            <RadioSelectOption value={16}>16</RadioSelectOption>
+            <RadioSelectOption value={32}>32</RadioSelectOption>
+          </RadioSelect>
         </div>
         <Param id={props.id} name="trigger" polarity="source" color={color}/>
+      </div>
+      <div className="flex flex-row">
+        {sequence.map((v) => <Trig on={v}/>)}
       </div>
     </ModuleFrame>
   );

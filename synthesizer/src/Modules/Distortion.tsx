@@ -142,10 +142,10 @@ function Distortion(props: DistortionProps) {
           value={type}
           onChange={setType}
         >
-          <RadioSelectOption value="soft"><SoftIcon /></RadioSelectOption>
-          <RadioSelectOption value="hard"><HardIcon /></RadioSelectOption>
-          <RadioSelectOption value="sine"><SineIcon /></RadioSelectOption>
-          <RadioSelectOption value="downsample"><DownsampleIcon /></RadioSelectOption>
+          <RadioSelectOption value="soft" label="soft"><SoftIcon /></RadioSelectOption>
+          <RadioSelectOption value="hard" label="hard"><HardIcon /></RadioSelectOption>
+          <RadioSelectOption value="sine" label="sine"><SineIcon /></RadioSelectOption>
+          <RadioSelectOption value="downsample" label="downsample"><DownsampleIcon /></RadioSelectOption>
         </RadioSelect>
 
         <Param id={props.id} name="input" polarity="target" color={color} />

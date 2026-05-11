@@ -119,10 +119,10 @@ function Filter(props: ModuleProps & {
           value={filterType}
           onChange={setFilterType}
         >
-          <RadioSelectOption value="lowpass"><Lowpass /></RadioSelectOption>
-          <RadioSelectOption value="highpass"><Highpass /></RadioSelectOption>
-          <RadioSelectOption value="bandpass"><Bandpass /></RadioSelectOption>
-          <RadioSelectOption value="notch"><Notch /></RadioSelectOption>
+          <RadioSelectOption value="lowpass" label="lowpass"><Lowpass /></RadioSelectOption>
+          <RadioSelectOption value="highpass" label="highpass"><Highpass /></RadioSelectOption>
+          <RadioSelectOption value="bandpass" label="bandpass"><Bandpass /></RadioSelectOption>
+          <RadioSelectOption value="notch" label="notch"><Notch /></RadioSelectOption>
         </RadioSelect>
 
         <Param id={props.id} name="input" polarity="target" color={color} />

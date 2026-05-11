@@ -114,12 +114,11 @@ function LFO(props: LFOProps) {
       </div>
 
       <RadioSelect name={`${props.id}-radio`} value={waveshape} onChange={setWaveshape}>
-        <RadioSelectOption value="sine"><SineIcon /></RadioSelectOption>
-        <RadioSelectOption value="triangle"><TriangleIcon /></RadioSelectOption>
-        <RadioSelectOption value="square"><SquareIcon /></RadioSelectOption>
-        <RadioSelectOption value="sawtooth"><SawIcon /></RadioSelectOption>
+        <RadioSelectOption value="sine" label="sine"><SineIcon /></RadioSelectOption>
+        <RadioSelectOption value="triangle" label="triangle"><TriangleIcon /></RadioSelectOption>
+        <RadioSelectOption value="square" label="square"><SquareIcon /></RadioSelectOption>
+        <RadioSelectOption value="sawtooth" label="sawtooth"><SawIcon /></RadioSelectOption>
       </RadioSelect>
-
       <Param name="output" id={props.id} polarity="source" color={color} />
     </ModuleFrame>
   );
