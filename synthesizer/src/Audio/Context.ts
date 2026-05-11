@@ -6,6 +6,7 @@ import LFOscillator from "./Modules/LFO";
 import VCF from "./Modules/Filter";
 import Distortion from "./Modules/Distortion";
 import Modulator from "./Modules/Modulator";
+import Keyboard from "./Modules/Keyboard";
 import { type Module } from "../Modules/Modules";
 import { type Cable } from "../Scene/Scene";
 import type { Module as AudioModule } from "./Abstractions";
@@ -82,7 +83,14 @@ class Context {
 				mod.setMode(module.params.m);
 				return mod;
 			}
+			case "keyboard": {
+ 				const kb = new Keyboard(this.audioContext);
+ 				return kb;
+			}
 		}
+		const gain = new Gain(this.audioContext);
+		gain.setGain(module.params.g);
+		return gain;
 	}
 
 	addModule(module: Module) {

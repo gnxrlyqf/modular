@@ -263,4 +263,4 @@ function createDockItems(onInstantiate: (type: ModuleType, e:React.MouseEvent) =
 
 export type { ModuleType };
 export { GhostModule, createDockItems, instantiateModule, objects as moduleObjects };
-export { OscIcon, GainIcon, EnvelopeIcon, OutputIcon, LfoIcon, FilterIcon, DistIcon, ModIcon };
+export { OscIcon, GainIcon, EnvelopeIcon, OutputIcon, LfoIcon, FilterIcon, DistIcon, ModIcon, KeyIcon };
