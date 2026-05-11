@@ -14,4 +14,5 @@
 - [X] did u do the admin ?
 - [X] when i double click on an item fl grid it zooms (like double clickin the top bar or the matrix)
 - [X] same for scrolling we cant scroll in the matrix or scroll fl modules
-- [ ] allow to resend email verification 
+- [ ] allow to resend email verification
+- [ ] esc to close overlays
