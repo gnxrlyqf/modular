@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Dock from "../Dock";
 import type {Module} from '../Modules/Modules'
+import {DEFAULT_VALUES} from '../Modules/Modules'
 import Keyboard from '../Modules/Keyboard'
 import { AnimatePresence } from "motion/react";
 import { wouldGhostOverlap } from "../Utils/wouldGhostOverlap";
@@ -280,6 +281,19 @@ function Scene() {
           setCables((prev) => prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id)));
           break;
         case 'RESET':
+          case 'RESET':
+            setModules((prev) =>
+              prev.map((m) => {
+                if (m.id !== id) return m;
+
+                return {
+                  ...m,
+                  params: {
+                    ...DEFAULT_VALUES[m.type],
+                  },
+                };
+              })
+            );
           break;
       }
     };

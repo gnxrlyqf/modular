@@ -16,6 +16,7 @@ import type { Cable } from "../Patch/Cable";
 
 type BaseModule = {
   id: string;
+  title?: string;
   type: 'oscillator' | 'gain' | 'envelope' | 'output' | 'lfo' | 'filter' | 'distortion' | 'modulator' | 'keyboard' | 'sequencer';
   x: number;
   y: number;
@@ -102,6 +103,19 @@ export interface ModuleProps {
   y: number;
 }
 
+export const DEFAULT_VALUES: Record<string, any> = {
+  oscillator: { f: 440, x: 'sine' },
+  gain: { g: 0 },
+  envelope: { a: 100, d: 200, s: 0.7, r: 300 },
+  output: { m: -6 },
+  lfo: { f: 1, w: "sine", s: false },
+  filter: { f: 1000, q: 1, t: "lowpass" },
+  distortion: { d: 50, t: "soft" },
+  modulator: { m: "AM", d: 50 },
+  keyboard: {},
+  sequencer: {},
+};
+
 function RenderModules(props: {
   modules: Module[];
   cameraLive: RefObject<Camera>;
@@ -152,7 +166,7 @@ function parseModules(modules: any[]): Module[] {
           x: m.x,
           y: m.y,
           params: {
-            f: m.params.frequency ?? 440,
+            f: m.params.f ?? 440,
             w: (m.params.w ?? "sine") as "sine" | "square" | "triangle" | "sawtooth",
           },
         };
