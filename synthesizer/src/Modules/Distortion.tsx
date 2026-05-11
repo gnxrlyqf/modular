@@ -6,6 +6,7 @@ import { useContextMenu } from "../Utils/useContextMenu";
 import { KnobParam, Param } from "../Interactions/Params";
 import ModuleFrame from "./ModuleFrame";
 import { audioContext } from "../Scene/Scene";
+import type { ModuleProps } from "./Modules";
 
 const MODULE_WIDTH = 224;
 const MODULE_HEIGHT = 480;
@@ -81,13 +82,12 @@ function DownsampleIcon() {
   );
 }
 
-function Distortion(props: {
-  id: string;
-  x: number;
-  y: number;
+interface DistortionProps extends ModuleProps {
   d: number;
   t: "soft" | "hard" | "sine" | "downsample";
-}) {
+}
+
+function Distortion(props: DistortionProps) {
   const moduleRef = useRef<HTMLDivElement | null>(null);
 
   const [position, setPosition] = useState({
@@ -114,7 +114,7 @@ function Distortion(props: {
   return (
     <ModuleFrame
       id={props.id}
-      title="Distortion"
+      title={props.title || "Distortion" }
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

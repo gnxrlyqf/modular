@@ -35,7 +35,7 @@ function Output(props: OutputProps) {
   return (
     <ModuleFrame
       id={props.id}
-      title="Output"
+      title={props.title || "Output"}
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

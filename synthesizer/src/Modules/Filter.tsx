@@ -79,7 +79,7 @@ function Filter(props: ModuleProps & {
   return (
     <ModuleFrame
       id={props.id}
-      title="Filter"
+      title={props.title || "Filter"}
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

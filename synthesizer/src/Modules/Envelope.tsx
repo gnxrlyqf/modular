@@ -41,7 +41,7 @@ function Envelope(props: EnvelopeProps) {
   return (
     <ModuleFrame
       id={props.id}
-      title="Envelope"
+      title={props.title || "Envelope"}
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

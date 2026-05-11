@@ -21,7 +21,7 @@ function Gain(props: GainProps) {
   const [gain, setGain] = useState<number>(props.g);
   const {mode} = useConnection();
   const { menu, handleContextMenu } = useContextMenu();
-  const color = "#40279eff"
+  const color = "#3852B4"
 
   useEffect(() => {
     audioContext.setParam(props.id, "gain", gain);
@@ -40,7 +40,7 @@ function Gain(props: GainProps) {
   return (
     <ModuleFrame
       id={props.id}
-      title="Gain"
+      title={props.title || "Gain"}
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

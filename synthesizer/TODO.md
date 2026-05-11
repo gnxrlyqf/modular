@@ -3,7 +3,7 @@
 - [x] context menu should also appear when the module is clicked in the matrix, with the same options and controls
 - [x] ghost module instantiation bug
 
-# keyboard
+# keyboard  
 ghadi ykon keyboard 3rid
 fih 2 octaves dyal lkeys
 fih 2 outputs wa7d dyal lfrequency, which outputs a single constant value, o wa7d dyal trigger li only outputs 1 wla 0 based on whether something is pressed
@@ -14,11 +14,11 @@ mixer o splitter which are self explanatory
 
 - [x] implement zoom in/out
 - [x] fix module placement issue
-- [ ] implement keyboard module
-- [ ] highlight modules and cables when clicked in matrix menu
-- [ ] if exists, display module title in matrix as well as module itself
+- [x] highlight modules and cables when clicked in matrix menu
+- [x] if exists, display module title in matrix as well as module itself
+- [ ] reset module functionality
+- [wip] implement keyboard module
 - [ ] implement sequencer module
 - [ ] implement mixer and splitter modules
 - [ ] redo LFO sync mode
 - [ ] status text in the top bar for when project is saving/saved
-- [ ] reset module functionality
