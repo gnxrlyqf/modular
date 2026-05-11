@@ -64,7 +64,7 @@ export default function ModuleFrame({
         className="bg-linear-to-t to-zinc-800/40 w-full px-4 pt-2 cursor-move select-none text-center rounded-2xl"
         onMouseDown={onHeaderMouseDown}
       >
-        <span className="text-zinc-800 hover:text-zinc-300 duration-200 text-4xl leading-none">
+        <span className="text-zinc-800 hover:text-zinc-300 duration-200 text-4xl leading-none block truncate max-w-full">
           {title}
         </span>
       </div>
