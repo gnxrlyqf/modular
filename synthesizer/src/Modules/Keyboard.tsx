@@ -5,8 +5,7 @@ import { useContextMenu } from "../Utils/useContextMenu";
 import ModuleFrame from "./ModuleFrame";
 import styled from "styled-components";
 import { audioContext } from "../Scene/Scene";
-import { RadioSelect, RadioSelectOption } from "../Interactions/RadioSelect";
-
+import { Param } from "../Interactions/Params";
 
 
 type KeyType = "white" | "black";
@@ -30,7 +29,7 @@ interface KeyboardProps extends ModuleProps {
 }
 
 const MODULE_WIDTH = 704; 
-const MODULE_HEIGHT = 320;
+const MODULE_HEIGHT = 390;
 
 const WHITE_KEY_WIDTH = 45;
 const BLACK_KEY_WIDTH = 28;
@@ -57,7 +56,6 @@ const NOTE_TO_SEMITONE: Record<string, number> = {
 const KeyboardBed = styled.div`
   position: relative;
   display: flex;
-  margin-top: 0px;
 `;
 
 const StyledKey = styled.div<{ $keyType: KeyType; $isActive: boolean; $left?: number;}>`
@@ -127,6 +125,8 @@ function Keyboard(props: KeyboardProps) {
   const color = "#a0a0a0ff";
   const [activeNotes, setActiveNotes] = useState<Record<string, boolean>>({});
   const [octaveShift, setOctaveShift] = useState(0);
+  const [lastFreq, setLastFreq] = useState(0);
+  const [trigger, setTrigger] = useState(0);
 
   const MIN_OCTAVE = 0;
   const MAX_OCTAVE = 4;
@@ -174,15 +174,22 @@ function Keyboard(props: KeyboardProps) {
 
   const handleNoteDown = (noteId: string) => {
     setActiveNotes((p) => ({ ...p, [noteId]: true }));
-
+    const freq = getFrequency(noteId);
+    setLastFreq(freq);
+    setTrigger(1);
     audioContext.setParam(props.id, "noteOn", {
       note: noteId,
-      freq: getFrequency(noteId),
+      freq,
     });
   };
 
   const handleNoteUp = (noteId: string) => {
-    setActiveNotes((p) => ({ ...p, [noteId]: false }));
+    setActiveNotes((p) => {
+      const updated = { ...p, [noteId]: false };
+      const anyStillPressed = Object.values(updated).some(Boolean);
+      if (!anyStillPressed) setTrigger(0);
+      return updated;
+    });
     audioContext.setParam(props.id, "noteOff", noteId);
   };
 
@@ -203,33 +210,50 @@ function Keyboard(props: KeyboardProps) {
       onContextMenu={handleContextMenu}
       onHeaderMouseDown={onMouseDown}
     >
-      {/* Octave Shifting fih 7 octaves*/}
-      <div className="mb-2 flex items-center justify-center gap-4">
-        <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40"
-          onClick={decrementOctave} disabled={octaveShift === MIN_OCTAVE} > 
-          −
-        </button>
-        <div className="w-10 text-center text-zinc-300 text-sm">
-          {octaveShift}
+      <div className="relative flex flex-col w-full h-full">
+        <div className="mt-7 w-full px-4 flex flex-col gap-2">
+          <div className="flex justify-center items-center gap-2">
+            <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40" onClick={decrementOctave} disabled={octaveShift === MIN_OCTAVE}>
+              −
+            </button>
+            <div className="w-10 text-center text-zinc-300 text-sm"> {octaveShift} </div>
+            <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40" onClick={incrementOctave} disabled={octaveShift === MAX_OCTAVE} >
+              +
+            </button>
+          </div>
         </div>
-        <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40"
-          onClick={incrementOctave} disabled={octaveShift === MAX_OCTAVE} >
-          +
-        </button>
-      </div>
 
-      <KeyboardBed>
-        {keys.map((k) => (
-          <Key
-            key={k.note}
-            keyType={k.type}
-            left={k.left}
-            isActive={!!activeNotes[k.note]}
-            onPress={() => handleNoteDown(k.note)}
-            onRelease={() => handleNoteUp(k.note)}
-          />
-        ))}
-      </KeyboardBed>
+
+        {/* <div className="absolute right-4 flex flex-col items-end gap-1 px-8">
+          <div className="mb-1"><Param id={props.id} name="freq" polarity="source" color={color} /></div>
+          <div className="mt-1"><Param id={props.id} name="trigger" polarity="source" color={color} /></div>
+        </div> */}
+        <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
+          <div className="flex items-center gap-2">
+            <div className="w-20 h-[2px] bg-zinc-400" />
+            <Param id={props.id} name="freq" polarity="source" color={color} />
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-20 h-[2px] bg-zinc-400" />
+            <Param id={props.id} name="trigger" polarity="source" color={color} />
+          </div>
+        </div>
+
+        <div className="flex-1 flex items-end justify-center">
+          <KeyboardBed>
+            {keys.map((k) => (
+              <Key
+                key={k.note}
+                keyType={k.type}
+                left={k.left}
+                isActive={!!activeNotes[k.note]}
+                onPress={() => handleNoteDown(k.note)}
+                onRelease={() => handleNoteUp(k.note)}
+              />
+            ))}
+          </KeyboardBed>
+        </div>
+      </div>
     </ModuleFrame>
   );
 }
