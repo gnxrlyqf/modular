@@ -28,8 +28,8 @@ interface KeyboardProps extends ModuleProps {
   // Add specific keyboard settings here if needed (e.g. octave)
 }
 
-const MODULE_WIDTH = 704; 
-const MODULE_HEIGHT = 360;
+const MODULE_WIDTH = 672; 
+const MODULE_HEIGHT = 352;
 
 const WHITE_KEY_WIDTH = 45;
 const BLACK_KEY_WIDTH = 28;
@@ -125,8 +125,8 @@ function Keyboard(props: KeyboardProps) {
   const color = "#a0a0a0ff";
   const [activeNotes, setActiveNotes] = useState<Record<string, boolean>>({});
   const [octaveShift, setOctaveShift] = useState(3);
-  const [lastFreq, setLastFreq] = useState(0);
-  const [trigger, setTrigger] = useState(0);
+  // const [lastFreq, setLastFreq] = useState(0);
+  const [sync, setSync] = useState(false);
 
   const MIN_OCTAVE = 0;
   const MAX_OCTAVE = 4;
@@ -175,8 +175,8 @@ function Keyboard(props: KeyboardProps) {
   const handleNoteDown = (noteId: string) => {
     setActiveNotes((p) => ({ ...p, [noteId]: true }));
     const freq = getFrequency(noteId);
-    setLastFreq(freq);
-    setTrigger(1);
+    audioContext.setParam(props.id, "freq", freq);
+    audioContext.setParam(props.id, "trigger", 1);
     audioContext.setParam(props.id, "noteOn", {
       note: noteId,
       freq,
@@ -187,7 +187,7 @@ function Keyboard(props: KeyboardProps) {
     setActiveNotes((p) => {
       const updated = { ...p, [noteId]: false };
       const anyStillPressed = Object.values(updated).some(Boolean);
-      if (!anyStillPressed) setTrigger(0);
+      if (!anyStillPressed) audioContext.setParam(props.id, "trigger", 0);
       return updated;
     });
     audioContext.setParam(props.id, "noteOff", noteId);
@@ -210,17 +210,25 @@ function Keyboard(props: KeyboardProps) {
       onContextMenu={handleContextMenu}
       onHeaderMouseDown={onMouseDown}
     >
-      <div className="w-full flex flex-row gap-2">
-        <div className="flex justify-center items-center gap-2 mx-20">
-          <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40" onClick={decrementOctave} disabled={octaveShift === MIN_OCTAVE}>
-              −
-            </button>
-            <div className  ="w-10 text-center text-zinc-300 text-sm"> {octaveShift} </div>
-            <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40" onClick={incrementOctave} disabled={octaveShift === MAX_OCTAVE} >
-              +
-            </button>
+      <div className="w-full flex items-center justify-between">
+        <div className="ml-7 flex gap-2 bg-[#a0a0a0ff] p-1 rounded-lg">
+          <button onClick={() => setSync(false)} className={`px-3 py-1 rounded-md text-xs ${!sync ? "bg-[#444444ff]" : ""}`}>
+            FREE
+          </button>
+          <button onClick={() => setSync(true)} className={`px-3 py-1 rounded-md text-xs ${sync ? "bg-[#444444ff]" : ""}`}>
+            HOLD
+          </button>
         </div>
-        <div className="w-full flex flex-col gap-4">
+        <div className="ml-[17%] flex items-center gap-2">
+          <button className="w-7 h-7 flex items-center justify-center rounded-md bg-[#a0a0a0ff] text-[#444444ff] disabled:opacity-40" onClick={decrementOctave} disabled={octaveShift === MIN_OCTAVE} >
+            −
+          </button>
+          <div className="w-10 h-9 flex items-center justify-center rounded-md bg-[#a0a0a0ff] text-[#444444ff]">{octaveShift}</div>
+          <button className="w-7 h-7 flex items-center justify-center rounded-md bg-[#a0a0a0ff] text-[#444444ff] disabled:opacity-40" onClick={incrementOctave} disabled={octaveShift === MAX_OCTAVE} >
+            +
+          </button>
+        </div>
+        <div className="w-full flex flex-col gap-4 pl-12">
           <Param id={props.id} name="freq" polarity="source" color={color} />
           <Param id={props.id} name="trigger" polarity="source" color={color}/>
         </div>
