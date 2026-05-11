@@ -16,9 +16,9 @@ mixer o splitter which are self explanatory
 - [x] fix module placement issue
 - [x] highlight modules and cables when clicked in matrix menu
 - [x] if exists, display module title in matrix as well as module itself
+- [ ] reset module functionality
 - [wip] implement keyboard module
 - [ ] implement sequencer module
 - [ ] implement mixer and splitter modules
 - [ ] redo LFO sync mode
 - [ ] status text in the top bar for when project is saving/saved
-- [ ] reset module functionality

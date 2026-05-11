@@ -297,14 +297,14 @@ function Matrix(props: {
       className="text-white flex flex-row items-center w-full cursor-pointer hover:bg-white/5 p-1 rounded-xl group" 
       onClick={(e) => {onClickMouse(e, module)}}
     >
-      <div className="rounded-lg flex flex-row gap-1 flex-1 pointer-events-none block truncate max-w-full">
+      <div className="rounded-lg flex gap-1 flex-1 pointer-events-none block truncate max-w-full">
         <span
-          className="rounded-l-lg w-10 h-10 flex items-center justify-center"
+          className="rounded-l-lg w-10 h-10 flex-shrink-0 flex items-center justify-center "
           style={{ background: modules[module.type]?.color }}>
           {modules[module.type]?.icon}
         </span>
         <span
-          className="rounded-r-lg py-1 px-2 flex justify-center items-center "
+          className="rounded-r-lg py-1 px-2 flex items-center truncate min-w-0"
           style={{ background: modules[module.type]?.color }}>
           {(module as any).title || module.type}
         </span>
