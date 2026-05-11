@@ -614,7 +614,7 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
         </p>
       )}
       <div className="flex flex-col sm:flex-row gap-2 my-2 sm:items-center">
-        <Filters onDateSort={handleDateSort} onNameSort={handleNameSort} />
+        <Filters onDateSort={handleDateSort} onNameSort={handleNameSort} ordering={ordering} />
         <Search value={searchQuery} onChange={handleSearchChange} />
         <div className="mr-3 sm:ml-0 ml-3 flex items-center gap-2">
           <ViewToggle mode={viewMode} onChange={setViewMode} />

@@ -186,17 +186,6 @@ def send_activation_email(user, request):
 
     activation_url = f"{frontend_base}/api/users/activate/{uid}/{token}/"
 
-    # Always print *just* the link (one line) so dev console stays clean.
-    print(f"[activation] {user.username} <{user.email}>: {activation_url}", flush=True)
-
-    backend = getattr(settings, 'EMAIL_BACKEND', '')
-    is_smtp = 'smtp' in backend.lower()
-
-    # In console mode, the link is already on stdout — skip send_mail to avoid the
-    # full RFC822 dump that the console backend emits.
-    if not is_smtp:
-        return
-
     subject = "Activate your Transcendence Account"
     message = (
         f"Hello {user.username},\n\n"
@@ -206,10 +195,10 @@ def send_activation_email(user, request):
 
     try:
         send_mail(subject, message, from_email, [user.email], fail_silently=False)
-        logger.info("Activation email sent to %s", user.email)
+        logger.info("Activation email sent to %s (%s)", user.username, user.email)
     except Exception as e:
-        # Never break registration on a mail-server hiccup — the link is on stdout.
-        logger.error("send_mail failed for %s: %s — link printed above", user.email, e)
+        logger.error("send_mail failed for %s: %s", user.email, e)
+        print(f"[activation-fallback] {user.username} <{user.email}>: {activation_url}", flush=True)
 
 
 def generate_totp_secret():

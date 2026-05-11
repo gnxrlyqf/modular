@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Dock from "../Dock";
 import type {Module} from '../Modules/Modules'
 import Keyboard from '../Modules/Keyboard'
@@ -15,6 +15,8 @@ import {RenderModules, parseModules} from "../Modules/Modules";
 import { authFetch } from "../api";
 import { useViewport } from "../Viewport/useViewport";
 // import ViewportDebug from "../Viewport/ViewportDebug";
+
+const STATUS_MIN_MS = 1000;
 
 const audioContext = new Context([], []);
 
@@ -40,6 +42,24 @@ function Scene() {
   const projectIdRef = useRef<string | null>(null);
   const hasFetched = useRef(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nextTransitionAt = useRef<number>(0);
+  const queuedTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'pending' | 'saving' | 'saved' | 'error'>('idle');
+
+  const setStatusQueued = useCallback((
+    status: 'idle' | 'pending' | 'saving' | 'saved' | 'error',
+    onSet?: () => void,
+  ) => {
+    if (queuedTransitionRef.current) clearTimeout(queuedTransitionRef.current);
+    const delay = Math.max(0, nextTransitionAt.current - Date.now());
+    queuedTransitionRef.current = setTimeout(() => {
+      setSaveStatus(status);
+      nextTransitionAt.current = Date.now() + STATUS_MIN_MS;
+      onSet?.();
+    }, delay);
+  }, []);
 
   // const [debugMode, setDebugMode] = useState(false);
 
@@ -130,22 +150,51 @@ function Scene() {
     run();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  const saveNow = useCallback(async () => {
+    if (!hasFetched.current || !projectIdRef.current) return;
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
+    setStatusQueued('saving');
+    try {
+      await authFetch(`/api/projects/${projectIdRef.current}/`, {
+        method: 'PATCH',
+        body: JSON.stringify({ config: { camera, modules, cables } }),
+      });
+      setStatusQueued('saved', () => {
+        savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
+      });
+    } catch (e) {
+      console.error(e);
+      setStatusQueued('error', () => {
+        savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
+      });
+    }
+  }, [camera, modules, cables, setStatusQueued]);
+
   // Autosave 1.5s after any scene change
   useEffect(() => {
     if (!hasFetched.current || !projectIdRef.current) return;
 
+    setStatusQueued('pending');
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
-    autosaveTimer.current = setTimeout(() => {
-      authFetch(`/api/projects/${projectIdRef.current}/`, {
-        method: 'PATCH',
-        body: JSON.stringify({ config: { camera, modules, cables } }),
-      }).catch(console.error);
-    }, 1500);
+    autosaveTimer.current = setTimeout(() => saveNow(), 1500);
 
     return () => {
       if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     };
-  }, [modules, cables, camera]);
+  }, [modules, cables, camera, saveNow, setStatusQueued]);
+
+  // Ctrl+S → immediate save
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 's') {
+        e.preventDefault();
+        saveNow();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [saveNow]);
 
   useEffect(() => {
     const syncAudioContext = async () => {
@@ -429,6 +478,67 @@ function Scene() {
               >
                 ⊞
               </button>
+            </div>
+
+            {/* Save button */}
+            {projectIdRef.current && (
+              <button
+                onClick={saveNow}
+                disabled={saveStatus === 'saving'}
+                className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-zinc-600 text-zinc-300 hover:text-white hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                title="Save (Ctrl+S)"
+              >
+                <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <polyline points="17 21 17 13 7 13 7 21" />
+                  <polyline points="7 3 7 8 15 8" />
+                </svg>
+                Save
+              </button>
+            )}
+
+            {/* Save status indicator */}
+            <div className="w-20 flex items-center justify-end">
+              <span
+                className={`flex items-center gap-1.5 text-xs select-none transition-opacity duration-200 ${
+                  saveStatus === 'idle' ? 'opacity-0 pointer-events-none' : 'opacity-100'
+                } ${
+                  saveStatus === 'pending' ? 'text-zinc-500' :
+                  saveStatus === 'saving'  ? 'text-zinc-400' :
+                  saveStatus === 'saved'   ? 'text-zinc-300' :
+                  saveStatus === 'error'   ? 'text-red-400'  : ''
+                }`}
+              >
+                {saveStatus === 'pending' && (
+                  <span className="w-1.5 h-1.5 rounded-full bg-zinc-500 animate-pulse" />
+                )}
+                {saveStatus === 'saving' && (
+                  <>
+                    <svg className="w-3 h-3 animate-spin shrink-0" viewBox="0 0 24 24" fill="none">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Saving…
+                  </>
+                )}
+                {saveStatus === 'saved' && (
+                  <>
+                    <svg className="w-3 h-3 text-green-400 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Saved
+                  </>
+                )}
+                {saveStatus === 'error' && (
+                  <>
+                    <svg className="w-3 h-3 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                      <line x1="18" y1="6" x2="6" y2="18" />
+                      <line x1="6" y1="6" x2="18" y2="18" />
+                    </svg>
+                    Failed
+                  </>
+                )}
+              </span>
             </div>
           </div>
         </header>
