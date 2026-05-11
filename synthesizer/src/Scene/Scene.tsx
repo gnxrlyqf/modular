@@ -284,8 +284,9 @@ function Scene() {
           setModules((prev) =>
             prev.map((m) => {
               if (m.id !== id) return m;
+              console.log('BEFORE', structuredClone(m.params));
               const newParams = createDefaultParams(m.type);
-              // console.log('RESET', m.id, 'old:', m.params, 'new:', newParams);
+              console.log('RESET', m.id, 'old:', m.params, 'new:', newParams);
               return { ...m, params: newParams };
             })
           );
