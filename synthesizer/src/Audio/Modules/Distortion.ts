@@ -99,7 +99,7 @@ class Distortion extends Module {
         }
     }
 
-    setParam(key: string, value: number | string): void {
+    setParam(key: string, value: number | string | number[]): void {
         switch (key) {
             case "drive":
                 this.setDrive(value as number);

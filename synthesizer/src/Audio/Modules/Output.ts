@@ -29,13 +29,13 @@ class Output extends Module {
 		}
 	}
 
-	setParam(key: string, value: number): void {
+	setParam(key: string, value: number | string | number[]): void {
 		switch (key) {
 			case "master":
-				if (value === -60)
+				if (Number(value) === -60)
 					this.gain.gain.setValueAtTime(0, this.audioContext.currentTime);
 				else
-					this.gain.gain.setValueAtTime(10 ** (value / 20), this.audioContext.currentTime)
+					this.gain.gain.setValueAtTime(10 ** (Number(value) / 20), this.audioContext.currentTime)
 				break;
 		}
 	}

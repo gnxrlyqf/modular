@@ -82,7 +82,7 @@ type KeyboardModule = BaseModule & {
 
 type SequencerModule = BaseModule & {
   type: "sequencer";
-  params: {};
+  params: { s: number[]; l: number };
 }
 
 type Module = OscModule | EnvModule | GainModule | OutModule | LfoModule | FilterModule | DistortModule | ModulateModule | KeyboardModule | SequencerModule;
@@ -109,7 +109,7 @@ export interface ModuleProps {
 export const DEFAULT_VALUES: Record<string, any> = {
   oscillator: { f: 440, w: 'sine' },
   gain: { g: 0 },
-  envelope: { a: 100, d: 200, s: 0.7, r: 300 },
+  envelope: { a: 100, d: 200, s: 0, r: 300 },
   output: { m: -6 },
   lfo: { f: 1, w: "sine", s: false },
   filter: { f: 1000, q: 1, t: "lowpass" },
@@ -123,14 +123,14 @@ export const createDefaultParams = (type: ModuleType) => {
   switch (type) {
     case "oscillator": return { f: 440, w: 'sine' };
     case "gain": return { g: 0 };
-    case "envelope": return { a: 100, d: 200, s: 0.7, r: 300 };
+    case "envelope": return { a: 100, d: 200, s: 0, r: 300 };
     case "output": return { m: -6 };
     case "lfo": return { f: 1, w: "sine", s: false };
     case "filter": return { f: 1000, q: 1, t: "lowpass" };
     case "distortion": return { d: 50, t: "soft" };
     case "modulator": return { m: "AM", d: 50 };
     case "keyboard": return {};
-    case "sequencer": return {};
+    case "sequencer": return { s: [0, 0, 0, 0], l: 4 };
     default: return {};
   }
 };
@@ -166,7 +166,7 @@ function RenderModules(props: {
             case "keyboard":
               return <Keyboard key={m.id} id={m.id} x={m.x} y={m.y} />;
             case "sequencer":
-              return <Sequencer key={m.id} id={m.id} x={m.x} y={m.y} />;
+              return <Sequencer key={m.id} id={m.id} x={m.x} y={m.y} s={m.params.s} l={m.params.l}/>;
             default: return null;
           }
         })}

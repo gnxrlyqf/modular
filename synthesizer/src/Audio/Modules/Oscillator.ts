@@ -39,7 +39,7 @@ class Oscillator extends Module {
 		}
 	}
 
-	setParam(key: string, value: number | string): void {
+	setParam(key: string, value: number | string | number[]): void {
 		switch (key) {
 			case "frequency":
 				this.setFrequency(value as number);

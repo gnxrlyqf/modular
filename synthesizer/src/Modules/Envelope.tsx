@@ -5,6 +5,7 @@ import { KnobParam, Param } from "../Interactions/Params";
 import type { ModuleProps } from "./Modules";
 import { useContextMenu } from "../Utils/useContextMenu";
 import ModuleFrame from "./ModuleFrame";
+import { audioContext } from "../Scene/Scene";
 
 const MODULE_WIDTH = 224;
 const MODULE_HEIGHT = 848;
@@ -19,7 +20,6 @@ interface EnvelopeProps extends ModuleProps {
 function Envelope(props: EnvelopeProps) {
   const moduleRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number }>({x: props.x, y: props.y});
-
   const [attack, setAttack] = useState(props.a);
   const [decay, setDecay] = useState(props.d);
   const [sustain, setSustain] = useState(props.s);
@@ -31,6 +31,11 @@ function Envelope(props: EnvelopeProps) {
   useEffect(() => {setDecay(props.d)}, [props.d]);
   useEffect(() => {setSustain(props.s)}, [props.s]);
   useEffect(() => {setRelease(props.r)}, [props.r]);
+
+  useEffect(() => audioContext.setParam(props.id, "attack", attack), [attack]);
+  useEffect(() => audioContext.setParam(props.id, "decay", decay), [decay]);
+  useEffect(() => audioContext.setParam(props.id, "sustain", sustain), [sustain]);
+  useEffect(() => audioContext.setParam(props.id, "release", release), [release]);
 
   useEffect(() => {
     if (!moduleRef.current || position) {
@@ -66,7 +71,7 @@ function Envelope(props: EnvelopeProps) {
             <Knob max={1000} min={0} step={1} value={decay} onChange={setDecay} size={70} unit="ms" />
           </KnobParam>
           <KnobParam id={props.id} name="sustain" side="left" color={color}>
-            <Knob max={10} min={0} step={1} value={sustain} onChange={setSustain} size={70} unit="dB" />
+            <Knob max={100} min={0} step={1} value={sustain} onChange={setSustain} size={70} unit="%" />
           </KnobParam>
           <KnobParam id={props.id} name="release" side="left" color={color}>
             <Knob max={1000} min={0} step={1} value={release} onChange={setRelease} size={70} unit="ms" />

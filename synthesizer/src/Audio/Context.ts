@@ -6,6 +6,7 @@ import LFOscillator from "./Modules/LFO";
 import VCF from "./Modules/Filter";
 import Distortion from "./Modules/Distortion";
 import Modulator from "./Modules/Modulator";
+import Sequencer from "./Modules/Sequencer";
 import { type Module } from "../Modules/Modules";
 import { type Cable } from "../Scene/Scene";
 import type { Module as AudioModule } from "./Abstractions";
@@ -47,10 +48,10 @@ class Context {
 			}
 			case "envelope": {
 				const env = new Envelope(this.audioContext);
-				env.attack = module.params.a;
-				env.decay = module.params.d;
-				env.sustain = module.params.s;
-				env.release = module.params.r;
+				env.setParam("attack", module.params.a);
+				env.setParam("decay", module.params.d);
+				env.setParam("sustain", module.params.s);
+				env.setParam("release", module.params.r);
 				return env;
 			}
 			case "output": {
@@ -82,6 +83,19 @@ class Context {
 				mod.setMode(module.params.m);
 				return mod;
 			}
+			case "sequencer": {
+				const mod = new Sequencer(this.audioContext, this.tempo);
+				mod.setParam("sequence", module.params.s);
+				mod.setParam("length", module.params.l);
+				return mod;
+			}
+			default: {
+				const osc = new Oscillator(this.audioContext);
+				osc.setFrequency(module.params.f);
+				osc.setShape(module.params.w);
+				return osc;
+			}
+
 		}
 	}
 

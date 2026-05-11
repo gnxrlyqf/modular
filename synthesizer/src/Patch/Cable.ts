@@ -1,4 +1,3 @@
-// Draws all cables and endpoints for the modular scene
 import { getAllPortViewportCoordinates, type ModulePorts } from "../Utils/portViewportCoordinates";
 import type { Module, ModuleType } from "../Modules/Modules";
 import { moduleObjects } from "../Scene/DockItems";
@@ -46,6 +45,12 @@ const PORT_OFFSETS = {
     output: { x: moduleObjects.modulator.w - 4, y: moduleObjects.modulator.h - 56 },
     depth: { x: moduleObjects.modulator.w / 2, y: 110 },
   },
+  sequencer: {
+    trigger: { x: moduleObjects.sequencer.w - 4, y: moduleObjects.sequencer.h - 56 },
+  },
+	keyboard: {
+		output: { x: moduleObjects.keyboard.w - 4, y: moduleObjects.keyboard.h - 56 },
+	},
 };
 
 type Cable = {

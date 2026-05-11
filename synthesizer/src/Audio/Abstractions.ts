@@ -13,7 +13,7 @@ abstract class Module {
 
 	abstract setMod(key: string, patch: Patch | null): void;
 
-	abstract setParam(key: string, value: number | string): void;
+	abstract setParam(key: string, value: number | string | number[]): void;
 }
 
 export { Module };
