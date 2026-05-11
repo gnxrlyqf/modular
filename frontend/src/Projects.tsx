@@ -15,6 +15,9 @@ type ApiProject = {
   user: number;
   username?: string;
   config: Record<string, unknown> | null;
+  analytics: {
+    sharing?: { share_count: number; shared_days: string[] };
+  } | null;
   created_at: string;
   updated_at: string;
   net_votes: number;
@@ -263,10 +266,12 @@ function ContextMenu(props: {
   onDelete?: () => void;
   onRename?: () => void;
   onCopyLink?: () => void;
+  onShare?: () => void;
 }) {
   return (
     <ul className="overlay-panel rounded-xl py-1.5 px-1 font-lexend min-w-36 space-y-0.5">
       <MenuEntry func={props.onRename}>Rename</MenuEntry>
+      <MenuEntry func={props.onShare}>Share</MenuEntry>
       <MenuEntry func={props.onCopyLink}>Copy ID</MenuEntry>
       <MenuEntry func={props.onDelete} danger>Delete</MenuEntry>
     </ul>
@@ -282,6 +287,7 @@ function Card(props: {
   onRename?: (id: string, currentName: string) => void;
   onVote?: (id: string, vote: 0 | 1 | -1) => void;
   onFork?: (id: string, config: Record<string, unknown> | null) => void; // sync — no backend project created
+  onShare?: (id: string) => void;
   onUserClick?: (username: string) => void;
   showVotes?: boolean;
   isOwn?: boolean;
@@ -323,6 +329,13 @@ function Card(props: {
             removeMenu();
             props.onRename?.(props.card.id, props.card.name);
           }}
+          onShare={() => {
+            removeMenu();
+            // Copy the synthesizer link then record the share on the backend
+            const link = `${SYNTH_URL}?project=${props.card.id}`;
+            navigator.clipboard.writeText(link).catch(() => {});
+            props.onShare?.(props.card.id);
+          }}
           onCopyLink={() => {
             removeMenu();
             navigator.clipboard.writeText(props.card.id).catch(() => {});
@@ -340,7 +353,7 @@ function Card(props: {
     return () => {
       cardElement?.removeEventListener('contextmenu', handleRightClick);
     };
-  }, [props.card.id, props.card.name, props.onDelete, props.onRename])
+  }, [props.card.id, props.card.name, props.onDelete, props.onRename, props.onShare])
 
   const handleClick = (e: React.MouseEvent) => {
     if (!props.isOwn && props.onFork) {
@@ -577,6 +590,15 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
     setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
   };
 
+  const handleShare = async (id: string) => {
+    // Increment share_count and add today to shared_days on the backend
+    const response = await authFetch(`/api/projects/${id}/share/`, { method: 'POST' });
+    if (!response.ok) return;
+    const updated: ApiProject = await response.json();
+    logger.action('project.share', { id, share_count: updated.analytics?.sharing?.share_count });
+    setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
+  };
+
   const handleDelete = async (id: string) => {
     const response = await authFetch(`/api/projects/${id}/`, { method: 'DELETE' });
     if (!response.ok && response.status !== 204) {
@@ -652,6 +674,7 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
                 onRename={isOwn ? (id, currentName) => setRenameModal({ id, currentName }) : undefined}
                 onVote={handleVote}
                 onFork={!isOwn ? handleFork : undefined}
+                onShare={isOwn ? handleShare : undefined}
                 onUserClick={props.onUserClick}
                 showVotes={isCommunity}
                 isOwn={isOwn}

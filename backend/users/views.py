@@ -19,7 +19,7 @@ from .endpoints.logout import logout
 from .endpoints.me import me
 from .endpoints.profile import me_profile, ProfileViewSet
 from .endpoints.oauth import social_auth_callback
-from .endpoints.register import RegisterView
+from .endpoints.register import RegisterView, ResendVerificationView
 from .endpoints.messages import MessageViewSet
 from .endpoints.notifications import NotificationViewSet
 from .endpoints.public_profile import public_profile
@@ -34,6 +34,9 @@ from .endpoints.admin import (
 # --- 2. AUTHENTICATION & REGISTRATION ---
 
 class UserRegisterView(RegisterView):
+    pass
+
+class UserResendVerificationView(ResendVerificationView):
     pass
 
 class UserActivateView(ActivateAccountView):

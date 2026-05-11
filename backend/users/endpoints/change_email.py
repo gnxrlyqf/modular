@@ -37,6 +37,9 @@ def change_email(request):
         return Response({"error": "email already in use"}, status=400)
 
     user.email = email
+    user.is_verified = False
     user.save()
+    from ..services import send_activation_email
+    send_activation_email(user, request)
     return Response({"message": "email updated"})
 

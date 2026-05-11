@@ -9,8 +9,8 @@
 - [ ] Go back to the default inotify system for better CPU usage, or find a better concept than mounting a windows volume
 - [ ] when entering instead of pressing button, the drum goes the the 0, 0 position, it should not move 
 
-- [ ] verification email not working
+- [X] verification email not working
 - [ ] changing error output (like login and sign up)
-- [ ] did u do the admin ?
-- [ ] when i double click on an item fl grid it zooms (like double clickin the top bar or the matrix)
-- [ ] same for scrolling we cant scroll in the matrix or scroll fl modules
+- [X] did u do the admin ?
+- [X] when i double click on an item fl grid it zooms (like double clickin the top bar or the matrix)
+- [X] same for scrolling we cant scroll in the matrix or scroll fl modules

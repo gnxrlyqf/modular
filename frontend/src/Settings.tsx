@@ -627,8 +627,11 @@ function DeleteAccountModal(props: { isOpen: boolean; onClose: () => void; onDel
 
 function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
   const [username, setUsername] = useState<string>('…');
+  const [userEmail, setUserEmail] = useState<string>('');
+  const [isVerified, setIsVerified] = useState<boolean | null>(null);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [twoFactorEnabled, setTwoFactorEnabled] = useState<boolean | null>(null);
+  const [resendStatus, setResendStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [isUsernameModalOpen, setIsUsernameModalOpen] = useState(false);
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
@@ -639,7 +642,11 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
   useEffect(() => {
     authFetch('/api/users/me/')
       .then(r => r.ok ? r.json() : null)
-      .then(data => { if (data?.username) setUsername(data.username); })
+      .then(data => {
+        if (data?.username) setUsername(data.username);
+        if (data?.email) setUserEmail(data.email);
+        if (typeof data?.is_verified === 'boolean') setIsVerified(data.is_verified);
+      })
       .catch(() => {});
 
     authFetch('/api/users/profile/me/')
@@ -654,6 +661,16 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
       })
       .catch(() => {});
   }, []);
+
+  const handleResendVerification = async () => {
+    setResendStatus('sending');
+    try {
+      const r = await authFetch('/api/users/resend-verification/', { method: 'POST' });
+      setResendStatus(r.ok ? 'sent' : 'error');
+    } catch {
+      setResendStatus('error');
+    }
+  };
 
   const handleLogout = async () => {
     logger.action('auth.logout');
@@ -723,8 +740,25 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
           <div className="space-y-1.5">
             <p className="text-xs text-indigo-300/50 tracking-wide uppercase">Email</p>
             <div className="settings-row settings-row-box">
-              <span className="text-indigo-300/40 text-xs">Update the email linked to your account.</span>
-              <button type="button" onClick={() => setIsEmailModalOpen(true)} className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
+              <div className="flex flex-col gap-1 min-w-0">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="text-indigo-100 text-sm truncate">{userEmail || '…'}</span>
+                  {isVerified === false && (
+                    <span className="text-yellow-400/90 text-xs font-medium border border-yellow-400/30 bg-yellow-400/10 rounded px-1.5 py-0.5 shrink-0">Unverified</span>
+                  )}
+                </div>
+                {isVerified === false && (
+                  <button
+                    type="button"
+                    onClick={handleResendVerification}
+                    disabled={resendStatus === 'sending' || resendStatus === 'sent'}
+                    className="text-yellow-400/70 hover:text-yellow-300 text-xs underline underline-offset-2 text-left cursor-pointer disabled:cursor-default disabled:no-underline disabled:opacity-60 w-fit"
+                  >
+                    {resendStatus === 'sending' ? 'Sending…' : resendStatus === 'sent' ? 'Email sent!' : resendStatus === 'error' ? 'Failed — try again' : 'Resend verification email'}
+                  </button>
+                )}
+              </div>
+              <button type="button" onClick={() => setIsEmailModalOpen(true)} className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer shrink-0">
                 Change
               </button>
             </div>

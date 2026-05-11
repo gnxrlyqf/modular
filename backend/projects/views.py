@@ -1,3 +1,4 @@
+from datetime import date
 from django.shortcuts import render, get_object_or_404
 from django.db.models import Sum, Case, When, IntegerField, Value
 from django.db.models.functions import Coalesce
@@ -135,6 +136,36 @@ class CommunityProjectSearchView(generics.ListAPIView):
         return Project.objects.annotate(
             net_votes=_net_votes_annotation()
         ).prefetch_related('votes').all()
+
+
+# ─── Share ────────────────────────────────────────────────────────────────────
+
+class ProjectShareView(APIView):
+    """
+    Increment share_count and record today in shared_days (no duplicates per day).
+    Only the project owner can trigger this.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, pk):
+        project = get_object_or_404(Project, pk=pk, user=request.user)
+        today = date.today().isoformat()
+
+        analytics = project.analytics or {}
+        sharing = analytics.get('sharing', {})
+        sharing['share_count'] = sharing.get('share_count', 0) + 1
+        shared_days = sharing.get('shared_days', [])
+        if today not in shared_days:
+            shared_days.append(today)
+        sharing['shared_days'] = shared_days
+        analytics['sharing'] = sharing
+
+        project.analytics = analytics
+        project.save(update_fields=['analytics'])
+
+        project_qs = Project.objects.prefetch_related('votes').get(pk=pk)
+        serializer = ProjectSerializer(project_qs, context={'request': request})
+        return Response(serializer.data)
 
 
 # ─── HTML index (legacy) ──────────────────────────────────────────────────────

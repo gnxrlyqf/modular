@@ -29,6 +29,7 @@ from .views import (
     UserAdminDeleteView,
     UserAdminLogsView,
     UserAdminAllLogsView,
+    UserResendVerificationView,
 )
 
 # 1. Router for ViewSets
@@ -41,6 +42,7 @@ urlpatterns = [
     # --- Authentication ---
     path('register/', UserRegisterView.as_view(), name='register'),
     path('activate/<uidb64>/<token>/', UserActivateView.as_view(), name='activate_account'),
+    path('resend-verification/', UserResendVerificationView.as_view(), name='resend_verification'),
     path('login/', UserLoginView.as_view(), name='login'),
     path('login/2fa-verify/', UserLogin2FAVerifyView.as_view(), name='2fa_login_verify'),
     path('logout/', UserLogoutView.as_view(), name='logout'),

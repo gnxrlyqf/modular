@@ -22,5 +22,7 @@ def me(request):
     return Response({
         "id": user.id,
         "username": user.username,
+        "email": user.email,
+        "is_verified": user.is_verified,
         "profile_id": profile_id,
     })

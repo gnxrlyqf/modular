@@ -14,6 +14,9 @@ import Context from "../Audio/Context";
 import {RenderModules, parseModules} from "../Modules/Modules";
 import { authFetch } from "../api";
 import { useViewport } from "../Viewport/useViewport";
+import { SessionTracker } from "../Analytics/sessionTracker";
+import { computeModuleCounts } from "../Analytics/moduleCounts";
+import { DEFAULT_ANALYTICS, type ProjectAnalytics } from "../Analytics/types";
 // import ViewportDebug from "../Viewport/ViewportDebug";
 
 const STATUS_MIN_MS = 1000;
@@ -45,6 +48,10 @@ function Scene() {
   const savedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const nextTransitionAt = useRef<number>(0);
   const queuedTransitionRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Analytics state — kept in a ref so updates don't trigger re-renders
+  const analyticsRef = useRef<ProjectAnalytics>({ ...DEFAULT_ANALYTICS });
+  const sessionTrackerRef = useRef<SessionTracker | null>(null);
 
   const [saveStatus, setSaveStatus] = useState<'idle' | 'pending' | 'saving' | 'saved' | 'error'>('idle');
 
@@ -133,6 +140,16 @@ function Scene() {
         const parsedCables = (scene.cables ?? []) as Cable[];
         const parsedCamera = scene.camera ?? { x: 0, y: 0, scale: 1 };
 
+        // Restore sharing analytics from the backend; session starts fresh each open
+        const savedSharing = data.analytics?.sharing ?? DEFAULT_ANALYTICS.sharing;
+        analyticsRef.current = {
+          ...DEFAULT_ANALYTICS,
+          sharing: savedSharing,
+          modules: computeModuleCounts(parsedModules),
+        };
+        // SessionTracker reads sessionStorage — survives page refresh within the same tab
+        sessionTrackerRef.current = new SessionTracker(pid);
+
         audioContext.initContext(parsedModules, parsedCables);
         setModules(parsedModules);
         setCables(parsedCables);
@@ -153,9 +170,12 @@ function Scene() {
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
     setStatusQueued('saving');
     try {
+      // Attach current session snapshot so analytics are always up-to-date in the DB
+      const sessionSnapshot = sessionTrackerRef.current?.getSnapshot() ?? analyticsRef.current.session;
+      const analyticsPayload: ProjectAnalytics = { ...analyticsRef.current, session: sessionSnapshot };
       await authFetch(`/api/projects/${projectIdRef.current}/`, {
         method: 'PATCH',
-        body: JSON.stringify({ config: { camera, modules, cables } }),
+        body: JSON.stringify({ config: { camera, modules, cables }, analytics: analyticsPayload }),
       });
       setStatusQueued('saved', () => {
         savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
@@ -192,6 +212,44 @@ function Scene() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [saveNow]);
+
+  // Recompute module counts whenever the modules array changes
+  useEffect(() => {
+    if (!hasFetched.current) return;
+    analyticsRef.current = {
+      ...analyticsRef.current,
+      modules: computeModuleCounts(modules),
+    };
+  }, [modules]);
+
+  // Finalize session analytics on tab close / navigation away.
+  // Uses fetch with keepalive:true so the request survives page teardown.
+  // Fires on both pagehide (reliable on mobile/bfcache) and beforeunload (desktop).
+  useEffect(() => {
+    const handleUnload = () => {
+      if (!projectIdRef.current || !hasFetched.current) return;
+      const finalSession = sessionTrackerRef.current?.finalize() ?? analyticsRef.current.session;
+      const payload: ProjectAnalytics = { ...analyticsRef.current, session: finalSession };
+      // Extract token directly — authFetch is async and can't be awaited here
+      const token = document.cookie.match(/accessToken=([^;]+)/)?.[1];
+      if (!token) return;
+      fetch(`/api/projects/${projectIdRef.current}/`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ analytics: payload }),
+        keepalive: true, // browser keeps this request alive after page unloads
+      });
+    };
+
+    window.addEventListener('pagehide', handleUnload);
+    window.addEventListener('beforeunload', handleUnload);
+    return () => {
+      window.removeEventListener('pagehide', handleUnload);
+      window.removeEventListener('beforeunload', handleUnload);
+      // Clean unmount: destroy tracker (removes listeners + sessionStorage key)
+      sessionTrackerRef.current?.destroy();
+    };
+  }, []); // stable — reads only refs
 
   useEffect(() => {
     const syncAudioContext = async () => {
