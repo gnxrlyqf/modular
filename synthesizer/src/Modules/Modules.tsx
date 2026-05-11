@@ -7,6 +7,7 @@ import Filter from "./Filter";
 import Distortion from "../Modules/Distortion";
 import Modulator from "../Modules/Modulator";
 import Keyboard from "../Modules/Keyboard";
+import Sequencer from "../Modules/Sequencer";
 import type { RefObject, Dispatch, SetStateAction } from "react";
 import { ConnectionProvider } from "../ConnectionContext";
 import { CameraProvider } from "../Viewport/CameraContext";
@@ -15,8 +16,7 @@ import type { Cable } from "../Patch/Cable";
 
 type BaseModule = {
   id: string;
-  title?: string;
-  type: 'oscillator' | 'gain' | 'envelope' | 'output' | 'lfo' | 'filter' | 'distortion' | 'modulator' | 'keyboard';
+  type: 'oscillator' | 'gain' | 'envelope' | 'output' | 'lfo' | 'filter' | 'distortion' | 'modulator' | 'keyboard' | 'sequencer';
   x: number;
   y: number;
 }
@@ -77,7 +77,11 @@ type KeyboardModule = BaseModule & {
   type: "keyboard";
 }
 
-type Module = OscModule | EnvModule | GainModule | OutModule | LfoModule | FilterModule | DistortModule | ModulateModule | KeyboardModule;
+type SequencerModule = BaseModule & {
+  type: "sequencer";
+}
+
+type Module = OscModule | EnvModule | GainModule | OutModule | LfoModule | FilterModule | DistortModule | ModulateModule | KeyboardModule | SequencerModule;
 
 type ModuleType =
 	| "oscillator"
@@ -88,7 +92,8 @@ type ModuleType =
 	| "filter"
 	| "distortion"
 	| "modulator"
-  | "keyboard";
+  | "keyboard"
+  | "sequencer";
 
 export interface ModuleProps {
   title?: string; 
@@ -125,7 +130,9 @@ function RenderModules(props: {
             case "modulator":
               return <Modulator key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} m={m.params.m} d={m.params.d} />;
             case "keyboard":
-              return <Keyboard key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} />;
+              return <Keyboard key={m.id} id={m.id} x={m.x} y={m.y} />;
+            case "sequencer":
+              return <Sequencer key={m.id} id={m.id} x={m.x} y={m.y} />;
             default: return null;
           }
         })}
@@ -242,6 +249,14 @@ function parseModules(modules: any[]): Module[] {
           id: m.id,
           title: m.title,
           type: "keyboard",
+          x: m.x,
+          y: m.y,
+        };
+      case "sequencer":
+        return {
+          id: m.id,
+          title: m.title,
+          type: "sequencer",
           x: m.x,
           y: m.y,
         };

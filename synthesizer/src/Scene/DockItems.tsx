@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import type { DockItemData } from '../Dock'
-import type { Module } from '../Modules/Modules'
+import type { Module, ModuleType } from '../Modules/Modules'
 
 import Oscillator, { OSC_W, OSC_H } from '../Modules/Oscillator';
 import Gain, { GAIN_W, GAIN_H } from '../Modules/Gain';
@@ -11,6 +11,7 @@ import Filter, { FLT_W, FLT_H } from '../Modules/Filter';
 import Distortion, { DIST_W, DIST_H } from '../Modules/Distortion';
 import Modulator, { MOD_W, MOD_H } from '../Modules/Modulator';
 import Keyboard, { KYBD_W, KYBD_H } from "../Modules/Keyboard";
+import Sequencer, { SEQ_W, SEQ_H } from "../Modules/Sequencer";
 
 function OscIcon(props: {size: number}) {
   return (
@@ -144,16 +145,12 @@ function KeyIcon(props: { size: number }) {
   );
 }
 
-type ModuleType = 
-  | "oscillator" 
-  | "gain" 
-  | "envelope" 
-  | "output" 
-  | "lfo" 
-  | "filter" 
-  | "distortion" 
-  | "modulator"
-  | "keyboard";
+function SeqIcon(props: { size: number }) {
+  void(props.size)
+  return (
+    <span>placeholder</span>
+  );
+}
 
 const objects: Record<ModuleType, { component: unknown; w: number; h: number }> = {
   // here is the issue of the ghost not taking the true dimensions
@@ -165,7 +162,8 @@ const objects: Record<ModuleType, { component: unknown; w: number; h: number }> 
   "filter":     { component: Filter,     w: FLT_W,  h: FLT_H },
   "distortion": { component: Distortion, w: DIST_W, h: DIST_H },
   "modulator":  { component: Modulator,  w: MOD_W,  h: MOD_H },
-  "keyboard":   { component: Keyboard,   w: KYBD_W, h: KYBD_H}
+  "keyboard":   { component: Keyboard,   w: KYBD_W, h: KYBD_H},
+  "sequencer":   { component: Sequencer,   w: SEQ_W, h: SEQ_H}
 };
 
 function GhostModule(props: { type: ModuleType; x: number; y: number; className?: string }) {
@@ -201,6 +199,8 @@ function instantiateModule(type: ModuleType, x: number, y: number): Module {
       return { id, type: "modulator", x, y, params: { m: "AM", d: 50 } };
     case "keyboard":
       return { id, type: "keyboard", x, y};
+    case "sequencer":
+      return { id, type: "sequencer", x, y};
     default:
       return { id, type: "gain", x, y, params: { g: 0 } };
   }
@@ -252,6 +252,11 @@ function createDockItems(onInstantiate: (type: ModuleType, e:React.MouseEvent) =
       icon: <KeyIcon size={50} />,
       label: 'Keyboard',
       onClick: (e: React.MouseEvent) => onInstantiate("keyboard", e)
+    },
+    {
+      icon: <SeqIcon size={50} />,
+      label: 'sequencer',
+      onClick: (e: React.MouseEvent) => onInstantiate("sequencer", e)
     },
   ];
 }
