@@ -145,7 +145,6 @@ function RenderModules(props: {
     <CameraProvider liveRef={props.cameraLive}>
       <ConnectionProvider setCables={props.f} cables={props.cables}>
         {props.modules.map((m) => {
-          console.log(m.type, m.params);
           switch (m.type) {
             case "oscillator":
               return <Oscillator key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} />;
