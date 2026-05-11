@@ -4,6 +4,7 @@ import type { ModuleProps } from "./Modules";
 import { useContextMenu } from "../Utils/useContextMenu";
 import ModuleFrame from "./ModuleFrame";
 import styled from "styled-components";
+import { audioContext } from "../Scene/Scene";
 
 type KeyType = "white" | "black";
 
@@ -120,11 +121,9 @@ function Keyboard(props: KeyboardProps) {
   const moduleRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number }>({ x: props.x, y: props.y });
   const { menu, handleContextMenu } = useContextMenu();
-  const color = "#696969ff";
+  const color = "#a0a0a0ff";
   const [activeNotes, setActiveNotes] = useState<Record<string, boolean>>({});
-  const audioCtx = useRef<AudioContext | null>(null);
   const oscillators = useRef<Record<string, OscillatorNode>>({});
-  const gains = useRef<Record<string, GainNode>>({});
 
   useEffect(() => {
     if (!moduleRef.current || position) return;
@@ -165,61 +164,17 @@ function Keyboard(props: KeyboardProps) {
     return 440 * Math.pow(2, (semitones - 69) / 12);
   };
 
-  const initAudio = async () => {
-    if (!audioCtx.current)
-      audioCtx.current = new AudioContext();
-
-    if (audioCtx.current.state === "suspended")
-      await audioCtx.current.resume();
-  };
-
-  const handleNoteDown = async (noteId: string) => {
-    if (oscillators.current[noteId]) return;
-
-    await initAudio();
-
-    if (!audioCtx.current) return;
-
-    const now = audioCtx.current.currentTime;
-
+  const handleNoteDown = (noteId: string) => {
     setActiveNotes((prev) => ({ ...prev, [noteId]: true }));
-
-    const osc = audioCtx.current.createOscillator();
-    const gain = audioCtx.current.createGain();
-
-    osc.type = "triangle";
-    osc.frequency.setValueAtTime(getFrequency(noteId), now);
-
-    gain.gain.setValueAtTime(0, now);
-    gain.gain.linearRampToValueAtTime(0.25, now + 0.02);
-
-    osc.connect(gain);
-    gain.connect(audioCtx.current.destination);
-
-    osc.start();
-
-    oscillators.current[noteId] = osc;
-    gains.current[noteId] = gain;
+    audioContext.setParam(props.id, "noteOn", {
+      note: noteId,
+      freq: getFrequency(noteId),
+    });
   };
 
   const handleNoteUp = (noteId: string) => {
-    const osc = oscillators.current[noteId];
-    const gain = gains.current[noteId];
-
-    if (!osc || !gain || !audioCtx.current) return;
-
     setActiveNotes((prev) => ({ ...prev, [noteId]: false }));
-
-    const now = audioCtx.current.currentTime;
-
-    gain.gain.cancelScheduledValues(now);
-    gain.gain.setValueAtTime(gain.gain.value, now);
-    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.08);
-
-    osc.stop(now + 0.08);
-
-    delete oscillators.current[noteId];
-    delete gains.current[noteId];
+    audioContext.setParam(props.id, "noteOff", noteId);
   };
 
   useEffect(() => {
@@ -229,8 +184,6 @@ function Keyboard(props: KeyboardProps) {
           osc.stop();
         } catch {}
       });
-
-      audioCtx.current?.close();
     };
   }, []);
 
@@ -248,7 +201,6 @@ function Keyboard(props: KeyboardProps) {
         onHeaderMouseDown={onMouseDown}
       >
         <div className="flex flex-col ">
-          {/* The Playable Keys Area */}
           <KeyboardBed>
             {keys.map((key) => (
               <Key

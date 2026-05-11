@@ -7,6 +7,7 @@ import VCF from "./Modules/Filter";
 import Distortion from "./Modules/Distortion";
 import Modulator from "./Modules/Modulator";
 import Sequencer from "./Modules/Sequencer";
+import Keyboard from "./Modules/Keyboard";
 import { type Module } from "../Modules/Modules";
 import { type Cable } from "../Scene/Scene";
 import type { Module as AudioModule } from "./Abstractions";
@@ -89,14 +90,18 @@ class Context {
 				mod.setParam("length", module.params.l);
 				return mod;
 			}
-			default: {
-				const osc = new Oscillator(this.audioContext);
-				osc.setFrequency(module.params.f);
-				osc.setShape(module.params.w);
-				return osc;
+			case "keyboard": {
+				 const kb = new Keyboard(this.audioContext);
+				 return kb;
 			}
-
+			default: {
+				const out = new Output(this.audioContext);
+				return out;
+			}
 		}
+		const gain = new Gain(this.audioContext);
+		gain.setGain(module.params.g);
+		return gain;
 	}
 
 	addModule(module: Module) {
