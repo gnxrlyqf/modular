@@ -29,13 +29,13 @@ interface KeyboardProps extends ModuleProps {
 }
 
 const MODULE_WIDTH = 704; 
-const MODULE_HEIGHT = 390;
+const MODULE_HEIGHT = 360;
 
 const WHITE_KEY_WIDTH = 45;
 const BLACK_KEY_WIDTH = 28;
 
-const BLACK_KEY_HEIGHT = 100;
-const WHITE_KEY_HEIGHT = 180;
+const BLACK_KEY_HEIGHT = 80;
+const WHITE_KEY_HEIGHT = 140;
 const OCTAVES = 2;
 
 const WHITE_PATTERN = ["C", "D", "E", "F", "G", "A", "B"];
@@ -124,7 +124,7 @@ function Keyboard(props: KeyboardProps) {
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#a0a0a0ff";
   const [activeNotes, setActiveNotes] = useState<Record<string, boolean>>({});
-  const [octaveShift, setOctaveShift] = useState(0);
+  const [octaveShift, setOctaveShift] = useState(3);
   const [lastFreq, setLastFreq] = useState(0);
   const [trigger, setTrigger] = useState(0);
 
@@ -210,49 +210,31 @@ function Keyboard(props: KeyboardProps) {
       onContextMenu={handleContextMenu}
       onHeaderMouseDown={onMouseDown}
     >
-      <div className="relative flex flex-col w-full h-full">
-        <div className="mt-7 w-full px-4 flex flex-col gap-2">
-          <div className="flex justify-center items-center gap-2">
-            <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40" onClick={decrementOctave} disabled={octaveShift === MIN_OCTAVE}>
+      <div className="w-full flex flex-row gap-2">
+        <div className="flex justify-center items-center gap-2 mx-20">
+          <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40" onClick={decrementOctave} disabled={octaveShift === MIN_OCTAVE}>
               −
             </button>
-            <div className="w-10 text-center text-zinc-300 text-sm"> {octaveShift} </div>
+            <div className  ="w-10 text-center text-zinc-300 text-sm"> {octaveShift} </div>
             <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40" onClick={incrementOctave} disabled={octaveShift === MAX_OCTAVE} >
               +
             </button>
-          </div>
         </div>
-
-
-        {/* <div className="absolute right-4 flex flex-col items-end gap-1 px-8">
-          <div className="mb-1"><Param id={props.id} name="freq" polarity="source" color={color} /></div>
-          <div className="mt-1"><Param id={props.id} name="trigger" polarity="source" color={color} /></div>
-        </div> */}
-        <div className="absolute top-3 right-3 flex flex-col items-end gap-2">
-          <div className="flex items-center gap-2">
-            <div className="w-20 h-[2px] bg-zinc-400" />
-            <Param id={props.id} name="freq" polarity="source" color={color} />
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="w-20 h-[2px] bg-zinc-400" />
-            <Param id={props.id} name="trigger" polarity="source" color={color} />
-          </div>
+        <div className="w-full flex flex-col gap-4">
+          <Param id={props.id} name="freq" polarity="source" color={color} />
+          <Param id={props.id} name="trigger" polarity="source" color={color}/>
         </div>
-
-        <div className="flex-1 flex items-end justify-center">
-          <KeyboardBed>
-            {keys.map((k) => (
-              <Key
-                key={k.note}
-                keyType={k.type}
-                left={k.left}
-                isActive={!!activeNotes[k.note]}
-                onPress={() => handleNoteDown(k.note)}
-                onRelease={() => handleNoteUp(k.note)}
-              />
-            ))}
-          </KeyboardBed>
-        </div>
+      </div>
+      <div className="flex flex-1 w-full items-center justify-center mt-1">
+        <KeyboardBed>
+          {keys.map((k) => (
+            <Key key={k.note} keyType={k.type} left={k.left}
+              isActive={!!activeNotes[k.note]}
+              onPress={() => handleNoteDown(k.note)}
+              onRelease={() => handleNoteUp(k.note)}
+            />
+          ))}
+        </KeyboardBed>
       </div>
     </ModuleFrame>
   );
