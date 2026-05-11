@@ -216,6 +216,7 @@ const AnimatedList: React.FC<AnimatedListProps> = ({
     </motion.div>
   );
 };
+const MODULE_SHADOW_SIZE = 35;
 
 function Matrix(props: {
   cables: Cable[],
@@ -233,6 +234,19 @@ function Matrix(props: {
     const module = props.modules.find((m) => m.id === moduleId);
     return { moduleId, param, type: module?.type ?? "unknown" };
   };
+  
+  const onClickMouse = (e: React.MouseEvent<HTMLDivElement, MouseEvent>, module: Module) => {
+    document.querySelectorAll("[data-patch-module='true']").forEach((el) => {
+      (el as HTMLDivElement).style.boxShadow = "none";
+    });
+    const moduleElement = document.querySelector(`[data-module-id='${module.id}']`) as HTMLDivElement | null;
+    if (moduleElement) {
+      const color = modules[module.type]?.color || "#646464ff";
+      const shadowColor = `${color}60`;
+      moduleElement.style.boxShadow = `0 0 ${MODULE_SHADOW_SIZE}px 0 ${shadowColor}`;
+    }
+    props.handleContextMenu(e, module.id);
+  }
 
   const items = props.cables.map((item, idx) => {
     const from = getModuleType(item.from);
@@ -281,7 +295,7 @@ function Matrix(props: {
     <div 
       key={module.id} 
       className="text-white flex flex-row items-center w-full cursor-pointer hover:bg-white/5 p-1 rounded-xl group" 
-      onClick={(e) => props.handleContextMenu(e, module.id)}
+      onClick={(e) => {onClickMouse(e, module)}}
     >
       <div className="flex flex-row gap-1 flex-1 pointer-events-none">
         <span

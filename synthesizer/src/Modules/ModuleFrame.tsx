@@ -15,7 +15,7 @@ interface ModuleFrameProps {
   children: React.ReactNode;
 }
 
-const MODULE_SHADOW_SIZE = 30;
+const MODULE_SHADOW_SIZE = 35;
 
 function toShadowColor(baseColor: string) {
   if (baseColor.startsWith("#") && baseColor.length === 7) {
