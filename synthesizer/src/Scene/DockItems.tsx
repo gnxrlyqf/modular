@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import type { DockItemData } from '../Dock'
-import { type Module, type ModuleType, DEFAULT_VALUES} from '../Modules/Modules'
+import { type Module, type ModuleType, createDefaultParams} from '../Modules/Modules'
 
 import Oscillator, { OSC_W, OSC_H } from '../Modules/Oscillator';
 import Gain, { GAIN_W, GAIN_H } from '../Modules/Gain';
@@ -62,7 +62,7 @@ function EnvelopeIcon(props: {size: number}) {
 function OutputIcon(props: {size: number}) {
   return (
     <svg width={props.size} height={props.size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 7H12.01M12.5 7C12.5 7.27614 12.2761 7.5 12 7.5C11.7239 7.5 11.5 7.27614 11.5 7C11.5 6.72386 11.7239 6.5 12 6.5C12.2761 6.5 12.5 6.72386 12.5 7ZM15 14C15 15.6569 13.6569 17 12 17C10.3431 17 9 15.6569 9 14C9 12.3431 10.3431 11 12 11C13.6569 11 15 12.3431 15 14ZM8.2 21H15.8C16.9201 21 17.4802 21 17.908 20.782C18.2843 20.5903 18.5903 20.2843 18.782 19.908C19 19.4802 19 18.9201 19 17.8V6.2C19 5.0799 19 4.51984 18.782 4.09202C18.5903 3.71569 18.2843 3.40973 17.908 3.21799C17.4802 3 16.9201 3 15.8 3H8.2C7.0799 3 6.51984 3 6.09202 3.21799C5.71569 3.40973 5.40973 3.71569 5.21799 4.09202C5 4.51984 5 5.07989 5 6.2V17.8C5 18.9201 5 19.4802 5.21799 19.908C5.40973 20.2843 5.71569 20.5903 6.09202 20.782C6.51984 21 7.07989 21 8.2 21Z" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round"/>
+      <path d="M12 7H12.01M12.5 7C12.5 7.27614 12.2761 7.5 12 7.5C11.7239 7.5 11.5 7.27614 11.5 7C11.5 6.72386 11.7239 6.5 12 6.5C12.2761 6.5 12.5 6.72386 12.5 7ZM15 14C15 15.6569 13.6569 17 12 17C10.3431 17 9 15.6569 9 14C9 12.3431 10.3431 11 12 11C13.6569 11 15 12.3431 15 14ZM8.2 21H15.8C16.9201 21 17.4802 21 17.908 20.782C18.2843 20.5903 18.5903 20.2843 18.782 19.908C19 19.4802 19 18.9201 19 17.8V6.2C19 5.0799 19 4.51984 18.782 4.09202C18.5903 3.71569 18.2843 3.40973 17.908 3.21799C17.4802 3 16.9201 3 15.8 3H8.2C7.0799 3 6.51984 3 6.09202 3.21799C5.71569 3.40973 5.40973 3.71569 5.21799 4.09202C5 4.51984 5 5.07989 5 6.2V17.8C5 18.9201 5 19.4802 5.21799 19.908C5.40973 20.2843 5.71569 20.5903 6.09202 20.782C6.51984 21 7.07989 21 8.2 21Z" stroke="#FFFFFF" strokeWidth="2" strokeLinecap="round"/>
     </svg>
   )
 }
@@ -182,25 +182,25 @@ function instantiateModule(type: ModuleType, x: number, y: number): Module {
 
   switch (type) {
     case "oscillator":
-      return { id, type: "oscillator", x, y, params: { ...DEFAULT_VALUES.oscillator } };
+      return { id, type: "oscillator", x, y, params:  createDefaultParams(type) };
     case "gain":
-      return { id, type: "gain", x, y, params: {...DEFAULT_VALUES.gain} };
+      return { id, type: "gain", x, y, params: createDefaultParams(type)};
     case "envelope":
-      return { id, type: "envelope", x, y, params: {...DEFAULT_VALUES.envelope} };
+      return { id, type: "envelope", x, y, params: createDefaultParams(type) };
     case "output":
-      return { id, type: "output", x, y, params: {...DEFAULT_VALUES.output} };
+      return { id, type: "output", x, y, params: createDefaultParams(type)};
     case "lfo":
-      return { id, type: "lfo", x, y, params: { ...DEFAULT_VALUES.lfo} };
+      return { id, type: "lfo", x, y, params:  createDefaultParams(type)};
     case "filter":
-      return { id, type: "filter", x, y, params: { ...DEFAULT_VALUES.filter} };
+      return { id, type: "filter", x, y, params:  createDefaultParams(type)};
     case "distortion":
-      return { id, type: "distortion", x, y, params: { ...DEFAULT_VALUES.distortion} };
+      return { id, type: "distortion", x, y, params:  createDefaultParams(type)};
     case "modulator":
-      return { id, type: "modulator", x, y, params: { ...DEFAULT_VALUES.modulator} };
+      return { id, type: "modulator", x, y, params:  createDefaultParams(type)};
     case "keyboard":
-      return { id, type: "keyboard", x, y};
+      return { id, type: "keyboard", x, y, params: createDefaultParams(type)};
     case "sequencer":
-      return { id, type: "sequencer", x, y};
+      return { id, type: "sequencer", x, y, params: createDefaultParams(type)};
     default:
       return { id, type: "gain", x, y, params: { g: 0 } };
   }

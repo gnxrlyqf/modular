@@ -64,6 +64,10 @@ function Filter(props: ModuleProps & {
 
   const onMouseDown = useDrag(props, position, setPosition, moduleRef);
 
+  useEffect(() => {setQ(props.q)}, [props.q]);
+  useEffect(() => {setFrequency(props.f); }, [props.f]);
+  useEffect(() => {setFilterType(props.t); }, [props.t]);
+
   useEffect(() => {
     audioContext.setParam(props.id, "frequency", frequency);
   }, [frequency]);

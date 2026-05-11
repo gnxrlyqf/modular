@@ -27,6 +27,11 @@ function Envelope(props: EnvelopeProps) {
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#6FAF4F"
 
+  useEffect(() => {setAttack(props.a)}, [props.a]);
+  useEffect(() => {setDecay(props.d)}, [props.d]);
+  useEffect(() => {setSustain(props.s)}, [props.s]);
+  useEffect(() => {setRelease(props.r)}, [props.r]);
+
   useEffect(() => {
     if (!moduleRef.current || position) {
       return;

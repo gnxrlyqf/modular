@@ -60,6 +60,9 @@ function Oscillator(props: OscillatorProps) {
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#C44A3A"
 
+  useEffect(() => { setFrequency(props.f); }, [props.f]);
+  useEffect(() => { setWaveshape(props.w); }, [props.w]);
+
   useEffect(() => {
     if (!moduleRef.current || position) { return; }
 

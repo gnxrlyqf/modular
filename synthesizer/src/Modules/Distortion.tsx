@@ -103,6 +103,9 @@ function Distortion(props: DistortionProps) {
 
   const onMouseDown = useDrag(props, position, setPosition, moduleRef);
 
+  useEffect(() => {setDrive(props.d)}, [props.d]);
+  useEffect(() => {setType(props.t)}, [props.t]);
+
   useEffect(() => {
     audioContext.setParam(props.id, "drive", drive);
   }, [drive]);

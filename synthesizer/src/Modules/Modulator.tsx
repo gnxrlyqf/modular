@@ -29,6 +29,9 @@ function Modulator(props: ModuleProps & {
   const onMouseDown = useDrag(props, position, setPosition, moduleRef);
   const { menu, handleContextMenu } = useContextMenu();
 
+  useEffect(() => {setDepth(props.d)}, [props.d]);
+  useEffect(() => {setMode(props.m)}, [props.m]);
+
   // sync position init (same pattern as Oscillator)
   useEffect(() => {
     if (!moduleRef.current || position) return;

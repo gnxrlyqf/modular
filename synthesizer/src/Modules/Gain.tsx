@@ -23,6 +23,8 @@ function Gain(props: GainProps) {
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#3852B4"
 
+  useEffect(() => {setGain(props.g)}, [props.g]);
+
   useEffect(() => {
     audioContext.setParam(props.id, "gain", gain);
   }, [gain]);

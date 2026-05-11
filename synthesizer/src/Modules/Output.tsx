@@ -19,6 +19,8 @@ function Output(props: OutputProps) {
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#63748d"
 
+  useEffect(() => {setMaster(props.m)}, [props.m]);
+
   useEffect(() => {
     if (!moduleRef.current || position) return;
 

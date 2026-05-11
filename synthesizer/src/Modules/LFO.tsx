@@ -69,8 +69,10 @@ function LFO(props: LFOProps) {
   const [waveshape, setWaveshape] = useState<"sine" | "square" | "triangle" | "sawtooth">(props.w);
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#8F0177";
-
   const onMouseDown = useDrag(props, position, setPosition, moduleRef);
+
+  useEffect(() => {setFrequency(props.f)}, [props.f]);
+  useEffect(() => {setWaveshape(props.w)}, [props.w]);
 
   useEffect(() => {
     audioContext.setParam(props.id, "frequency", frequency);

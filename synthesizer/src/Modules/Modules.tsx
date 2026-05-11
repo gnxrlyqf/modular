@@ -20,6 +20,7 @@ type BaseModule = {
   type: 'oscillator' | 'gain' | 'envelope' | 'output' | 'lfo' | 'filter' | 'distortion' | 'modulator' | 'keyboard' | 'sequencer';
   x: number;
   y: number;
+  params?: any;
 }
 
 type OscModule = BaseModule & {
@@ -76,10 +77,12 @@ type ModulateModule = BaseModule & {
 
 type KeyboardModule = BaseModule & {
   type: "keyboard";
+  params: {};
 }
 
 type SequencerModule = BaseModule & {
   type: "sequencer";
+  params: {};
 }
 
 type Module = OscModule | EnvModule | GainModule | OutModule | LfoModule | FilterModule | DistortModule | ModulateModule | KeyboardModule | SequencerModule;
@@ -104,7 +107,7 @@ export interface ModuleProps {
 }
 
 export const DEFAULT_VALUES: Record<string, any> = {
-  oscillator: { f: 440, x: 'sine' },
+  oscillator: { f: 440, w: 'sine' },
   gain: { g: 0 },
   envelope: { a: 100, d: 200, s: 0.7, r: 300 },
   output: { m: -6 },
@@ -114,6 +117,22 @@ export const DEFAULT_VALUES: Record<string, any> = {
   modulator: { m: "AM", d: 50 },
   keyboard: {},
   sequencer: {},
+};
+
+export const createDefaultParams = (type: ModuleType) => {
+  switch (type) {
+    case "oscillator": return { f: 440, w: 'sine' };
+    case "gain": return { g: 0 };
+    case "envelope": return { a: 100, d: 200, s: 0.7, r: 300 };
+    case "output": return { m: -6 };
+    case "lfo": return { f: 1, w: "sine", s: false };
+    case "filter": return { f: 1000, q: 1, t: "lowpass" };
+    case "distortion": return { d: 50, t: "soft" };
+    case "modulator": return { m: "AM", d: 50 };
+    case "keyboard": return {};
+    case "sequencer": return {};
+    default: return {};
+  }
 };
 
 function RenderModules(props: {
@@ -126,6 +145,7 @@ function RenderModules(props: {
     <CameraProvider liveRef={props.cameraLive}>
       <ConnectionProvider setCables={props.f} cables={props.cables}>
         {props.modules.map((m) => {
+          console.log(m.type, m.params);
           switch (m.type) {
             case "oscillator":
               return <Oscillator key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} />;
@@ -265,6 +285,7 @@ function parseModules(modules: any[]): Module[] {
           type: "keyboard",
           x: m.x,
           y: m.y,
+          params: {}
         };
       case "sequencer":
         return {
@@ -273,6 +294,7 @@ function parseModules(modules: any[]): Module[] {
           type: "sequencer",
           x: m.x,
           y: m.y,
+          params: {}
         };
       default:
         throw new Error(`Unknown module type: ${m.type}`);

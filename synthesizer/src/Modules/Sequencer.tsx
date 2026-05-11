@@ -28,6 +28,7 @@ function Sequencer(props: SequencerProps) {
   const color = "#63748d"
 
   const onMouseDown = useDrag(props, position, setPosition, moduleRef);
+  // useEffect(() => {setRelease(props.r)}, [props.r]); // must do this for reset func later
 
   return (
     <ModuleFrame
