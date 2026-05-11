@@ -14,8 +14,8 @@ mixer o splitter which are self explanatory
 
 - [x] implement zoom in/out
 - [x] fix module placement issue
-- [ ] implement keyboard module
-- [ ] highlight modules and cables when clicked in matrix menu
+- [x] highlight modules and cables when clicked in matrix menu
+- [wip] implement keyboard module
 - [ ] if exists, display module title in matrix as well as module itself
 - [ ] implement sequencer module
 - [ ] implement mixer and splitter modules

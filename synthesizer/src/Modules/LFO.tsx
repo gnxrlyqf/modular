@@ -68,7 +68,7 @@ function LFO(props: LFOProps) {
   const [frequency, setFrequency] = useState(props.f);
   const [waveshape, setWaveshape] = useState<"sine" | "square" | "triangle" | "sawtooth">(props.w);
   const { menu, handleContextMenu } = useContextMenu();
-  const color = "#611154ff";
+  const color = "#8F0177";
 
   const onMouseDown = useDrag(props, position, setPosition, moduleRef);
 
