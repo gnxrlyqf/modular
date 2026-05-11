@@ -74,9 +74,6 @@ function Scene() {
     displayScale,
     loadCamera,
     screenToWorld,
-    zoomIn,
-    zoomOut,
-    resetZoom,
     fitToContent,
     tryStartPan,
     handleDoubleClick,
@@ -391,7 +388,7 @@ function Scene() {
 
       {/* HUD — header + zoom controls */}
       <section className="pointer-events-none absolute inset-0 z-20">
-        <header className="pointer-events-auto absolute left-3 right-3 top-3 flex items-center justify-between rounded-xl border border-zinc-700/70 bg-zinc-900/85 pl-2 pr-4 py-2 backdrop-blur">
+        <header data-hud-header="true" className="pointer-events-auto absolute left-3 right-3 top-3 flex items-center justify-between rounded-xl border border-zinc-700/70 bg-zinc-900/85 pl-2 pr-4 py-2 backdrop-blur">
           {/* Left: Matrix toggle */}
           <div className="flex items-center gap-4">
             <button
@@ -450,27 +447,9 @@ function Scene() {
 
             {/* Zoom controls */}
             <div className="flex items-center gap-1 border-l border-zinc-600 pl-3">
-              <button
-                onClick={zoomOut}
-                className="w-6 h-6 flex items-center justify-center rounded hover:bg-white/20 text-zinc-300 text-lg leading-none cursor-pointer"
-                title="Zoom out (Ctrl+scroll)"
-              >
-                −
-              </button>
-              <button
-                onClick={resetZoom}
-                className="w-14 text-center text-xs text-zinc-300 hover:text-white hover:bg-white/10 rounded py-0.5 cursor-pointer tabular-nums"
-                title="Reset zoom"
-              >
+              <span className="w-14 text-center text-xs text-zinc-400 tabular-nums select-none">
                 {displayScale}%
-              </button>
-              <button
-                onClick={zoomIn}
-                className="w-6 h-6 flex items-center justify-center rounded hover:bg-white/20 text-zinc-300 text-lg leading-none cursor-pointer"
-                title="Zoom in (Ctrl+scroll)"
-              >
-                +
-              </button>
+              </span>
               <button
                 onClick={() => fitToContent(modules, moduleObjects)}
                 className="ml-1 px-2 py-0.5 text-xs rounded hover:bg-white/20 text-zinc-400 hover:text-white cursor-pointer"
@@ -544,7 +523,7 @@ function Scene() {
         </header>
       </section>
       {/* Matrix overlay */}
-      <div className="absolute z-30 inset-y-20">
+      <div data-matrix="true" className="absolute z-30 inset-y-20">
         <ul className="flex"></ul>
         <AnimatePresence>
           {matrixToggle && (

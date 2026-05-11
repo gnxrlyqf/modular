@@ -224,6 +224,12 @@ export function useViewport(
   // Wheel event handler — attached with { passive: false } by Scene.tsx
   const onWheel = useCallback((e: WheelEvent) => {
     e.preventDefault();
+    const tgt = e.target as HTMLElement;
+    if (
+      tgt.closest('[data-patch-module="true"]') ||
+      tgt.closest('[data-hud-header="true"]') ||
+      tgt.closest('[data-matrix="true"]')
+    ) return;
     // Use ref-tracked shift state — more reliable than e.shiftKey on
     // some Chrome/Windows builds where WheelEvent.shiftKey is false.
     const wantZoom = e.ctrlKey || e.metaKey || shiftHeld.current;
@@ -326,7 +332,11 @@ export function useViewport(
     target: EventTarget | null; clientX: number; clientY: number; shiftKey: boolean;
   }) => {
     const tgt = e.target as HTMLElement;
-    if (tgt.closest("[data-patch-module='true']")) return;
+    if (
+      tgt.closest("[data-patch-module='true']") ||
+      tgt.closest('[data-hud-header="true"]') ||
+      tgt.closest('[data-matrix="true"]')
+    ) return;
     const newScale = e.shiftKey
       ? target.current.scale / 1.3
       : target.current.scale * 1.3;
