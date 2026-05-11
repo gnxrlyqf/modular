@@ -21,4 +21,3 @@ mixer o splitter which are self explanatory
 - [ ] implement sequencer module
 - [ ] implement mixer and splitter modules
 - [ ] redo LFO sync mode
-- [ ] status text in the top bar for when project is saving/saved

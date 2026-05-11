@@ -1,6 +1,6 @@
 import { v4 as uuidv4 } from "uuid";
 import type { DockItemData } from '../Dock'
-import type { Module, ModuleType } from '../Modules/Modules'
+import { type Module, type ModuleType, DEFAULT_VALUES} from '../Modules/Modules'
 
 import Oscillator, { OSC_W, OSC_H } from '../Modules/Oscillator';
 import Gain, { GAIN_W, GAIN_H } from '../Modules/Gain';
@@ -182,21 +182,21 @@ function instantiateModule(type: ModuleType, x: number, y: number): Module {
 
   switch (type) {
     case "oscillator":
-      return { id, type: "oscillator", x, y, params: { f: 440, w: "sine" } };
+      return { id, type: "oscillator", x, y, params: { ...DEFAULT_VALUES.oscillator } };
     case "gain":
-      return { id, type: "gain", x, y, params: { g: 0 } };
+      return { id, type: "gain", x, y, params: {...DEFAULT_VALUES.gain} };
     case "envelope":
-      return { id, type: "envelope", x, y, params: { a: 100, d: 200, s: 0.7, r: 300 } };
+      return { id, type: "envelope", x, y, params: {...DEFAULT_VALUES.envelope} };
     case "output":
-      return { id, type: "output", x, y, params: { m: -6 } };
+      return { id, type: "output", x, y, params: {...DEFAULT_VALUES.output} };
     case "lfo":
-      return { id, type: "lfo", x, y, params: { f: 1, w: "sine", s: false } };
+      return { id, type: "lfo", x, y, params: { ...DEFAULT_VALUES.lfo} };
     case "filter":
-      return { id, type: "filter", x, y, params: { f: 1000, q: 1, t: "lowpass" } };
+      return { id, type: "filter", x, y, params: { ...DEFAULT_VALUES.filter} };
     case "distortion":
-      return { id, type: "distortion", x, y, params: { d: 50, t: "soft" } };
+      return { id, type: "distortion", x, y, params: { ...DEFAULT_VALUES.distortion} };
     case "modulator":
-      return { id, type: "modulator", x, y, params: { m: "AM", d: 50 } };
+      return { id, type: "modulator", x, y, params: { ...DEFAULT_VALUES.modulator} };
     case "keyboard":
       return { id, type: "keyboard", x, y};
     case "sequencer":
