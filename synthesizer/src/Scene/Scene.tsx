@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Dock from "../Dock";
 import type {Module} from '../Modules/Modules'
 import {createDefaultParams} from '../Modules/Modules'
-import Keyboard from '../Modules/Keyboard'
 import { AnimatePresence } from "motion/react";
 import { wouldGhostOverlap } from "../Utils/wouldGhostOverlap";
 import { snapToGrid } from "../Utils/snapToGrid";
@@ -436,11 +435,6 @@ function Scene() {
           cameraLive={cameraLive}
           f={setCables}
           cables={cables}
-        />
-        <Keyboard
-          id="keyboard"
-          x={600}
-          y={400}
         />
         {ghost && (
           <div className="pointer-events-none">

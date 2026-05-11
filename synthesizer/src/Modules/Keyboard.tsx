@@ -5,6 +5,9 @@ import { useContextMenu } from "../Utils/useContextMenu";
 import ModuleFrame from "./ModuleFrame";
 import styled from "styled-components";
 import { audioContext } from "../Scene/Scene";
+import { RadioSelect, RadioSelectOption } from "../Interactions/RadioSelect";
+
+
 
 type KeyType = "white" | "black";
 
@@ -119,11 +122,14 @@ function Key({ keyType, isActive, left, onPress, onRelease }: KeyProps) {
 
 function Keyboard(props: KeyboardProps) {
   const moduleRef = useRef<HTMLDivElement | null>(null);
-  const [position, setPosition] = useState<{ x: number; y: number }>({ x: props.x, y: props.y });
+  const [position, setPosition] = useState({ x: props.x, y: props.y });
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#a0a0a0ff";
   const [activeNotes, setActiveNotes] = useState<Record<string, boolean>>({});
-  const oscillators = useRef<Record<string, OscillatorNode>>({});
+  const [octaveShift, setOctaveShift] = useState(0);
+
+  const MIN_OCTAVE = 0;
+  const MAX_OCTAVE = 4;
 
   useEffect(() => {
     if (!moduleRef.current || position) return;
@@ -136,36 +142,39 @@ function Keyboard(props: KeyboardProps) {
   const keys = useMemo(() => {
     const arr: PianoKeyData[] = [];
 
+    const baseOctave = 2 + octaveShift;
+
     for (let octave = 0; octave < OCTAVES; octave++) {
+      const realOctave = baseOctave + octave;
       const whiteOffset = octave * 7;
 
       WHITE_PATTERN.forEach((note) => {
-        arr.push({
-          note: `${note}${octave + 2}`,
-          type: "white",
-        });
+        arr.push({ note: `${note}${realOctave}`, type: "white", });
       });
 
       BLACK_PATTERN.forEach((b) => {
         arr.push({
-          note: `${b.note}${octave + 2}`,
+          note: `${b.note}${realOctave}`,
           type: "black",
           left: (whiteOffset + b.after + 1) * WHITE_KEY_WIDTH - BLACK_KEY_WIDTH / 2,
         });
       });
     }
+
     return arr;
-  }, []);
+  }, [octaveShift]);
 
   const getFrequency = (noteName: string) => {
     const note = noteName.slice(0, -1);
     const octave = parseInt(noteName.slice(-1));
-    const semitones = octave * 12 + NOTE_TO_SEMITONE[note];
-    return 440 * Math.pow(2, (semitones - 69) / 12);
+    const semitone = octave * 12 + NOTE_TO_SEMITONE[note];
+
+    return 440 * Math.pow(2, (semitone - 69) / 12);
   };
 
   const handleNoteDown = (noteId: string) => {
-    setActiveNotes((prev) => ({ ...prev, [noteId]: true }));
+    setActiveNotes((p) => ({ ...p, [noteId]: true }));
+
     audioContext.setParam(props.id, "noteOn", {
       note: noteId,
       freq: getFrequency(noteId),
@@ -173,48 +182,55 @@ function Keyboard(props: KeyboardProps) {
   };
 
   const handleNoteUp = (noteId: string) => {
-    setActiveNotes((prev) => ({ ...prev, [noteId]: false }));
+    setActiveNotes((p) => ({ ...p, [noteId]: false }));
     audioContext.setParam(props.id, "noteOff", noteId);
   };
 
-  useEffect(() => {
-    return () => {
-      Object.values(oscillators.current).forEach((osc) => {
-        try {
-          osc.stop();
-        } catch {}
-      });
-    };
-  }, []);
+  const clamp = (v: number, min: number, max: number) => Math.max(min, Math.min(max, v));
+  const incrementOctave = () => setOctaveShift((v) => clamp(v + 1, MIN_OCTAVE, MAX_OCTAVE));
+  const decrementOctave = () => setOctaveShift((v) => clamp(v - 1, MIN_OCTAVE, MAX_OCTAVE));
 
   return (
-      <ModuleFrame
-        id={props.id}
-        title={props.title || "Keyboard"}
-        width={MODULE_WIDTH}
-        height={MODULE_HEIGHT}
-        position={position}
-        baseColor={color}
-        menu={menu}
-        moduleRef={moduleRef}
-        onContextMenu={handleContextMenu}
-        onHeaderMouseDown={onMouseDown}
-      >
-        <div className="flex flex-col ">
-          <KeyboardBed>
-            {keys.map((key) => (
-              <Key
-                key={key.note}
-                keyType={key.type}
-                left={key.left}
-                isActive={!!activeNotes[key.note]}
-                onPress={() => handleNoteDown(key.note)}
-                onRelease={() => handleNoteUp(key.note)}
-              />
-            ))}
-          </KeyboardBed>
+    <ModuleFrame
+      id={props.id}
+      title={props.title || "Keyboard"}
+      width={MODULE_WIDTH}
+      height={MODULE_HEIGHT}
+      position={position}
+      baseColor={color}
+      menu={menu}
+      moduleRef={moduleRef}
+      onContextMenu={handleContextMenu}
+      onHeaderMouseDown={onMouseDown}
+    >
+      {/* Octave Shifting fih 7 octaves*/}
+      <div className="mb-2 flex items-center justify-center gap-4">
+        <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40"
+          onClick={decrementOctave} disabled={octaveShift === MIN_OCTAVE} > 
+          −
+        </button>
+        <div className="w-10 text-center text-zinc-300 text-sm">
+          {octaveShift}
         </div>
-      </ModuleFrame>
+        <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40"
+          onClick={incrementOctave} disabled={octaveShift === MAX_OCTAVE} >
+          +
+        </button>
+      </div>
+
+      <KeyboardBed>
+        {keys.map((k) => (
+          <Key
+            key={k.note}
+            keyType={k.type}
+            left={k.left}
+            isActive={!!activeNotes[k.note]}
+            onPress={() => handleNoteDown(k.note)}
+            onRelease={() => handleNoteUp(k.note)}
+          />
+        ))}
+      </KeyboardBed>
+    </ModuleFrame>
   );
 }
 
