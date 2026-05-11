@@ -15,6 +15,7 @@ import type { Cable } from "../Patch/Cable";
 
 type BaseModule = {
   id: string;
+  title?: string;
   type: 'oscillator' | 'gain' | 'envelope' | 'output' | 'lfo' | 'filter' | 'distortion' | 'modulator' | 'keyboard';
   x: number;
   y: number;
@@ -90,6 +91,7 @@ type ModuleType =
   | "keyboard";
 
 export interface ModuleProps {
+  title?: string; 
   id: string;
   x: number;
   y: number;
@@ -107,23 +109,23 @@ function RenderModules(props: {
         {props.modules.map((m) => {
           switch (m.type) {
             case "oscillator":
-              return <Oscillator key={m.id} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} />;
+              return <Oscillator key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} />;
             case "gain":
-              return <Gain key={m.id} id={m.id} x={m.x} y={m.y} g={m.params.g} />;
+              return <Gain key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} g={m.params.g} />;
             case "envelope":
-              return <Envelope key={m.id} id={m.id} x={m.x} y={m.y} a={m.params.a} d={m.params.d} s={m.params.s} r={m.params.r} />;
+              return <Envelope key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} a={m.params.a} d={m.params.d} s={m.params.s} r={m.params.r} />;
             case "output":
-              return <Output key={m.id} id={m.id} x={m.x} y={m.y} m={m.params.m} />;
+              return <Output key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} m={m.params.m} />;
             case "lfo":
-              return <LFO key={m.id} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} s={m.params.s} />;
+              return <LFO key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} s={m.params.s} />;
             case "filter":
-              return <Filter key={m.id} id={m.id} x={m.x} y={m.y} f={m.params.f} q={m.params.q} t={m.params.t} />;
+              return <Filter key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} f={m.params.f} q={m.params.q} t={m.params.t} />;
             case "distortion":
-              return <Distortion key={m.id} id={m.id} x={m.x} y={m.y} d={m.params.d} t={m.params.t} />;
+              return <Distortion key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} d={m.params.d} t={m.params.t} />;
             case "modulator":
-              return <Modulator key={m.id} id={m.id} x={m.x} y={m.y} m={m.params.m} d={m.params.d} />;
+              return <Modulator key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} m={m.params.m} d={m.params.d} />;
             case "keyboard":
-              return <Keyboard key={m.id} id={m.id} x={m.x} y={m.y} />;
+              return <Keyboard key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} />;
             default: return null;
           }
         })}
@@ -138,6 +140,7 @@ function parseModules(modules: any[]): Module[] {
       case "oscillator":
         return {
           id: m.id,
+          title: m.title,
           type: "oscillator",
           x: m.x,
           y: m.y,
@@ -149,6 +152,7 @@ function parseModules(modules: any[]): Module[] {
       case "gain":
         return {
           id: m.id,
+          title: m.title,
           type: "gain",
           x: m.x,
           y: m.y,
@@ -159,6 +163,7 @@ function parseModules(modules: any[]): Module[] {
       case "envelope":
         return {
           id: m.id,
+          title: m.title,
           type: "envelope",
           x: m.x,
           y: m.y,
@@ -172,6 +177,7 @@ function parseModules(modules: any[]): Module[] {
       case "lfo":
         return {
           id: m.id,
+          title: m.title,
           type: "lfo",
           x: m.x,
           y: m.y,
@@ -184,6 +190,7 @@ function parseModules(modules: any[]): Module[] {
       case "filter":
         return {
           id: m.id,
+          title: m.title,
           type: "filter",
           x: m.x,
           y: m.y,
@@ -196,6 +203,7 @@ function parseModules(modules: any[]): Module[] {
       case "distortion":
         return {
           id: m.id,
+          title: m.title,
           type: "distortion",
           x: m.x,
           y: m.y,
@@ -208,6 +216,7 @@ function parseModules(modules: any[]): Module[] {
       case "modulator":
         return {
           id: m.id,
+          title: m.title,
           type: "modulator",
           x: m.x,
           y: m.y,
@@ -220,6 +229,7 @@ function parseModules(modules: any[]): Module[] {
       case "output":
         return {
           id: m.id,
+          title: m.title,
           type: "output",
           x: m.x,
           y: m.y,
@@ -230,6 +240,7 @@ function parseModules(modules: any[]): Module[] {
       case "keyboard":
         return {
           id: m.id,
+          title: m.title,
           type: "keyboard",
           x: m.x,
           y: m.y,

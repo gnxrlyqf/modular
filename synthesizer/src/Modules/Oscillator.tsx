@@ -80,7 +80,7 @@ function Oscillator(props: OscillatorProps) {
 	return (
 		<ModuleFrame
       id={props.id}
-      title="Oscillator"
+      title={props.title || "Oscillator"}
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

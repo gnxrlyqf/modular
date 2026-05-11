@@ -40,7 +40,7 @@ function Gain(props: GainProps) {
   return (
     <ModuleFrame
       id={props.id}
-      title="Gain"
+      title={props.title || "Gain"}
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

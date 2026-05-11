@@ -83,7 +83,7 @@ function LFO(props: LFOProps) {
   return (
     <ModuleFrame
       id={props.id}
-      title="LFO"
+      title={props.title || "LFO"}
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

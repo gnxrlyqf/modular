@@ -216,7 +216,7 @@ const AnimatedList: React.FC<AnimatedListProps> = ({
     </motion.div>
   );
 };
-const MODULE_SHADOW_SIZE = 35;
+const MODULE_SHADOW_SIZE = 30;
 
 function Matrix(props: {
   cables: Cable[],

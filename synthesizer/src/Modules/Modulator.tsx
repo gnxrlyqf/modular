@@ -52,7 +52,7 @@ function Modulator(props: ModuleProps & {
   return (
     <ModuleFrame
       id={props.id}
-      title="Modulator"
+      title={props.title || "Modulator"}
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

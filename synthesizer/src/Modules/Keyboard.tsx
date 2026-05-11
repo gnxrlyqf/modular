@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
 import { useDrag } from "../Interactions/useDrag";
-import { Param } from "../Interactions/Params";
 import type { ModuleProps } from "./Modules";
 import { useContextMenu } from "../Utils/useContextMenu";
 import ModuleFrame from "./ModuleFrame";
@@ -90,9 +89,7 @@ const StyledKey = styled.div<{ $keyType: KeyType; $isActive: boolean; $left?: nu
 
   transform: ${(p) => {
     if (!p.$isActive) return "translateY(0)";
-    return p.$keyType === "black"
-      ? "translateY(2px) scaleY(0.985)"
-      : "translateY(3px)";
+    return p.$keyType === "black" ? "translateY(2px) scaleY(0.985)" : "translateY(3px)";
   }};
 
   transform-origin: top center;
@@ -240,7 +237,7 @@ function Keyboard(props: KeyboardProps) {
   return (
       <ModuleFrame
         id={props.id}
-        title="Keyboard"
+        title={props.title || "Keyboard"}
         width={MODULE_WIDTH}
         height={MODULE_HEIGHT}
         position={position}

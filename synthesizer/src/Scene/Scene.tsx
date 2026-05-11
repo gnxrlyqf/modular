@@ -207,7 +207,7 @@ function Scene() {
     void syncAudioContext();
   }, [audioStatus]);
 
-  useEffect(() => {
+  useEffect(() => { // module menu
     const handleAction = (e: any) => {
       const { type, id, name } = e.detail;
       switch (type) {
