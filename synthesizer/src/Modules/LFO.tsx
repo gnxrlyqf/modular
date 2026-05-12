@@ -121,9 +121,9 @@ function LFO(props: LFOProps) {
           // disconnect
         }} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${sync ? "bg-[#8F0177]" : ""}`}>SYNC</button>
       </div>
-      <div className="w-full flex items-center">
+      <div className="w-full flex items-center justify-center">
         {sync ?
-        		<div className="p-1 rounded-xl border-[3px] flex flex-col items-center gap-1 mx-5"
+        		<div className="p-1 rounded-xl border-[3px] flex flex-col items-center"
               style={{borderColor: color}}
               >
           RATE

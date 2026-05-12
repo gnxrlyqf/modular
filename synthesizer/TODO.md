@@ -5,11 +5,10 @@
 
 # keyboard
 fih 2 outputs wa7d dyal lfrequency, which outputs a single constant value, o wa7d dyal trigger li only outputs 1 wla 0 based on whether something is pressed
-
-
-- [x] implement keyboard module
-- [ ] implement sequencer module
+    
 - [ ] implement mixer and splitter modules
-- [ ] redo LFO sync mode
-
+- [ ] implement module delete and disconnect
+- [ ] lfo sync disconnection
+- [ ] keyboard cables
 - [ ] reset module functionality
+
