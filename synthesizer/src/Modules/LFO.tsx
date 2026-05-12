@@ -123,7 +123,7 @@ function LFO(props: LFOProps) {
       </div>
       <div className="w-full flex items-center justify-center">
         {sync ?
-        		<div className="p-1 rounded-xl border-[3px] flex flex-col items-center"
+        		<div className="p-1 rounded-xl border-[3px] flex flex-col items-center gap-1 mx-5"
               style={{borderColor: color}}
               >
           RATE
