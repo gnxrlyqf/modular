@@ -2,13 +2,18 @@ import { useConnection } from "../ConnectionContext";
 import React from "react";
 
 function KnobParam(props: {id: string; name: string; side: "left" | "right"; color: string; children: React.ReactNode}) {
-	const {mode, source, target, selectTarget} = useConnection();
+	const {mode, source, target, selectTarget, isPortConnected} = useConnection();
 	const accentStyle = { backgroundColor: props.color };
 	const borderStyle = { borderColor: props.color };
 	const portId = `${props.id}.${props.name}`;
+	const isConnected = isPortConnected(portId);
 	const isSelected = (mode === "selecting-target" && target === portId) || (mode === "selecting-source" && source === portId);
 	const isDisabled = isSelected;
-	const textColorClass = isDisabled ? "text-zinc-400" : "text-zinc-200";
+	const textColorClass = isConnected
+		? "text-zinc-800"
+		: isDisabled
+		? "text-zinc-400"
+		: "text-zinc-200";
 	const childrenWithDisabled = React.Children.map(props.children, (child) => {
 		if (!React.isValidElement<{ disabled?: boolean }>(child)) return child;
 		const existingDisabled = Boolean(child.props.disabled);
@@ -33,7 +38,7 @@ function KnobParam(props: {id: string; name: string; side: "left" | "right"; col
 		  style={{
 		    ...borderStyle,
 		    transition: 'background 0.2s ease-in-out, color 0.2s ease-in-out',
-				    background: (divHighlight || isSelected) ? props.color : undefined
+				    background: (divHighlight || isConnected || isSelected) ? props.color : undefined
 		  }}
 		  onMouseEnter={() => setDivHighlight(true)}
 		  onMouseLeave={() => setDivHighlight(false)}

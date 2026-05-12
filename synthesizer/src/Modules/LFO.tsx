@@ -61,18 +61,32 @@ interface LFOProps extends ModuleProps {
   s: boolean;
 }
 
+const SYNC_DIVISIONS = [1, 2, 4, 8, 16, 32] as const;
+const SYNC_DIVISION_LABELS: Record<(typeof SYNC_DIVISIONS)[number], string> = {
+  1: "1/1",
+  2: "1/2",
+  4: "1/4",
+  8: "1/8",
+  16: "1/16",
+  32: "1/32",
+};
+
 function LFO(props: LFOProps) {
 
   const moduleRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState({ x: props.x, y: props.y });
   const [frequency, setFrequency] = useState(props.f);
   const [waveshape, setWaveshape] = useState<"sine" | "square" | "triangle" | "sawtooth">(props.w);
+  const [time, setTime] = useState<"" | "t" | ".">("");
+  const [sync, setSync] = useState(props.s);
+  const [syncStep, setSyncStep] = useState(1);
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#8F0177";
   const onMouseDown = useDrag(props, position, setPosition, moduleRef);
 
   useEffect(() => {setFrequency(props.f)}, [props.f]);
   useEffect(() => {setWaveshape(props.w)}, [props.w]);
+  useEffect(() => {setSync(props.s)}, [props.s]);
 
   useEffect(() => {
     audioContext.setParam(props.id, "frequency", frequency);
@@ -81,6 +95,11 @@ function LFO(props: LFOProps) {
   useEffect(() => {
     audioContext.setParam(props.id, "wave", waveshape);
   }, [waveshape]);
+
+  useEffect(() => {
+    const selectedDivision = SYNC_DIVISIONS[syncStep];
+    audioContext.setParam(props.id, "sync", sync ? selectedDivision : false);
+  }, [props.id, sync, syncStep]);
 
   return (
     <ModuleFrame
@@ -96,23 +115,48 @@ function LFO(props: LFOProps) {
       onHeaderMouseDown={onMouseDown}
     >
       <div className="flex gap-2 bg-purple-900/50 p-1 rounded-lg">
-        <button onClick={() => setFrequency(f => f)} className={`px-3 py-1 rounded-md text-xs ${!props.s ? "bg-[#8F0177]" : ""}`}>FREE</button>
-        <button onClick={() => setFrequency(f => f)} className={`px-3 py-1 rounded-md text-xs ${props.s ? "bg-[#8F0177]" : ""}`}>SYNC</button>
+        <button onClick={() => setSync(false)} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${!sync ? "bg-[#8F0177]" : ""}`}>FREE</button>
+        <button onClick={() => setSync(true)} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${sync ? "bg-[#8F0177]" : ""}`}>SYNC</button>
       </div>
-
       <div className="w-full flex items-center">
-        <KnobParam id={props.id} name={props.s ? "sync" : "freq"} side="left" color={color}>
+        {sync ?
+        		<div className="p-1 rounded-xl border-[3px] flex flex-col items-center gap-1 mx-5"
+              style={{borderColor: color}}
+              >
+          RATE
+          <div className="my-3 text-center text-2xl text-zinc-200">
+            {SYNC_DIVISION_LABELS[SYNC_DIVISIONS[syncStep]] + time}
+          </div>
+          <input
+            type="range"
+            min={0}
+            max={SYNC_DIVISIONS.length - 1}
+            step={1}
+            value={syncStep}
+            onChange={(e) => setSyncStep(Number(e.target.value))}
+            className="w-[90%] h-2 rounded-lg appearance-none cursor-pointer bg-zinc-700 accent-[#8F0177]"
+          />
+          <div className="mt-6 mb-2">
+            <RadioSelect value={time} onChange={setTime} >
+              <RadioSelectOption value={""}>S</RadioSelectOption>
+              <RadioSelectOption value={"t"}>trip</RadioSelectOption>
+              <RadioSelectOption value={"."}>dot</RadioSelectOption>
+            </RadioSelect>
+          </div> 
+        </div>
+         :
+        <KnobParam id={props.id} name={"freq"} side="left" color={color}>
           <Knob
-            max={props.s ? 32 : 20}
-            min={1}
+            max={20}
+            min={.1}
             step={1}
             value={frequency}
             onChange={setFrequency}
             size={100}
-            unit={props.s ? ": 1" : "Hz"}
+            unit={"Hz"}
           />
         </KnobParam>
-        <span className="flex-1" />
+        }
       </div>
 
       <RadioSelect name={`${props.id}-radio`} value={waveshape} onChange={setWaveshape}>
