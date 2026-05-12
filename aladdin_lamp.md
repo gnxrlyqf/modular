@@ -17,3 +17,13 @@
 - [X] allow to resend email verification
 - [X] esc to close overlays
 - [ ] language support should be added back
+- [ ] customizable date ranges and filters in the analytics dashboard
+- [ ] add ability to download/upload project (upload with validation)
+- [ ] user be able to delete his own account
+- [ ] use websockets for something (major)
+- [ ] Do I layout mirror on RtL languages?
+- [ ] online status for friends
+- [ ] 
+- [ ] 
+- [ ] 
+- [ ] 
