@@ -87,7 +87,7 @@ function Sequencer(props: SequencerProps) {
     >
       <div className="flex flex-row w-full">
         <div className="mx-20">
-          <RadioSelect value={seqLen} onChange={setSeqLen} >
+          <RadioSelect name={`${props.id}-radio`} value={seqLen} onChange={setSeqLen} >
             <RadioSelectOption value={4}>4</RadioSelectOption>
             <RadioSelectOption value={8}>8</RadioSelectOption>
             <RadioSelectOption value={16}>16</RadioSelectOption>

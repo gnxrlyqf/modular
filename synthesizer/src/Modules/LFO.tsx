@@ -140,7 +140,7 @@ function LFO(props: LFOProps) {
             className="w-[90%] h-2 rounded-lg appearance-none cursor-pointer bg-zinc-700 accent-[#8F0177]"
           />
           <div className="mt-6 mb-2">
-            <RadioSelect value={time} onChange={setTime} >
+            <RadioSelect name={`${props.id}-radio`} value={time} onChange={setTime} >
               <RadioSelectOption value={""}>S</RadioSelectOption>
               <RadioSelectOption value={"t"}>trip</RadioSelectOption>
               <RadioSelectOption value={"."}>dot</RadioSelectOption>
