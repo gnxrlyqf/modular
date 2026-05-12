@@ -90,9 +90,16 @@ function makeAudioEngine() {
     };
 }
 
+/* ─── Module-level engine instance (shared, so Prefs can mute it) ─── */
+const _globalEngine = makeAudioEngine();
+
+export function setGlobalXyloMuted(muted: boolean): void {
+    _globalEngine.setMuted(muted);
+}
+
 /* ─── Provider: audio + global click/keydown handler ─── */
 export function XyloProvider({ children }: { children: React.ReactNode }) {
-    const engineRef = useRef(makeAudioEngine());
+    const engineRef = useRef(_globalEngine);
     const noteIndexRef = useRef(0);
 
     function nextFreq(): number {

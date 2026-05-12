@@ -12,6 +12,8 @@ import {
   hasErrors,
   type FieldErrors,
 } from './validators';
+import { usePrefs } from './Prefs';
+import { SUPPORTED_LANGUAGES } from './i18n';
 
 function SettingsSection(props: {
   title: string;
@@ -822,9 +824,28 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
 }
 
 function GeneralSettings() {
+  const { prefs, updatePrefs } = usePrefs();
   return (
     <SettingsSection title="General" description="Control the default app behavior and appearance.">
-      <div className="settings-row-box text-indigo-300/40 text-sm font-light">Coming soon…</div>
+      <div className="space-y-1.5">
+        <p className="text-xs text-indigo-300/50 tracking-wide uppercase">Language</p>
+        <div className="settings-row settings-row-box">
+          <span className="text-indigo-100 text-sm">
+            {SUPPORTED_LANGUAGES.find(l => l.code === prefs.language)?.label ?? 'English'}
+          </span>
+          <select
+            value={prefs.language}
+            onChange={e => updatePrefs({ language: e.target.value })}
+            className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer bg-transparent border-0 outline-none"
+          >
+            {SUPPORTED_LANGUAGES.map(l => (
+              <option key={l.code} value={l.code} className="bg-[#0d0d1a] text-indigo-100">
+                {l.native} — {l.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      </div>
     </SettingsSection>
   )
 }
