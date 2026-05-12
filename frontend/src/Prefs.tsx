@@ -62,7 +62,18 @@ function deepMerge(base: UserPrefs, patch: Partial<UserPrefs>): UserPrefs {
   };
 }
 
+function hasAuthCookie(): boolean {
+  if (typeof document === 'undefined') return false;
+  return document.cookie.split(';').some((c) => c.trim().startsWith('accessToken='));
+}
+
+/** Call on logout so the next user starts with English defaults. */
+export function clearLocalPrefs(): void {
+  try { localStorage.removeItem(LS_KEY); } catch { /* ignore */ }
+}
+
 function readLocal(): UserPrefs {
+  if (!hasAuthCookie()) return DEFAULT_PREFS;
   try {
     const raw = localStorage.getItem(LS_KEY);
     if (raw) return deepMerge(DEFAULT_PREFS, JSON.parse(raw));
@@ -122,7 +133,13 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const res = await authFetch('/api/users/profile/me/');
-        if (!res.ok || cancelled) return;
+        if (cancelled) return;
+        if (!res.ok) {
+          // Not authenticated — enforce English and clear any stale localStorage prefs.
+          clearLocalPrefs();
+          if (!cancelled) setPrefs(DEFAULT_PREFS);
+          return;
+        }
         const data = await res.json();
         const defSettings: Record<string, unknown> = data.def_settings ?? {};
         defSettingsRef.current = defSettings;
@@ -132,7 +149,7 @@ export function PrefsProvider({ children }: { children: React.ReactNode }) {
           setPrefs(merged);
           localStorage.setItem(LS_KEY, JSON.stringify(merged));
         }
-      } catch { /* not authenticated — localStorage value used */ }
+      } catch { /* network error — keep current prefs */ }
     })();
     return () => { cancelled = true; };
   }, []);

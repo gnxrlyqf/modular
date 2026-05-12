@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 import { AnimatedContent } from './ReactBits/ReactBits'
 import LoginOverlay from "./Login";
@@ -15,6 +15,10 @@ import { XyloProvider } from "./Xylophone";
 import CosmicLanding, { CosmicNebula } from "./Cosmic";
 import logger from './logger';
 import { authFetch, clearAuthCookies } from './api';
+import ChatContainer from './Chat';
+import NotificationsContainer from './Notifications';
+import { PrefsProvider } from './Prefs'
+import { t, useLanguage } from './i18n';
 
 const ACCESS_COOKIE_NAME = "accessToken";
 const SYNTH_URL = (import.meta.env.VITE_SYNTHESIZER_URL as string | undefined) ?? 'http://localhost:5174';
@@ -39,6 +43,10 @@ function TopBar(props: {
   onLeaderboardOpen?: () => void;
   onUsersOpen?: () => void;
   onAdminOpen?: () => void;
+  onChatOpen?: () => void;
+  onNotificationsOpen?: () => void;
+  unreadNotifications?: number;
+  unreadMessages?: number;
 }) {
   const userPath =
     "M16 7C16 9.20914 14.2091 11 12 11C9.79086 11 8 9.20914 8 7C8 4.79086 9.79086 3 12 3C14.2091 3 16 4.79086 16 7Z M12 14C8.13401 14 5 17.134 5 21H19C19 17.134 15.866 14 12 14Z";
@@ -91,17 +99,17 @@ function TopBar(props: {
 
             {/* ── Center: Nav links styled as xylophone bars ── */}
             <div className="hidden md:flex items-center gap-3 justify-center">
-              <button type="button" data-xylo-note="C4" className="xylo-note xylo-note--c4" onClick={() => props.isLoggedIn ? props.onLeaderboardOpen?.() : props.func?.()}>leaderboard</button>
+              <button type="button" data-xylo-note="C4" className="xylo-note xylo-note--c4" onClick={() => props.isLoggedIn ? props.onLeaderboardOpen?.() : props.func?.()}>{t('nav.leaderboard')}</button>
               <button
                 type="button"
                 data-xylo-note="E4"
                 className="xylo-note xylo-note--e4"
                 onClick={() => props.isLoggedIn ? props.onProjectsOpen?.() : props.func?.()}
               >
-                community
+                {t('nav.community')}
               </button>
-              <button type="button" data-xylo-note="G4" className="xylo-note xylo-note--g4" onClick={() => { if (!props.isLoggedIn) props.func?.(); }}>blog</button>
-              <button type="button" data-xylo-note="B4" className="xylo-note xylo-note--b4" onClick={() => { if (!props.isLoggedIn) props.func?.(); }}>docs</button>
+              <button type="button" data-xylo-note="G4" className="xylo-note xylo-note--g4" onClick={() => { if (!props.isLoggedIn) props.func?.(); }}>{t('nav.blog')}</button>
+              <button type="button" data-xylo-note="B4" className="xylo-note xylo-note--b4" onClick={() => { if (!props.isLoggedIn) props.func?.(); }}>{t('nav.docs')}</button>
             </div>
             {/* Hidden on mobile for clean minimal view */}
 
@@ -117,7 +125,7 @@ function TopBar(props: {
                       className="xylo-note xylo-note--a4"
                       aria-label="Admin"
                     >
-                      admin
+                      {t('nav.admin')}
                     </button>
                   )}
                   <button
@@ -130,6 +138,35 @@ function TopBar(props: {
                       <circle cx="11" cy="11" r="8" />
                       <line x1="21" y1="21" x2="16.65" y2="16.65" />
                     </svg>
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-close relative"
+                    aria-label="Messages"
+                    onClick={() => props.onChatOpen?.()}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    {(props.unreadMessages ?? 0) > 0 && (
+                      <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-red-500 pointer-events-none" />
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    className="btn-close relative"
+                    aria-label="Notifications"
+                    onClick={() => props.onNotificationsOpen?.()}
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                      <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                    {((props.unreadNotifications ?? 0) + (props.unreadMessages ?? 0)) > 0 && (
+                      <span className="absolute -top-1 -right-1 min-w-[14px] h-[14px] rounded-full bg-red-500 text-white text-[9px] font-bold flex items-center justify-center px-[3px] pointer-events-none">
+                        {((props.unreadNotifications ?? 0) + (props.unreadMessages ?? 0)) > 9 ? '9+' : (props.unreadNotifications ?? 0) + (props.unreadMessages ?? 0)}
+                      </span>
+                    )}
                   </button>
                   <button
                     type="button"
@@ -149,7 +186,7 @@ function TopBar(props: {
                   data-xylo-note="C5"
                   className="xylo-note xylo-note--c5"
                 >
-                  Get Started
+                  {t('nav.get_started')}
                 </button>
               )}
             </div>
@@ -166,18 +203,25 @@ function App() {
   const resetRoute = typeof window !== 'undefined' ? parsePasswordResetRoute(window.location.pathname) : null;
   if (resetRoute) {
     return (
-      <XyloProvider>
-        <CosmicNebula />
-        <StarField />
-        <PasswordResetConfirmPage uid={resetRoute.uid} token={resetRoute.token} />
-      </XyloProvider>
+      <PrefsProvider>
+        <XyloProvider>
+          <CosmicNebula />
+          <StarField />
+          <PasswordResetConfirmPage uid={resetRoute.uid} token={resetRoute.token} />
+        </XyloProvider>
+      </PrefsProvider>
     );
   }
 
-  return <MainApp />;
+  return (
+    <PrefsProvider>
+      <MainApp />
+    </PrefsProvider>
+  );
 }
 
 function MainApp() {
+  useLanguage();
   const [showLogin, setShowLogin] = useState(false);
   const [showProjects, setShowProjects] = useState(false);
   const [projectsInitialOrdering, setProjectsInitialOrdering] = useState('-created_at');
@@ -186,6 +230,11 @@ function MainApp() {
   const [showDashboard, setShowDashboard] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [chatInitialThreadId, setChatInitialThreadId] = useState<number | null>(null);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [unreadNotifications, setUnreadNotifications] = useState(0);
+  const [unreadMessages, setUnreadMessages] = useState(0);
   const [publicProfileUser, setPublicProfileUser] = useState<string | null>(null);
   const [currentUsername, setCurrentUsername] = useState<string | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(() =>
@@ -239,6 +288,23 @@ function MainApp() {
     return () => { cancelled = true; };
   }, []);
 
+  const pollUnread = useCallback(async () => {
+    if (!isLoggedIn) { setUnreadNotifications(0); setUnreadMessages(0); return; }
+    try {
+      const res = await authFetch('/api/notifications/unread-count/');
+      if (!res.ok) return;
+      const data = await res.json();
+      setUnreadNotifications(data.notifications ?? 0);
+      setUnreadMessages(data.messages ?? 0);
+    } catch { /* ignore */ }
+  }, [isLoggedIn]);
+
+  useEffect(() => {
+    pollUnread();
+    const t = setInterval(pollUnread, 15000);
+    return () => clearInterval(t);
+  }, [pollUnread]);
+
   const handleLoginSuccess = () => {
     logger.info('auth.login_success');
     setIsLoggedIn(true);
@@ -246,22 +312,51 @@ function MainApp() {
     refreshAdmin();
   };
 
+  const handleChatOpen = () => {
+    logger.action('nav.chat_open');
+    setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
+    setShowUserSearch(false); setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+    setShowNotifications(false);
+    setChatInitialThreadId(null);
+    setShowChat(true);
+  };
+
+  const handleChatOpenWithThread = (profileId: number) => {
+    logger.action('nav.chat_open_with_thread', { profile_id: profileId });
+    setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
+    setShowUserSearch(false); setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+    setShowNotifications(false);
+    setChatInitialThreadId(profileId);
+    setShowChat(true);
+  };
+
+  const handleNotificationsOpen = () => {
+    logger.action('nav.notifications_open');
+    setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
+    setShowUserSearch(false); setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+    setShowChat(false);
+    setShowNotifications(true);
+    pollUnread();
+  };
+
   const handleLoginOpen = () => {
     logger.action('nav.login_open');
     setShowProjects(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
     setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+    setShowChat(false); setShowNotifications(false);
     setShowLogin(true);
   };
   const handleProjectsOpen = () => {
     logger.action('nav.projects_open');
     setShowLogin(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
     setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+    setShowChat(false); setShowNotifications(false);
     setProjectsInitialOrdering('-created_at');
     setShowProjects(true);
   };
 
   const anyOverlayOpen =
-    showProjects || showUserSearch || showAdmin || showProfile || showSettings || showDashboard || publicProfileUser !== null;
+    showProjects || showUserSearch || showAdmin || showProfile || showSettings || showDashboard || publicProfileUser !== null || showChat || showNotifications;
 
   const pendingLeaderboardScroll = useRef(false);
 
@@ -280,6 +375,7 @@ function MainApp() {
       pendingLeaderboardScroll.current = true;
       setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
       setShowUserSearch(false); setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+      setShowChat(false); setShowNotifications(false);
     } else {
       document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
     }
@@ -288,18 +384,20 @@ function MainApp() {
     logger.action('nav.profile_open');
     setShowLogin(false); setShowProjects(false); setShowSettings(false); setShowUserSearch(false);
     setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+    setShowChat(false); setShowNotifications(false);
     setShowProfile(true);
   };
   const handleUserSearchOpen = () => {
     logger.action('nav.user_search_open');
     setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
     setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+    setShowChat(false); setShowNotifications(false);
     setShowUserSearch(true);
   };
   const handleAdminOpen = () => {
     logger.action('nav.admin_open');
     setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
-    setPublicProfileUser(null);
+    setPublicProfileUser(null); setShowChat(false); setShowNotifications(false);
     setShowAdmin(true);
   };
 
@@ -307,6 +405,7 @@ function MainApp() {
     logger.action('nav.dashboard_open');
     setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
     setShowUserSearch(false); setShowAdmin(false); setPublicProfileUser(null);
+    setShowChat(false); setShowNotifications(false);
     setShowDashboard(true);
   };
 
@@ -314,6 +413,7 @@ function MainApp() {
     logger.action('nav.public_profile_open', { username });
     setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
     setShowUserSearch(false); setShowAdmin(false); setShowDashboard(false);
+    setShowChat(false); setShowNotifications(false);
     setPublicProfileUser(username);
   };
 
@@ -347,10 +447,12 @@ function MainApp() {
       if (showDashboard) { setShowDashboard(false); return; }
       if (showProfile) { setShowProfile(false); return; }
       if (showProjects) { setShowProjects(false); return; }
+      if (showChat) { setShowChat(false); return; }
+      if (showNotifications) { setShowNotifications(false); return; }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [showLogin, showProjects, showProfile, showSettings, showDashboard, showUserSearch, showAdmin, publicProfileUser]);
+  }, [showLogin, showProjects, showProfile, showSettings, showDashboard, showUserSearch, showAdmin, publicProfileUser, showChat, showNotifications]);
 
   return (
     <XyloProvider>
@@ -372,12 +474,18 @@ function MainApp() {
             onLeaderboardOpen={handleLeaderboardOpen}
             onUsersOpen={handleUserSearchOpen}
             onAdminOpen={handleAdminOpen}
+            onChatOpen={handleChatOpen}
+            onNotificationsOpen={handleNotificationsOpen}
+            unreadNotifications={unreadNotifications}
+            unreadMessages={unreadMessages}
           />
         </div>
         <div className="pt-4 pb-8">
           {showProjects && <ProjectsContainer func={setShowProjects} currentUsername={currentUsername ?? undefined} onUserClick={handlePublicProfileOpen} initialOrdering={projectsInitialOrdering} />}
-          {publicProfileUser && <PublicProfileContainer username={publicProfileUser} func={(v) => { if (!v) setPublicProfileUser(null); }} onMessage={() => {}} />}
-          {showUserSearch && <UserSearchContainer func={setShowUserSearch} onUserClick={handlePublicProfileOpen} />}
+          {publicProfileUser && <PublicProfileContainer username={publicProfileUser} func={(v) => { if (!v) setPublicProfileUser(null); }} onMessage={(profileId) => { setPublicProfileUser(null); handleChatOpenWithThread(profileId); }} />}
+          {showUserSearch && <UserSearchContainer func={setShowUserSearch} onUserClick={handlePublicProfileOpen} onMessage={(profileId) => { setShowUserSearch(false); handleChatOpenWithThread(profileId); }} />}
+          {showChat && <ChatContainer func={setShowChat} initialThreadId={chatInitialThreadId} onViewProfile={handlePublicProfileOpen} />}
+          {showNotifications && <NotificationsContainer func={setShowNotifications} onOpenMessage={(profileId) => { setShowNotifications(false); handleChatOpenWithThread(profileId); }} onFriendsChanged={pollUnread} />}
           {showAdmin && isAdmin && <AdminContainer func={setShowAdmin} />}
           {showProfile && (
             <ProfileContainer func={setShowProfile} set={setShowSettings} setLoggedIn={setIsLoggedIn} onOpenDashboard={handleDashboardOpen} />
@@ -437,8 +545,8 @@ function MainApp() {
             </span>
             <div className="text-sm text-indigo-100">
               {verifiedToast === 'success'
-                ? 'Email verified! You can now log in.'
-                : 'Activation link is invalid or expired.'}
+                ? t('toast.email_verified')
+                : t('toast.activation_invalid')}
             </div>
             <button
               type="button"

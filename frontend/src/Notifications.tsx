@@ -160,7 +160,11 @@ function NotificationsCenter(props: {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    load();
+    const t = setInterval(load, 10000);
+    return () => clearInterval(t);
+  }, [load]);
 
   const markAllRead = async () => {
     await authFetch('/api/notifications/mark-all-read/', { method: 'POST' });

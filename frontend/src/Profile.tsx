@@ -2,8 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { AnimatedContent } from './ReactBits/ReactBits';
 import { Projects } from "./Projects";
 import { authFetch, clearAuthCookies, getCookie, REFRESH_COOKIE } from "./api";
+import { clearLocalPrefs } from './Prefs';
 import { CloseButton } from "./Reusables";
 import logger from './logger';
+import { t, useLanguage } from './i18n';
 
 type ProfileContainerProps = {
   func: (value: boolean) => void;
@@ -26,6 +28,7 @@ type UserProfile = {
 const FALLBACK_AVATAR = "https://picsum.photos/600/600";
 
 function Profile(props: ProfileContainerProps) {
+  useLanguage();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
@@ -57,6 +60,7 @@ function Profile(props: ProfileContainerProps) {
         /* ignore */
       }
     }
+    clearLocalPrefs();
     clearAuthCookies();
     props.setLoggedIn?.(false);
     props.func(false);
@@ -112,7 +116,7 @@ function Profile(props: ProfileContainerProps) {
             onClick={handleOpenDashboard}
             className="glass glass-hover rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer"
           >
-            Dashboard
+            {t('profile.dashboard')}
           </button>
           <button
             type="button"
@@ -120,7 +124,7 @@ function Profile(props: ProfileContainerProps) {
             disabled={loggingOut}
             className="glass glass-hover rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer disabled:opacity-50"
           >
-            {loggingOut ? 'Signing out…' : 'Sign Out'}
+            {loggingOut ? t('auth.signing_out') : t('auth.sign_out')}
           </button>
           <button type="button" aria-label="Settings"
             onClick={() => { logger.action('profile.open_settings'); props.func(false); props.set(true); }}
@@ -135,7 +139,7 @@ function Profile(props: ProfileContainerProps) {
       </div>
 
       {loading && (
-        <div className="px-6 py-8 text-indigo-300/50 text-sm text-center font-light">Loading profile…</div>
+        <div className="px-6 py-8 text-indigo-300/50 text-sm text-center font-light">{t('profile.loading')}</div>
       )}
 
       {!loading && error && (

@@ -24,6 +24,43 @@
     --font-mono-jet: "JetBrains Mono", ui-monospace, monospace;
 }
 
+/* ─── Theme tokens (dark default) ─── */
+:root {
+    --bg-overlay: rgba(8, 12, 35, 0.93);
+    --border-overlay: rgba(255, 255, 255, 0.09);
+    --bg-glass: rgba(255, 255, 255, 0.04);
+    --border-glass: rgba(255, 255, 255, 0.08);
+    --bg-glass-hover: rgba(255, 255, 255, 0.08);
+    --border-glass-hover: rgba(255, 255, 255, 0.15);
+    --bg-modal: rgba(10, 14, 39, 0.85);
+    --bg-row: rgba(255, 255, 255, 0.03);
+    --border-row: rgba(255, 255, 255, 0.08);
+    --border-row-hover: rgba(255, 255, 255, 0.15);
+    --bg-user-row-hover: rgba(255, 255, 255, 0.06);
+    --border-user-row-hover: rgba(99, 102, 241, 0.15);
+}
+
+[data-theme="light"] {
+    /* Component backgrounds */
+    --bg-overlay: rgba(238, 242, 255, 0.97);
+    --border-overlay: rgba(99, 102, 241, 0.14);
+    --bg-glass: rgba(99, 102, 241, 0.05);
+    --border-glass: rgba(99, 102, 241, 0.12);
+    --bg-glass-hover: rgba(99, 102, 241, 0.1);
+    --border-glass-hover: rgba(99, 102, 241, 0.24);
+    --bg-modal: rgba(238, 242, 255, 0.97);
+    --bg-row: rgba(99, 102, 241, 0.04);
+    --border-row: rgba(99, 102, 241, 0.11);
+    --border-row-hover: rgba(99, 102, 241, 0.22);
+    --bg-user-row-hover: rgba(99, 102, 241, 0.07);
+    --border-user-row-hover: rgba(99, 102, 241, 0.18);
+    /* Remap Tailwind text-white / text-indigo-100/200/300 to dark shades */
+    --color-white: oklch(18% 0.06 264);
+    --color-indigo-100: oklch(22% 0.12 264);
+    --color-indigo-200: oklch(28% 0.14 264);
+    --color-indigo-300: oklch(35% 0.17 264);
+}
+
 /* ─── Global Reset & Dark Sky Background ─── */
 @layer base {
     *, *::before, *::after {
@@ -47,6 +84,12 @@ body {
     font-family: Lexend, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+}
+
+[data-theme="light"] body {
+    background:
+        radial-gradient(ellipse at top, #dde6ff 0%, #eef2ff 70%) #eef2ff;
+    color: #1e1b4b;
 }
 
 /* ─── Cosmic nebula drift ─── */
@@ -242,15 +285,15 @@ canvas {
 
 /* ─── Glassmorphism utility ─── */
 .glass {
-    background: rgba(255, 255, 255, 0.04);
+    background: var(--bg-glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-glass);
 }
 
 .glass-hover:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.15);
+    background: var(--bg-glass-hover);
+    border-color: var(--border-glass-hover);
 }
 
 /* ─── Subtle glow for interactive elements ─── */
@@ -266,10 +309,10 @@ canvas {
 
 /* ─── Overlay panel (glass with higher blur for panels) ─── */
 .overlay-panel {
-    background: rgba(8, 12, 35, 0.93);
+    background: var(--bg-overlay);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.09);
+    border: 1px solid var(--border-overlay);
     max-height: calc(100vh - 6rem);
     overflow-y: auto;
     box-shadow:
@@ -319,10 +362,10 @@ canvas {
     width: 100%;
     max-height: calc(100vh - 2rem);
     overflow-y: auto;
-    background: rgba(10, 14, 39, 0.85);
+    background: var(--bg-modal);
     backdrop-filter: blur(24px);
     -webkit-backdrop-filter: blur(24px);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--border-row);
     border-radius: 20px;
     padding: 1.25rem 1.25rem;
     box-shadow:
@@ -370,13 +413,13 @@ canvas {
 }
 .settings-row-box {
     border-radius: 10px;
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--border-row);
+    background: var(--bg-row);
     padding: 0.625rem 0.875rem;
     transition: border-color 0.2s ease-out;
 }
 .settings-row-box:hover {
-    border-color: rgba(255, 255, 255, 0.15);
+    border-color: var(--border-row-hover);
 }
 
 /* ─── Project card hover lift ─── */
@@ -398,8 +441,8 @@ canvas {
     border-radius: 10px;
 }
 .user-row:hover {
-    background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(99, 102, 241, 0.15);
+    background: var(--bg-user-row-hover);
+    border-color: var(--border-user-row-hover);
 }
 
 /* ─── Pagination button ─── */

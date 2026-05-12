@@ -3,7 +3,7 @@ import { AnimatedContent } from './ReactBits/ReactBits';
 import { CloseButton, Input, useConfirm } from './Reusables';
 import { authFetch, extractErrorMessage } from './api';
 import logger from './logger';
-import { t } from './i18n';
+import { t, useLanguage } from './i18n';
 
 type Thread = {
   profile_id: number;
@@ -50,7 +50,7 @@ function ThreadList(props: {
         className="rounded-lg px-3 py-2 text-xs font-medium tracking-wide cursor-pointer bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 text-indigo-100 flex items-center gap-2"
       >
         <span className="size-4 rounded-full bg-indigo-500/30 border border-indigo-400/40 flex items-center justify-center text-[11px]">+</span>
-        {t('nav.messages')}
+        {t('chat.new_conversation')}
       </button>
       {props.loading && props.threads.length === 0 && (
         <p className="text-indigo-300/40 py-4 text-center text-xs">{t('common.loading')}</p>
@@ -163,7 +163,7 @@ function NewConversationPicker(props: {
         >
           ←
         </button>
-        <p className="text-sm font-medium text-indigo-100">{t('nav.messages')}</p>
+        <p className="text-sm font-medium text-indigo-100">{t('chat.new_conversation')}</p>
       </div>
       <div className="flex-1 overflow-y-auto px-2 py-2">
         {loading ? (
@@ -171,8 +171,8 @@ function NewConversationPicker(props: {
         ) : eligible.length === 0 ? (
           <p className="text-indigo-300/40 py-6 text-center text-xs">
             {friends.length === 0
-              ? 'You have no friends yet. Add one from the search to start chatting.'
-              : 'You already have an open conversation with each of your friends.'}
+              ? t('chat.no_friends')
+              : t('chat.all_conversations_open')}
           </p>
         ) : (
           <div className="flex flex-col gap-1">
@@ -282,14 +282,14 @@ function ChatPane(props: {
           onClick={() => props.onViewProfile(props.thread.username)}
           className="rounded-lg px-2 py-1 text-[11px] font-medium tracking-wide cursor-pointer bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-400/25 text-indigo-200"
         >
-          View profile
+          {t('chat.view_profile')}
         </button>
         <button
           type="button"
           onClick={() => props.onBlock(props.thread.profile_id)}
           className="rounded-lg px-2 py-1 text-[11px] font-medium tracking-wide cursor-pointer bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-red-200"
         >
-          Block
+          {t('chat.block')}
         </button>
       </div>
 
@@ -304,7 +304,7 @@ function ChatPane(props: {
       {!accessError && (
         <div className="flex items-center gap-2 px-3 py-2 border-t border-white/5">
           <Input
-            placeholder="Type a message…"
+            placeholder={t('chat.type_message')}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={(e) => {
@@ -320,7 +320,7 @@ function ChatPane(props: {
             disabled={sending || !input.trim()}
             className="rounded-lg px-3 py-2 text-xs font-medium tracking-wide cursor-pointer bg-indigo-500/25 hover:bg-indigo-500/40 border border-indigo-400/40 text-white disabled:opacity-50"
           >
-            Send
+            {t('chat.send')}
           </button>
         </div>
       )}
@@ -455,9 +455,9 @@ function Chat(props: {
 
   const handleBlock = async (profileId: number) => {
     const ok = await confirm({
-      title: 'Block this user?',
-      message: 'They will no longer be able to view your profile, send you messages, or appear in your conversations.',
-      confirmText: 'Block',
+      title: t('chat.block_title'),
+      message: t('chat.block_message'),
+      confirmText: t('chat.block'),
       danger: true,
     });
     if (!ok) return;
@@ -476,7 +476,7 @@ function Chat(props: {
     <div className="font-lexend overlay-panel rounded-2xl z-50 w-full max-w-[60rem] mx-3 sm:mx-auto">
       <div className="flex items-center justify-between px-4 pt-4 pb-2">
         <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">
-          Messages
+          {t('chat.title')}
         </h2>
         <CloseButton onClick={() => props.func(false)} />
       </div>
@@ -507,7 +507,7 @@ function Chat(props: {
             />
           ) : (
             <div className="flex h-full items-center justify-center text-indigo-300/40 text-xs">
-              Select a conversation or start a new one.
+              {t('chat.select_or_start')}
             </div>
           )}
         </div>
@@ -522,6 +522,7 @@ function ChatContainer(props: {
   initialThreadId?: number | null;
   onViewProfile: (username: string) => void;
 }) {
+  useLanguage();
   const [visible, setVisible] = useState(true);
   return (
     <AnimatedContent

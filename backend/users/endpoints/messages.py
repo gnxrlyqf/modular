@@ -91,9 +91,13 @@ class MessageViewSet(viewsets.ModelViewSet):
                 .first()
             )
             if last is not None and last.type == 'message' and last.actor_id == me.id:
-                last.read_at = None
-                last.related_id = msg.id
-                last.save(update_fields=['read_at', 'related_id'])
+                # Refresh created_at too so the notification rises to the top of
+                # the panel after a new message.  .update() bypasses auto_now_add.
+                Notification.objects.filter(pk=last.pk).update(
+                    read_at=None,
+                    related_id=msg.id,
+                    created_at=timezone.now(),
+                )
             else:
                 Notification.objects.create(
                     recipient=receiver,

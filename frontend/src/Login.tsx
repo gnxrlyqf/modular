@@ -13,6 +13,7 @@ import {
 } from './validators.ts'
 import { useState, type FormEvent } from 'react'
 import type React from 'react'
+import { t, useLanguage } from './i18n'
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null;
@@ -48,7 +49,7 @@ function PasswordInput(props: Omit<React.InputHTMLAttributes<HTMLInputElement>, 
       <button
         type="button"
         tabIndex={-1}
-        aria-label={show ? 'Hide password' : 'Show password'}
+        aria-label={show ? t('auth.password_hide') : t('auth.password_show')}
         onClick={() => setShow(v => !v)}
         className="absolute right-3 top-1/2 -translate-y-1/2 text-indigo-300/30 hover:text-indigo-300/70 transition-colors duration-150 cursor-pointer"
       >
@@ -117,7 +118,7 @@ function GoogleButton({ onClick, disabled }: SocialButtonProps) {
         <path d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z" fill="#4CAF50"/>
         <path d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z" fill="#1976D2"/>
       </svg>
-      Continue with Google
+      {t('auth.continue_google')}
     </button>
   );
 }
@@ -134,7 +135,7 @@ function FortyTwoButton({ onClick, disabled }: SocialButtonProps) {
       <svg className="w-5 h-5 flex-shrink-0" viewBox="0 0 38 26" xmlns="http://www.w3.org/2000/svg" fill="currentColor">
         <path d="M37.305 9.254h-8.04V0h-8.59l-8.59 9.254v7.594h9.137V26h8.043v-9.152h8.04V9.254zM8.59 9.254L17.18 0H8.59L0 9.254v7.594h8.59V9.254z"/>
       </svg>
-      Continue with 42
+      {t('auth.continue_42')}
     </button>
   );
 }
@@ -191,12 +192,12 @@ function Signup(props: { onToggle: () => void; onSignedUp: (username: string) =>
 
   return (
     <div>
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-8">Sign up</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-8">{t('auth.signup_title')}</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 mb-5" noValidate>
         <div>
           <Input
             type="text"
-            placeholder="Username"
+            placeholder={t('placeholder.username_field')}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
@@ -207,7 +208,7 @@ function Signup(props: { onToggle: () => void; onSignedUp: (username: string) =>
         <div>
           <Input
             type="email"
-            placeholder="Email"
+            placeholder={t('placeholder.email_field')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
@@ -217,7 +218,7 @@ function Signup(props: { onToggle: () => void; onSignedUp: (username: string) =>
         </div>
         <div>
           <PasswordInput
-            placeholder="Password"
+            placeholder={t('placeholder.password_field')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="new-password"
@@ -227,7 +228,7 @@ function Signup(props: { onToggle: () => void; onSignedUp: (username: string) =>
         </div>
         <div>
           <PasswordInput
-            placeholder="Repeat password"
+            placeholder={t('placeholder.repeat_field')}
             value={repeatPassword}
             onChange={(e) => setRepeatPassword(e.target.value)}
             autoComplete="new-password"
@@ -242,18 +243,18 @@ function Signup(props: { onToggle: () => void; onSignedUp: (username: string) =>
           data-xylo-note="E5"
           className="xylo-note xylo-note--signup"
         >
-          {isSubmitting ? 'Signing up…' : 'Sign up'}
+          {isSubmitting ? t('auth.signup_submitting') : t('auth.signup_submit')}
         </button>
       </form>
       <div className="flex gap-2 items-center justify-center text-sm text-indigo-300/50 mt-8">
-        <span>Already have an account?</span>
+        <span>{t('auth.have_account')}</span>
         <button
           type="button"
           data-xylo-note="B5"
           className="xylo-note xylo-note--link"
           onClick={props.onToggle}
         >
-          Log in
+          {t('auth.login_submit')}
         </button>
       </div>
     </div>
@@ -265,12 +266,12 @@ function Signup(props: { onToggle: () => void; onSignedUp: (username: string) =>
 function CheckEmail(props: { username: string; onBackToLogin: () => void }) {
   return (
     <div className="text-center">
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-6">Check your email</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-6">{t('auth.check_email_title')}</h2>
       <p className="text-indigo-300/70 text-sm leading-relaxed mb-2">
-        We sent an activation link to your inbox.
+        {t('auth.check_email_desc')}
       </p>
       <p className="text-indigo-300/50 text-xs leading-relaxed mb-8">
-        Click the link in the email to activate <span className="text-indigo-200">{props.username}</span>. You won't be able to log in until your account is activated.
+        {t('auth.check_email_activate')} <span className="text-indigo-200">{props.username}</span>. {t('auth.check_email_note')}
       </p>
       <button
         type="button"
@@ -278,7 +279,7 @@ function CheckEmail(props: { username: string; onBackToLogin: () => void }) {
         data-xylo-note="C5"
         className="xylo-note xylo-note--submit"
       >
-        Back to log in
+        {t('auth.back_to_login')}
       </button>
     </div>
   );
@@ -332,9 +333,9 @@ function TwoFactorStep(props: {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-4">Two-factor code</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-4">{t('auth.twofa_title')}</h2>
       <p className="text-indigo-300/50 text-xs text-center mb-8">
-        Open your authenticator app and enter the 6-digit code.
+        {t('auth.twofa_desc')}
       </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 mb-5">
         <Input
@@ -343,7 +344,7 @@ function TwoFactorStep(props: {
           autoComplete="one-time-code"
           pattern="[0-9]*"
           maxLength={6}
-          placeholder="123456"
+          placeholder={t('placeholder.totp_code')}
           value={code}
           onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))}
           required
@@ -357,7 +358,7 @@ function TwoFactorStep(props: {
           data-xylo-note="C5"
           className="xylo-note xylo-note--submit"
         >
-          {isSubmitting ? 'Verifying…' : 'Verify'}
+          {isSubmitting ? t('auth.verifying') : t('auth.verify')}
         </button>
         <button
           type="button"
@@ -365,7 +366,7 @@ function TwoFactorStep(props: {
           data-xylo-note="A5"
           className="xylo-note xylo-note--link text-sm self-center"
         >
-          Cancel
+          {t('common.cancel')}
         </button>
       </form>
     </div>
@@ -413,9 +414,9 @@ function ForgotPassword(props: { onBack: () => void }) {
   if (sent) {
     return (
       <div className="text-center">
-        <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-6">Check your email</h2>
+        <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-6">{t('auth.check_email_title')}</h2>
         <p className="text-indigo-300/70 text-sm leading-relaxed mb-8">
-          If an account exists for that email, a password reset link has been sent.
+          {t('auth.reset_email_sent')}
         </p>
         <button
           type="button"
@@ -423,7 +424,7 @@ function ForgotPassword(props: { onBack: () => void }) {
           data-xylo-note="C5"
           className="xylo-note xylo-note--submit"
         >
-          Back to log in
+          {t('auth.back_to_login')}
         </button>
       </div>
     );
@@ -431,15 +432,15 @@ function ForgotPassword(props: { onBack: () => void }) {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-4">Reset password</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-4">{t('auth.reset_password_title')}</h2>
       <p className="text-indigo-300/50 text-xs text-center mb-8">
-        Enter the email tied to your account. We'll send a reset link.
+        {t('auth.reset_password_desc')}
       </p>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 mb-5" noValidate>
         <div>
           <Input
             type="email"
-            placeholder="you@example.com"
+            placeholder={t('placeholder.email')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             autoComplete="email"
@@ -455,7 +456,7 @@ function ForgotPassword(props: { onBack: () => void }) {
           data-xylo-note="C5"
           className="xylo-note xylo-note--submit"
         >
-          {submitting ? 'Sending…' : 'Send reset link'}
+          {submitting ? t('auth.sending') : t('auth.send_reset_link')}
         </button>
         <button
           type="button"
@@ -463,7 +464,7 @@ function ForgotPassword(props: { onBack: () => void }) {
           data-xylo-note="A5"
           className="xylo-note xylo-note--link text-sm self-center"
         >
-          Back to log in
+          {t('auth.back_to_login')}
         </button>
       </form>
     </div>
@@ -554,21 +555,21 @@ function Login(props: {
 
   return (
     <div>
-      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-8">Log in</h2>
+      <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-8">{t('auth.login_title')}</h2>
       <form onSubmit={handleSubmit} className="flex flex-col gap-6 mb-5">
         <div className="flex flex-col gap-4">
           <GoogleButton onClick={() => handleOAuth('google')} disabled={oauthPending !== null} />
-<FortyTwoButton onClick={() => handleOAuth('42')} disabled={oauthPending !== null} />
+          <FortyTwoButton onClick={() => handleOAuth('42')} disabled={oauthPending !== null} />
         </div>
         <div className="flex items-center gap-3 my-3">
           <div className="flex-1 border-t border-white/10" />
-          <span className="text-indigo-300/40 text-xs font-medium uppercase tracking-widest">or</span>
+          <span className="text-indigo-300/40 text-xs font-medium uppercase tracking-widest">{t('auth.or')}</span>
           <div className="flex-1 border-t border-white/10" />
         </div>
         <div>
           <Input
             type="text"
-            placeholder="Username"
+            placeholder={t('placeholder.username_field')}
             value={username}
             onChange={(e) => setUsername(e.target.value)}
             autoComplete="username"
@@ -578,7 +579,7 @@ function Login(props: {
         </div>
         <div>
           <PasswordInput
-            placeholder="Password"
+            placeholder={t('placeholder.password_field')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             autoComplete="current-password"
@@ -592,7 +593,7 @@ function Login(props: {
             onClick={props.onForgotPassword}
             className="text-xs text-indigo-300/50 hover:text-indigo-200 transition-colors duration-150 cursor-pointer"
           >
-            Forgot password?
+            {t('auth.forgot_password')}
           </button>
         </div>
         {error && <p className="text-red-300/80 text-sm text-center">{error}</p>}
@@ -602,17 +603,17 @@ function Login(props: {
           data-xylo-note="C5"
           className="xylo-note xylo-note--submit"
         >
-          {isSubmitting ? 'Logging in…' : 'Log in'}
+          {isSubmitting ? t('auth.login_submitting') : t('auth.login_submit')}
         </button>
         <div className="flex gap-2 items-center justify-center text-sm text-indigo-300/50 mt-8">
-          <span>Don't have an account?</span>
+          <span>{t('auth.no_account')}</span>
           <button
             type="button"
             data-xylo-note="A5"
             className="xylo-note xylo-note--link"
             onClick={props.onToggle}
           >
-            Sign up
+            {t('auth.signup_submit')}
           </button>
         </div>
       </form>
@@ -630,6 +631,7 @@ type LoginMode =
   | { kind: 'forgot-password' };
 
 function LoginPage(props: { func?: (value: boolean) => void; onSuccess?: () => void }) {
+  useLanguage();
   const [mode, setMode] = useState<LoginMode>({ kind: 'login' });
 
   const renderBody = () => {
@@ -720,7 +722,7 @@ function LoginOverlay(props: { func?: (value: boolean) => void; onSuccess?: () =
 
   return (
     <AnimatedContent
-      className="fixed inset-0 z-[40]" // Below modal z-index
+      className="fixed inset-0 z-[40]"
       distance={0}
       direction="vertical"
       reverse={false}

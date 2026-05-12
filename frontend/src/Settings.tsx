@@ -12,8 +12,8 @@ import {
   hasErrors,
   type FieldErrors,
 } from './validators';
-import { usePrefs } from './Prefs';
-import { SUPPORTED_LANGUAGES } from './i18n';
+import { usePrefs, clearLocalPrefs } from './Prefs';
+import { t, useLanguage, SUPPORTED_LANGUAGES } from './i18n';
 
 function SettingsSection(props: {
   title: string;
@@ -72,14 +72,14 @@ function UsernameUpdateModal(props: { onClose: () => void; onSuccess: (newUserna
     <div className="modal-backdrop">
       <div className="modal-card max-w-md font-lexend">
         <div className="flex items-center justify-between pb-4">
-          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">Change Username</h3>
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">{t('settings.change_username_title')}</h3>
           <CloseButton onClick={props.onClose} />
         </div>
 
         <form onSubmit={handleUsernameSubmit} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="new-username" className="block text-xs text-indigo-300/50 tracking-wide uppercase">
-              New Username
+              {t('settings.new_username')}
             </label>
             <Input
               id="new-username"
@@ -87,17 +87,17 @@ function UsernameUpdateModal(props: { onClose: () => void; onSuccess: (newUserna
               required
               value={newUsername}
               onChange={(event) => setNewUsername(event.target.value)}
-              placeholder="your.new.username"
+              placeholder={t('placeholder.username')}
               className="w-full"
             />
           </div>
           {usernameError && <p className="text-red-300/80 text-sm">{usernameError}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
-              {submitting ? 'Saving…' : 'Update Username'}
+              {submitting ? t('common.saving') : t('settings.update_username')}
             </button>
           </div>
         </form>
@@ -166,21 +166,21 @@ function PasswordUpdateModal(props: { isOpen: boolean; onClose: () => void }) {
     <div className="modal-backdrop">
       <div className="modal-card max-w-md font-lexend">
         <div className="flex items-center justify-between pb-4">
-          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">Change Password</h3>
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">{t('settings.change_password_title')}</h3>
           <CloseButton onClick={closeModal} />
         </div>
 
         <form onSubmit={handlePasswordSubmit} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="current-password" className="block text-xs text-indigo-300/50 tracking-wide uppercase">
-              Current Password
+              {t('settings.current_password')}
             </label>
             <Input
               id="current-password"
               type="password"
               value={oldPassword}
               onChange={(event) => setOldPassword(event.target.value)}
-              placeholder="Enter current password"
+              placeholder={t('placeholder.current_password')}
               className="w-full"
               aria-invalid={Boolean(fieldErrors.oldPassword)}
             />
@@ -188,14 +188,14 @@ function PasswordUpdateModal(props: { isOpen: boolean; onClose: () => void }) {
           </div>
           <div className="space-y-2">
             <label htmlFor="new-password" className="block text-xs text-indigo-300/50 tracking-wide uppercase">
-              New Password
+              {t('settings.new_password')}
             </label>
             <Input
               id="new-password"
               type="password"
               value={newPassword}
               onChange={(event) => setNewPassword(event.target.value)}
-              placeholder="Enter new password"
+              placeholder={t('placeholder.new_password')}
               className="w-full"
               aria-invalid={Boolean(fieldErrors.newPassword)}
             />
@@ -203,27 +203,27 @@ function PasswordUpdateModal(props: { isOpen: boolean; onClose: () => void }) {
           </div>
           <div className="space-y-2">
             <label htmlFor="repeat-password" className="block text-xs text-indigo-300/50 tracking-wide uppercase">
-              Repeat New Password
+              {t('settings.repeat_password')}
             </label>
             <Input
               id="repeat-password"
               type="password"
               value={repeatPassword}
               onChange={(event) => setRepeatPassword(event.target.value)}
-              placeholder="Repeat new password"
+              placeholder={t('placeholder.repeat_password')}
               className="w-full"
               aria-invalid={Boolean(fieldErrors.repeatPassword)}
             />
             {fieldErrors.repeatPassword && <p className="text-red-300/80 text-xs">{fieldErrors.repeatPassword}</p>}
           </div>
           {passwordError && <p className="text-red-300/80 text-sm">{passwordError}</p>}
-          {success && <p className="text-green-300/80 text-sm">Password updated!</p>}
+          {success && <p className="text-green-300/80 text-sm">{t('settings.password_updated')}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={closeModal} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
-              {submitting ? 'Saving…' : 'Update Password'}
+              {submitting ? t('common.saving') : t('settings.update_password')}
             </button>
           </div>
         </form>
@@ -285,14 +285,14 @@ function EmailUpdateModal(props: { isOpen: boolean; onClose: () => void }) {
     <div className="modal-backdrop">
       <div className="modal-card max-w-md font-lexend">
         <div className="flex items-center justify-between pb-4">
-          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">Change Email</h3>
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">{t('settings.change_email_title')}</h3>
           <CloseButton onClick={closeModal} />
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
             <label htmlFor="new-email" className="block text-xs text-indigo-300/50 tracking-wide uppercase">
-              New Email Address
+              {t('settings.new_email_label')}
             </label>
             <Input
               id="new-email"
@@ -300,18 +300,18 @@ function EmailUpdateModal(props: { isOpen: boolean; onClose: () => void }) {
               required
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              placeholder="you@example.com"
+              placeholder={t('placeholder.email')}
               className="w-full"
             />
           </div>
           {emailError && <p className="text-red-300/80 text-sm">{emailError}</p>}
-          {success && <p className="text-green-300/80 text-sm">Email updated!</p>}
+          {success && <p className="text-green-300/80 text-sm">{t('settings.email_updated')}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={closeModal} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
-              {submitting ? 'Saving…' : 'Update Email'}
+              {submitting ? t('common.saving') : t('settings.update_email')}
             </button>
           </div>
         </form>
@@ -387,7 +387,7 @@ function AvatarUpdateModal(props: { onClose: () => void; onSuccess: (url: string
     <div className="modal-backdrop">
       <div className="modal-card max-w-md font-lexend">
         <div className="flex items-center justify-between pb-4">
-          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">Change Profile Picture</h3>
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">{t('settings.avatar_title')}</h3>
           <CloseButton onClick={props.onClose} />
         </div>
 
@@ -397,11 +397,11 @@ function AvatarUpdateModal(props: { onClose: () => void; onSuccess: (url: string
               <img src={previewUrl} alt="Preview" className="w-32 h-32 rounded-full object-cover avatar-ring" />
             ) : (
               <div className="w-32 h-32 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-indigo-300/40 text-xs">
-                No image
+                {t('settings.avatar_no_image')}
               </div>
             )}
             <label className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 cursor-pointer">
-              {file ? 'Choose different image' : 'Choose image'}
+              {file ? t('settings.avatar_choose_different') : t('settings.avatar_choose')}
               <input
                 type="file"
                 accept={ALLOWED_AVATAR_TYPES.join(',')}
@@ -409,15 +409,15 @@ function AvatarUpdateModal(props: { onClose: () => void; onSuccess: (url: string
                 className="hidden"
               />
             </label>
-            <p className="text-xs text-indigo-300/40">JPG, PNG, or WebP — max 5MB.</p>
+            <p className="text-xs text-indigo-300/40">{t('settings.avatar_hint')}</p>
           </div>
           {error && <p className="text-red-300/80 text-sm text-center">{error}</p>}
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 cursor-pointer">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={submitting || !file} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
-              {submitting ? 'Uploading…' : 'Upload'}
+              {submitting ? t('settings.avatar_uploading') : t('settings.avatar_upload')}
             </button>
           </div>
         </form>
@@ -492,16 +492,16 @@ function TwoFactorSetupModal(props: { onClose: () => void; onEnabled: () => void
     <div className="modal-backdrop">
       <div className="modal-card max-w-md font-lexend">
         <div className="flex items-center justify-between pb-4">
-          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">Enable Two-Factor Auth</h3>
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">{t('settings.2fa_enable_title')}</h3>
           <CloseButton onClick={props.onClose} />
         </div>
 
-        {loading && <p className="text-indigo-300/60 text-sm py-4 text-center">Generating secret…</p>}
+        {loading && <p className="text-indigo-300/60 text-sm py-4 text-center">{t('settings.2fa_generating')}</p>}
 
         {!loading && qrUri && (
           <>
             <p className="text-indigo-300/60 text-xs leading-relaxed mb-4">
-              Scan this QR code with your authenticator app (Google Authenticator, Authy, 1Password…), then enter the 6-digit code below to confirm.
+              {t('settings.2fa_scan_desc')}
             </p>
 
             <div className="flex justify-center mb-4">
@@ -512,7 +512,7 @@ function TwoFactorSetupModal(props: { onClose: () => void; onEnabled: () => void
 
             {secret && (
               <div className="space-y-1.5 mb-4">
-                <p className="text-xs text-indigo-300/50 tracking-wide uppercase">Or enter this secret manually</p>
+                <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('settings.2fa_manual_secret')}</p>
                 <div className="settings-row settings-row-box">
                   <span className="text-indigo-100 text-xs font-mono break-all">{secret}</span>
                   <button
@@ -520,7 +520,7 @@ function TwoFactorSetupModal(props: { onClose: () => void; onEnabled: () => void
                     onClick={() => navigator.clipboard?.writeText(secret).catch(() => {})}
                     className="glass glass-hover rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer"
                   >
-                    Copy
+                    {t('settings.2fa_copy')}
                   </button>
                 </div>
               </div>
@@ -529,7 +529,7 @@ function TwoFactorSetupModal(props: { onClose: () => void; onEnabled: () => void
             <form onSubmit={handleVerify} className="space-y-4">
               <div className="space-y-2">
                 <label htmlFor="totp-code" className="block text-xs text-indigo-300/50 tracking-wide uppercase">
-                  Verification Code
+                  {t('settings.2fa_verification_code')}
                 </label>
                 <Input
                   id="totp-code"
@@ -548,10 +548,10 @@ function TwoFactorSetupModal(props: { onClose: () => void; onEnabled: () => void
               {error && <p className="text-red-300/80 text-sm">{error}</p>}
               <div className="flex justify-end gap-2 pt-2">
                 <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-                  Cancel
+                  {t('common.cancel')}
                 </button>
                 <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
-                  {submitting ? 'Verifying…' : 'Enable 2FA'}
+                  {submitting ? t('auth.verifying') : t('settings.2fa_enable_submit')}
                 </button>
               </div>
             </form>
@@ -563,7 +563,7 @@ function TwoFactorSetupModal(props: { onClose: () => void; onEnabled: () => void
             <p className="text-red-300/80 text-sm">{error}</p>
             <div className="flex justify-end">
               <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-                Close
+                {t('common.close')}
               </button>
             </div>
           </div>
@@ -592,6 +592,7 @@ function DeleteAccountModal(props: { isOpen: boolean; onClose: () => void; onDel
         throw new Error(msg);
       }
       logger.action('settings.account_delete');
+      clearLocalPrefs();
       clearAuthCookies();
       props.onDeleted();
     } catch (err) {
@@ -605,19 +606,19 @@ function DeleteAccountModal(props: { isOpen: boolean; onClose: () => void; onDel
     <div className="modal-backdrop">
       <div className="modal-card max-w-md font-lexend">
         <div className="flex items-center justify-between pb-3">
-          <h3 className="text-lg font-semibold text-red-300/90 tracking-wide">Delete Account</h3>
+          <h3 className="text-lg font-semibold text-red-300/90 tracking-wide">{t('settings.delete_account_title')}</h3>
           <CloseButton onClick={props.onClose} />
         </div>
         <p className="text-indigo-300/50 text-sm pb-4 font-light leading-relaxed">
-          This will permanently delete your account and all your projects. This action cannot be undone.
+          {t('settings.delete_account_desc')}
         </p>
         {error && <p className="text-red-300/80 text-sm pb-3">{error}</p>}
         <div className="flex justify-end gap-2">
           <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-            Cancel
+            {t('common.cancel')}
           </button>
           <button type="button" onClick={handleDelete} disabled={submitting} className="rounded-lg px-4 py-1.5 text-sm font-medium bg-red-500/20 border border-red-500/40 hover:bg-red-500/35 text-red-200 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
-            {submitting ? 'Deleting…' : 'Delete My Account'}
+            {submitting ? t('settings.deleting') : t('settings.delete_my_account')}
           </button>
         </div>
       </div>
@@ -687,6 +688,7 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
         // Proceed with local logout regardless
       }
     }
+    clearLocalPrefs();
     clearAuthCookies();
     props.setLoggedIn?.(false);
     window.location.reload();
@@ -699,11 +701,11 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
 
   return (
     <>
-      <SettingsSection title="Account" description="Manage your credentials and security preferences.">
+      <SettingsSection title={t('settings.section.account')} description={t('settings.section.account.desc')}>
         <div className="space-y-4">
 
           <div className="space-y-1.5">
-            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">Profile Picture</p>
+            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('profile.avatar')}</p>
             <div className="settings-row settings-row-box">
               <div className="flex items-center gap-3 min-w-0">
                 {avatar ? (
@@ -711,42 +713,42 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
                 ) : (
                   <div className="w-10 h-10 rounded-full bg-white/5 border border-white/10 shrink-0" />
                 )}
-                <span className="text-indigo-300/40 text-xs truncate">JPG, PNG or WebP, max 5MB.</span>
+                <span className="text-indigo-300/40 text-xs truncate">{t('settings.avatar_hint_short')}</span>
               </div>
               <button type="button" onClick={() => setIsAvatarModalOpen(true)} className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-                Change
+                {t('common.change')}
               </button>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">Username</p>
+            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('settings.change_username_title')}</p>
             <div className="settings-row settings-row-box">
               <span className="text-indigo-100 text-sm">{username}</span>
               <button type="button" onClick={() => setIsUsernameModalOpen(true)} className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-                Change
+                {t('common.change')}
               </button>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">Password</p>
+            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('settings.password')}</p>
             <div className="settings-row settings-row-box">
               <span className="text-indigo-100 text-sm tracking-widest">••••••••</span>
               <button type="button" onClick={() => setIsPasswordModalOpen(true)} className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-                Change
+                {t('common.change')}
               </button>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">Email</p>
+            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('settings.email_label')}</p>
             <div className="settings-row settings-row-box">
               <div className="flex flex-col gap-1 min-w-0">
                 <div className="flex items-center gap-2 flex-wrap">
                   <span className="text-indigo-100 text-sm truncate">{userEmail || '…'}</span>
                   {isVerified === false && (
-                    <span className="text-yellow-400/90 text-xs font-medium border border-yellow-400/30 bg-yellow-400/10 rounded px-1.5 py-0.5 shrink-0">Unverified</span>
+                    <span className="text-yellow-400/90 text-xs font-medium border border-yellow-400/30 bg-yellow-400/10 rounded px-1.5 py-0.5 shrink-0">{t('settings.unverified')}</span>
                   )}
                 </div>
                 {isVerified === false && (
@@ -756,25 +758,25 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
                     disabled={resendStatus === 'sending' || resendStatus === 'sent'}
                     className="text-yellow-400/70 hover:text-yellow-300 text-xs underline underline-offset-2 text-left cursor-pointer disabled:cursor-default disabled:no-underline disabled:opacity-60 w-fit"
                   >
-                    {resendStatus === 'sending' ? 'Sending…' : resendStatus === 'sent' ? 'Email sent!' : resendStatus === 'error' ? 'Failed — try again' : 'Resend verification email'}
+                    {resendStatus === 'sending' ? t('settings.resend_sending') : resendStatus === 'sent' ? t('settings.resend_sent') : resendStatus === 'error' ? t('settings.resend_failed') : t('settings.resend_verification')}
                   </button>
                 )}
               </div>
               <button type="button" onClick={() => setIsEmailModalOpen(true)} className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer shrink-0">
-                Change
+                {t('common.change')}
               </button>
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">Two-Factor Auth</p>
+            <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('settings.two_factor')}</p>
             <div className="settings-row settings-row-box">
               <span className={`text-xs ${twoFactorEnabled ? 'text-green-300/80' : 'text-indigo-300/40'}`}>
-                {twoFactorEnabled === null ? '…' : twoFactorEnabled ? 'Enabled' : 'Disabled — protect your account with a TOTP app.'}
+                {twoFactorEnabled === null ? '…' : twoFactorEnabled ? t('settings.two_factor.enabled') : t('settings.two_factor.disabled')}
               </span>
               {!twoFactorEnabled && (
                 <button type="button" onClick={() => setIsTwoFactorModalOpen(true)} className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-                  Enable
+                  {t('common.enable')}
                 </button>
               )}
             </div>
@@ -784,10 +786,10 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
 
           <div className="flex flex-wrap gap-2">
             <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="rounded-lg px-4 py-1.5 text-xs font-medium bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 text-red-300/80 hover:text-red-200 tracking-wide duration-200 ease-out cursor-pointer">
-              Delete Account
+              {t('auth.delete_account')}
             </button>
             <button type="button" onClick={handleLogout} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-              Sign Out
+              {t('auth.sign_out')}
             </button>
           </div>
         </div>
@@ -824,27 +826,78 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
 }
 
 function GeneralSettings() {
+  useLanguage();
   const { prefs, updatePrefs } = usePrefs();
   return (
-    <SettingsSection title="General" description="Control the default app behavior and appearance.">
-      <div className="space-y-1.5">
-        <p className="text-xs text-indigo-300/50 tracking-wide uppercase">Language</p>
-        <div className="settings-row settings-row-box">
-          <span className="text-indigo-100 text-sm">
-            {SUPPORTED_LANGUAGES.find(l => l.code === prefs.language)?.label ?? 'English'}
-          </span>
-          <select
-            value={prefs.language}
-            onChange={e => updatePrefs({ language: e.target.value })}
-            className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer bg-transparent border-0 outline-none"
-          >
-            {SUPPORTED_LANGUAGES.map(l => (
-              <option key={l.code} value={l.code} className="bg-[#0d0d1a] text-indigo-100">
-                {l.native} — {l.label}
-              </option>
-            ))}
-          </select>
+    <SettingsSection title={t('settings.section.personalized')} description={t('settings.section.personalized.desc')}>
+      <div className="space-y-4">
+
+        <div className="space-y-1.5">
+          <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('settings.language')}</p>
+          <div className="settings-row settings-row-box">
+            <span className="text-indigo-100 text-sm">
+              {SUPPORTED_LANGUAGES.find(l => l.code === prefs.language)?.label ?? 'English'}
+            </span>
+            <select
+              value={prefs.language}
+              onChange={e => updatePrefs({ language: e.target.value })}
+              className="glass glass-hover glow-indigo rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer bg-transparent border-0 outline-none"
+            >
+              {SUPPORTED_LANGUAGES.map(l => (
+                <option key={l.code} value={l.code} className="bg-[#0d0d1a] text-indigo-100">
+                  {l.native} — {l.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
+
+        <div className="space-y-1.5">
+          <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('settings.theme')}</p>
+          <div className="settings-row settings-row-box">
+            <span className="text-indigo-100 text-sm">
+              {prefs.theme === 'light' ? t('settings.theme.light') : t('settings.theme.dark')}
+            </span>
+            <div className="flex gap-2">
+              {(['dark', 'light'] as const).map(th => (
+                <button
+                  key={th}
+                  type="button"
+                  onClick={() => updatePrefs({ theme: th })}
+                  className={`rounded-lg px-3 py-1 text-xs font-medium tracking-wide duration-200 ease-out cursor-pointer border ${
+                    prefs.theme === th
+                      ? 'bg-indigo-500/25 border-indigo-400/50 text-indigo-200'
+                      : 'glass glass-hover glow-indigo border-transparent text-indigo-300/70 hover:text-white'
+                  }`}
+                >
+                  {th === 'dark' ? t('settings.theme.dark') : t('settings.theme.light')}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('settings.sound')}</p>
+          <div className="settings-row settings-row-box">
+            <div>
+              <span className="text-indigo-100 text-sm">{t('settings.sound')}</span>
+              <p className="text-indigo-300/40 text-xs mt-0.5">{t('settings.sound.desc')}</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => updatePrefs({ sound: !prefs.sound })}
+              className={`rounded-lg px-3 py-1 text-xs font-medium tracking-wide duration-200 ease-out cursor-pointer border ${
+                prefs.sound
+                  ? 'bg-indigo-500/25 border-indigo-400/50 text-indigo-200'
+                  : 'glass glass-hover glow-indigo border-transparent text-indigo-300/40 hover:text-indigo-300/70'
+              }`}
+            >
+              {prefs.sound ? t('settings.sound_on') : t('settings.sound_off')}
+            </button>
+          </div>
+        </div>
+
       </div>
     </SettingsSection>
   )
@@ -852,8 +905,8 @@ function GeneralSettings() {
 
 function PrivacySettings() {
   return (
-    <SettingsSection title="Privacy" description="Choose how your data and activity are shared.">
-      <div className="settings-row-box text-indigo-300/40 text-sm font-light">Coming soon…</div>
+    <SettingsSection title={t('settings.section.privacy')} description={t('settings.section.privacy.desc')}>
+      <div className="settings-row-box text-indigo-300/40 text-sm font-light">{t('common.coming_soon')}</div>
     </SettingsSection>
   )
 }
@@ -862,7 +915,7 @@ function Settings(props: { personal?: boolean; func?: (value: boolean) => void; 
   return (
     <div className="font-lexend overlay-panel rounded-2xl z-50 w-full max-w-[60rem] mx-3 sm:mx-auto">
       <div className="flex justify-between items-center px-5 pt-5 pb-2">
-        <h1 className="text-2xl font-semibold bg-gradient-to-r from-indigo-200 via-blue-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">Settings</h1>
+        <h1 className="text-2xl font-semibold bg-gradient-to-r from-indigo-200 via-blue-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">{t('settings.title')}</h1>
         <CloseButton onClick={() => props.func && props.func(false)} />
       </div>
       <div className="mx-3 sm:mx-4 mb-4 mt-2 rounded-xl border border-white/6 bg-white/2 p-4 sm:p-5 md:p-6">
@@ -879,6 +932,7 @@ function Settings(props: { personal?: boolean; func?: (value: boolean) => void; 
 }
 
 function SettingsContainer(props: { func?: (value: boolean) => void; setLoggedIn?: (value: boolean) => void }) {
+  useLanguage();
   const [visible, setVisible] = useState(true);
 
   return (

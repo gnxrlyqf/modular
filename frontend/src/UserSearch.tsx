@@ -3,6 +3,7 @@ import { AnimatedContent } from './ReactBits/ReactBits';
 import { Input, CloseButton } from './Reusables';
 import { authFetch, extractErrorMessage } from './api';
 import logger from './logger';
+import { t, useLanguage } from './i18n';
 
 type ApiUser = {
   id: number;
@@ -39,7 +40,7 @@ function Search(props: { value: string; onChange: (value: string) => void }) {
   return (
     <div className="relative flex-1">
       <Input
-        placeholder="Search users…"
+        placeholder={t('users.search_placeholder')}
         type="search"
         autoFocus
         value={props.value}
@@ -81,7 +82,7 @@ function ActionButton(props: {
           onClick={props.onAdd}
           className={`${base} bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 text-indigo-200 hover:text-white`}
         >
-          Add Friend
+          {t('users.add_friend')}
         </button>
       );
     case 'pending_out':
@@ -92,7 +93,7 @@ function ActionButton(props: {
           title="Click to cancel"
           className={`${base} bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-400/30 text-yellow-200`}
         >
-          Pending
+          {t('users.pending')}
         </button>
       );
     case 'pending_in':
@@ -102,7 +103,7 @@ function ActionButton(props: {
           onClick={props.onAccept}
           className={`${base} bg-green-500/15 hover:bg-green-500/25 border border-green-400/30 text-green-200 hover:text-white`}
         >
-          Accept
+          {t('users.accept')}
         </button>
       );
     case 'friends':
@@ -112,7 +113,7 @@ function ActionButton(props: {
           onClick={props.onRemove}
           className={`${base} bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-red-200`}
         >
-          Remove
+          {t('users.remove')}
         </button>
       );
   }
@@ -130,6 +131,7 @@ function UserRow(props: {
   onRemove: (relation: Relation) => void;
   isSelf: boolean;
   onUserClick?: (username: string) => void;
+  onMessage?: (profileId: number) => void;
 }) {
   const initials = props.user.username.slice(0, 2).toUpperCase();
   const canClick = !props.isSelf && props.user.profile_id != null && props.onUserClick;
@@ -150,18 +152,29 @@ function UserRow(props: {
         <p className="truncate text-xs text-indigo-300/40">{props.user.email}</p>
       </div>
       {props.isSelf ? (
-        <span className="text-xs text-indigo-300/40 italic">you</span>
+        <span className="text-xs text-indigo-300/40 italic">{t('users.you')}</span>
       ) : props.user.profile_id == null ? (
-        <span className="text-xs text-indigo-300/30 italic">no profile</span>
+        <span className="text-xs text-indigo-300/30 italic">{t('users.no_profile')}</span>
       ) : (
-        <ActionButton
-          relation={props.relation}
-          busy={props.busy}
-          onAdd={() => props.onAdd(props.user)}
-          onAccept={() => props.onAccept(props.relation)}
-          onCancel={() => props.onCancel(props.relation)}
-          onRemove={() => props.onRemove(props.relation)}
-        />
+        <div className="flex items-center gap-1.5">
+          {props.relation.kind === 'friends' && props.onMessage && props.user.profile_id != null && (
+            <button
+              type="button"
+              onClick={() => props.onMessage!(props.user.profile_id!)}
+              className="rounded-lg px-3 py-1 text-xs font-medium tracking-wide cursor-pointer transition-all duration-150 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 text-indigo-200 hover:text-white"
+            >
+              {t('users.message')}
+            </button>
+          )}
+          <ActionButton
+            relation={props.relation}
+            busy={props.busy}
+            onAdd={() => props.onAdd(props.user)}
+            onAccept={() => props.onAccept(props.relation)}
+            onCancel={() => props.onCancel(props.relation)}
+            onRemove={() => props.onRemove(props.relation)}
+          />
+        </div>
       )}
     </div>
   );
@@ -169,7 +182,8 @@ function UserRow(props: {
 
 // ─── UserSearch ───────────────────────────────────────────────────────────────
 
-function UserSearch(props: { onUserClick?: (username: string) => void }) {
+function UserSearch(props: { onUserClick?: (username: string) => void; onMessage?: (profileId: number) => void }) {
+  useLanguage();
   const [users, setUsers] = useState<ApiUser[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -335,20 +349,20 @@ function UserSearch(props: { onUserClick?: (username: string) => void }) {
   return (
     <div className="font-lexend flex flex-col gap-4 p-5">
       <div className="flex items-center gap-3">
-        <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent tracking-wide whitespace-nowrap">Find Users</h2>
+        <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent tracking-wide whitespace-nowrap">{t('users.find_title')}</h2>
         <Search value={searchQuery} onChange={handleSearchChange} />
       </div>
 
       <div className="flex flex-col gap-1 min-h-20">
         {!debouncedSearch.trim() && (
           <p className="text-indigo-300/40 text-xs py-4 text-center font-light tracking-wide">
-            Type to search by username or email.
+            {t('users.type_to_search')}
           </p>
         )}
-        {loading && <p className="text-indigo-300/40 py-4 text-center text-xs">Searching…</p>}
+        {loading && <p className="text-indigo-300/40 py-4 text-center text-xs">{t('users.searching')}</p>}
         {!loading && error && <p className="text-red-300/80 py-4 text-center text-xs">{error}</p>}
         {!loading && !error && debouncedSearch.trim() && users.length === 0 && (
-          <p className="text-indigo-300/40 py-4 text-center text-xs">No users found.</p>
+          <p className="text-indigo-300/40 py-4 text-center text-xs">{t('users.no_results')}</p>
         )}
         {!loading && !error && users.map((user) => (
           <UserRow
@@ -362,13 +376,14 @@ function UserSearch(props: { onUserClick?: (username: string) => void }) {
             onCancel={handleCancel}
             onRemove={handleRemove}
             onUserClick={props.onUserClick}
+            onMessage={props.onMessage}
           />
         ))}
       </div>
 
       {totalCount > 0 && (
         <div className="flex items-center justify-between text-xs text-indigo-300/50">
-          <span>{totalCount} {totalCount === 1 ? 'user' : 'users'}</span>
+          <span>{totalCount} {totalCount === 1 ? t('users.count_singular') : t('users.count_plural')}</span>
           {totalPages > 1 && (
             <div className="flex items-center gap-2">
               <button
@@ -396,7 +411,7 @@ function UserSearch(props: { onUserClick?: (username: string) => void }) {
 
 // ─── Container ────────────────────────────────────────────────────────────────
 
-function UserSearchContainer(props: { func?: (value: boolean) => void; onUserClick?: (username: string) => void }) {
+function UserSearchContainer(props: { func?: (value: boolean) => void; onUserClick?: (username: string) => void; onMessage?: (profileId: number) => void }) {
   const [visible, setVisible] = useState(true);
 
   return (
@@ -433,7 +448,7 @@ function UserSearchContainer(props: { func?: (value: boolean) => void; onUserCli
           <div className="flex justify-end px-4 pt-4 pb-0">
             <CloseButton onClick={() => setVisible(false)} />
           </div>
-          <UserSearch onUserClick={props.onUserClick} />
+          <UserSearch onUserClick={props.onUserClick} onMessage={props.onMessage} />
         </div>
       </AnimatedContent>
     </AnimatedContent>

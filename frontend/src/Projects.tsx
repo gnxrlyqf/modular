@@ -4,6 +4,7 @@ import { AnimatedContent } from './ReactBits/ReactBits';
 import { authFetch, extractErrorMessage } from './api';
 import { Input, CloseButton } from './Reusables';
 import logger from './logger';
+import { t, useLanguage } from './i18n';
 
 const SYNTH_URL = (import.meta.env.VITE_SYNTHESIZER_URL as string | undefined) ?? 'http://localhost:5174';
 
@@ -65,7 +66,7 @@ function CreateModal(props: { onClose: () => void; onCreate: (name: string) => P
     <div className="modal-backdrop">
       <div className="modal-card max-w-sm font-lexend">
         <div className="flex items-center justify-between pb-4">
-          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">New Project</h3>
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">{t('projects.new_modal_title')}</h3>
           <CloseButton onClick={props.onClose} />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -75,16 +76,16 @@ function CreateModal(props: { onClose: () => void; onCreate: (name: string) => P
             required
             value={name}
             onChange={e => setName(e.target.value)}
-            placeholder="Project name"
+            placeholder={t('projects.name_placeholder')}
             className="w-full"
           />
           {error && <p className="text-red-300/80 text-sm">{error}</p>}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
-              {submitting ? 'Creating…' : 'Create'}
+              {submitting ? t('projects.creating') : t('projects.create')}
             </button>
           </div>
         </form>
@@ -123,7 +124,7 @@ function RenameModal(props: {
     <div className="modal-backdrop">
       <div className="modal-card max-w-sm font-lexend">
         <div className="flex items-center justify-between pb-4">
-          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">Rename Project</h3>
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">{t('projects.rename_modal_title')}</h3>
           <CloseButton onClick={props.onClose} />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -138,10 +139,10 @@ function RenameModal(props: {
           {error && <p className="text-red-300/80 text-sm">{error}</p>}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
-              {submitting ? 'Saving…' : 'Save'}
+              {submitting ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -207,36 +208,36 @@ function SettingsModal(props: {
     <div className="modal-backdrop">
       <div className="modal-card max-w-sm font-lexend">
         <div className="flex items-center justify-between pb-4">
-          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">Project Settings</h3>
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">{t('projects.settings_title')}</h3>
           <CloseButton onClick={props.onClose} />
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-xs text-indigo-300/60 mb-1.5 tracking-wide">Picture</label>
+            <label className="block text-xs text-indigo-300/60 mb-1.5 tracking-wide">{t('projects.picture')}</label>
             <div className="flex items-center gap-3">
               <img src={preview} alt="" className="h-14 w-20 object-cover rounded-lg shrink-0" />
               <label className="glass glass-hover rounded-lg px-3 py-1.5 text-xs font-medium text-indigo-300/80 hover:text-white cursor-pointer">
-                Choose…
+                {t('projects.choose_image')}
                 <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="hidden" />
               </label>
               {thumbnail && (
                 <button type="button" onClick={() => setThumbnail(null)} className="text-xs text-red-300/70 hover:text-red-200 cursor-pointer">
-                  Remove
+                  {t('projects.remove')}
                 </button>
               )}
             </div>
           </div>
           <div>
-            <label className="block text-xs text-indigo-300/60 mb-1.5 tracking-wide">Name</label>
+            <label className="block text-xs text-indigo-300/60 mb-1.5 tracking-wide">{t('projects.sort_name')}</label>
             <Input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full" />
           </div>
           {error && <p className="text-red-300/80 text-sm">{error}</p>}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
-              Cancel
+              {t('common.cancel')}
             </button>
             <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
-              {submitting ? 'Saving…' : 'Save'}
+              {submitting ? t('common.saving') : t('common.save')}
             </button>
           </div>
         </form>
@@ -312,8 +313,8 @@ function Filters(props: {onDateSort?: () => void; onNameSort?: () => void; order
 
   return (
     <div className="font-lexend flex flex-row gap-2 mx-3">
-      <FilterButton text="Date" onClick={props.onDateSort} isActive={isDateActive} />
-      <FilterButton text="Name" onClick={props.onNameSort} isActive={isNameActive} />
+      <FilterButton text={t('projects.sort_date')} onClick={props.onDateSort} isActive={isDateActive} />
+      <FilterButton text={t('projects.sort_name')} onClick={props.onNameSort} isActive={isNameActive} />
     </div>
   )
 }
@@ -322,7 +323,7 @@ function Search(props: { value: string; onChange: (value: string) => void }) {
   return (
     <div className="relative sm:ml-auto mr-3 flex-1 sm:flex-none sm:max-w-xs">
       <Input
-        placeholder="Search…"
+        placeholder={t('projects.search')}
         name="search"
         type="search"
         value={props.value}
@@ -365,10 +366,10 @@ function ContextMenu(props: {
 }) {
   return (
     <ul className="overlay-panel rounded-xl py-1.5 px-1 font-lexend min-w-36 space-y-0.5">
-      <MenuEntry func={props.onRename}>Rename</MenuEntry>
-      <MenuEntry func={props.onShare}>Share</MenuEntry>
-      <MenuEntry func={props.onCopyLink}>Copy ID</MenuEntry>
-      <MenuEntry func={props.onDelete} danger>Delete</MenuEntry>
+      <MenuEntry func={props.onRename}>{t('projects.context.rename')}</MenuEntry>
+      <MenuEntry func={props.onShare}>{t('projects.context.share')}</MenuEntry>
+      <MenuEntry func={props.onCopyLink}>{t('projects.context.copy_id')}</MenuEntry>
+      <MenuEntry func={props.onDelete} danger>{t('projects.context.delete')}</MenuEntry>
     </ul>
   );
 }
@@ -583,6 +584,7 @@ function Card(props: {
 // ─── Projects ─────────────────────────────────────────────────────────────────
 
 function Projects(props: {user?: string; currentUsername?: string; onUserClick?: (username: string) => void; initialOrdering?: string}) {
+  useLanguage();
   const [cards, setCards] = useState<ApiProject[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -773,7 +775,7 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
     <>
       {!props.user && (
         <p className="font-lexend text-center text-2xl font-semibold pb-4 pt-1 bg-gradient-to-r from-indigo-200 via-blue-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">
-          Community Projects
+          {t('projects.community_title')}
         </p>
       )}
       <div className="flex flex-col sm:flex-row gap-2 my-2 sm:items-center">
@@ -786,7 +788,7 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
       </div>
       <div className="mx-3 mb-3">
         <div className={viewMode === 'grid' ? "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3" : "flex flex-col gap-1.5"}>
-          {loading && <p className={`${viewMode === 'grid' ? 'col-span-full' : ''} text-indigo-300/40 py-8 text-center text-sm font-light`}>Loading projects…</p>}
+          {loading && <p className={`${viewMode === 'grid' ? 'col-span-full' : ''} text-indigo-300/40 py-8 text-center text-sm font-light`}>{t('projects.loading')}</p>}
           {!loading && error && (
             <div className={`${viewMode === 'grid' ? 'col-span-full' : ''} py-8 text-center space-y-3`}>
               <p className="text-red-300/80 text-sm">{error}</p>
@@ -795,13 +797,13 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
                 onClick={retry}
                 className="glass glass-hover rounded-lg px-4 py-1.5 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer"
               >
-                Retry
+                {t('projects.retry')}
               </button>
             </div>
           )}
           {!loading && !error && cards.length === 0 && (
             <p className={`${viewMode === 'grid' ? 'col-span-full' : ''} text-indigo-300/40 py-8 text-center text-sm font-light`}>
-              {isCommunity ? 'No community projects yet.' : 'No projects found.'}
+              {isCommunity ? t('projects.empty_community') : t('projects.empty')}
             </p>
           )}
           {!loading && !error && cards.map((card, index) => {
@@ -826,7 +828,7 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
           })}
         </div>
         <div className="flex flex-row items-center justify-between py-3 font-lexend text-xs text-indigo-300/40">
-          <p>{totalCount} {totalCount === 1 ? 'project' : 'projects'}</p>
+          <p>{totalCount} {totalCount === 1 ? t('projects.count_one') : t('projects.count_other')}</p>
           {totalPages > 1 && (
             <div className="flex flex-row gap-2 items-center">
               <button

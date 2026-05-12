@@ -3,6 +3,7 @@ import { AnimatedContent } from './ReactBits/ReactBits';
 import { authFetch, extractErrorMessage } from './api';
 import { CloseButton } from './Reusables';
 import logger from './logger';
+import { t, useLanguage } from './i18n';
 
 type AdminUser = {
   id: number;
@@ -38,7 +39,7 @@ function UserRow(props: {
           onClick={() => props.onViewLogs(props.user.id)}
           className="glass glass-hover rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer"
         >
-          Logs
+          {t('common.logs')}
         </button>
         <button
           type="button"
@@ -46,7 +47,7 @@ function UserRow(props: {
           onClick={() => props.onDelete(props.user.id)}
           className="rounded-lg px-3 py-1 text-xs font-medium bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 text-red-300/80 hover:text-red-200 tracking-wide cursor-pointer disabled:opacity-50"
         >
-          Delete
+          {t('common.delete')}
         </button>
       </div>
     </div>
@@ -55,7 +56,7 @@ function UserRow(props: {
 
 function LogList(props: { logs: LogEntry[] }) {
   if (props.logs.length === 0) {
-    return <p className="text-indigo-300/40 text-xs italic">No logs.</p>;
+    return <p className="text-indigo-300/40 text-xs italic">{t('admin.no_logs')}</p>;
   }
   return (
     <div className="space-y-1.5 max-h-80 overflow-y-auto">
@@ -71,6 +72,7 @@ function LogList(props: { logs: LogEntry[] }) {
 }
 
 function AdminPanel(props: { onClose: () => void }) {
+  useLanguage();
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
@@ -102,7 +104,7 @@ function AdminPanel(props: { onClose: () => void }) {
   }, []);
 
   const handleDelete = async (id: number) => {
-    if (!confirm('Delete this user? This cannot be undone.')) return;
+    if (!confirm(t('admin.confirm_delete'))) return;
     setBusyDelete(id);
     setError(null);
     try {
@@ -147,7 +149,7 @@ function AdminPanel(props: { onClose: () => void }) {
     <div className="font-lexend overlay-panel rounded-2xl z-50 w-full max-w-3xl mx-3 sm:mx-auto">
       <div className="flex justify-between items-center px-5 pt-5 pb-2">
         <h1 className="text-2xl font-semibold bg-gradient-to-r from-indigo-200 via-blue-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">
-          Admin
+          {t('admin.title')}
         </h1>
         <CloseButton onClick={props.onClose} />
       </div>
@@ -156,7 +158,7 @@ function AdminPanel(props: { onClose: () => void }) {
         <div className="flex items-center gap-2">
           <input
             type="search"
-            placeholder="Filter by username…"
+            placeholder={t('admin.filter')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 px-3 py-2 rounded-lg bg-white/5 text-indigo-100 border border-white/10 placeholder:text-indigo-300/30 outline-none focus:border-indigo-500/40"
@@ -166,17 +168,17 @@ function AdminPanel(props: { onClose: () => void }) {
             onClick={refresh}
             className="glass glass-hover rounded-lg px-3 py-2 text-xs font-medium text-indigo-300/80 hover:text-white cursor-pointer"
           >
-            Refresh
+            {t('admin.refresh')}
           </button>
         </div>
 
         {error && <p className="text-red-300/80 text-sm">{error}</p>}
 
         <section className="space-y-2">
-          <h2 className="text-sm uppercase tracking-wider text-indigo-300/60">Users ({filtered.length})</h2>
-          {loading && <p className="text-indigo-300/50 text-xs">Loading…</p>}
+          <h2 className="text-sm uppercase tracking-wider text-indigo-300/60">{t('admin.users')} ({filtered.length})</h2>
+          {loading && <p className="text-indigo-300/50 text-xs">{t('common.loading')}</p>}
           {!loading && filtered.length === 0 && (
-            <p className="text-indigo-300/40 text-xs italic">No users.</p>
+            <p className="text-indigo-300/40 text-xs italic">{t('admin.no_users')}</p>
           )}
           <div className="space-y-2">
             {filtered.map((u) => (
@@ -195,18 +197,18 @@ function AdminPanel(props: { onClose: () => void }) {
           <section className="space-y-2 pt-3 border-t border-white/10">
             <div className="flex items-center justify-between">
               <h2 className="text-sm uppercase tracking-wider text-indigo-300/60">
-                Logs for user #{logsForUser.userId}
+                {t('admin.logs_for')} #{logsForUser.userId}
               </h2>
               <button
                 type="button"
                 onClick={() => setLogsForUser(null)}
                 className="text-xs text-indigo-300/50 hover:text-indigo-200 cursor-pointer"
               >
-                Close
+                {t('common.close')}
               </button>
             </div>
             {logsLoading ? (
-              <p className="text-indigo-300/50 text-xs">Loading…</p>
+              <p className="text-indigo-300/50 text-xs">{t('common.loading')}</p>
             ) : (
               <LogList logs={logsForUser.logs} />
             )}

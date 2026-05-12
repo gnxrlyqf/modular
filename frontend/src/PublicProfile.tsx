@@ -3,7 +3,7 @@ import { AnimatedContent } from './ReactBits/ReactBits';
 import { CloseButton, useConfirm } from './Reusables';
 import { authFetch, extractErrorMessage } from './api';
 import logger from './logger';
-import { t } from './i18n';
+import { t, useLanguage } from './i18n';
 
 type ProjectRow = {
   id: string;
@@ -70,9 +70,9 @@ function PublicProfile(props: {
   const block = async () => {
     if (!data || acting) return;
     const ok = await confirm({
-      title: `Block ${data.display_name || data.username}?`,
-      message: 'They will no longer be able to view your profile, send you messages, or appear in your conversations.',
-      confirmText: 'Block',
+      title: t('profile.block_title'),
+      message: t('profile.block_message'),
+      confirmText: t('profile.block'),
       danger: true,
     });
     if (!ok) return;
@@ -119,8 +119,8 @@ function PublicProfile(props: {
           <CloseButton onClick={() => props.func(false)} />
         </div>
         <div className="px-6 py-8 text-center">
-          <p className="text-red-300/90 text-sm font-medium">You have been blocked by this user.</p>
-          <p className="text-indigo-300/50 text-xs mt-2">Their profile is unavailable.</p>
+          <p className="text-red-300/90 text-sm font-medium">{t('profile.blocked_by')}</p>
+          <p className="text-indigo-300/50 text-xs mt-2">{t('profile.blocked_by_desc')}</p>
         </div>
         {confirmNode}
       </div>
@@ -162,7 +162,7 @@ function PublicProfile(props: {
                     onClick={() => props.onMessage(data.id)}
                     className="rounded-lg px-3 py-1.5 text-xs font-medium tracking-wide cursor-pointer bg-indigo-500/25 hover:bg-indigo-500/40 border border-indigo-400/40 text-white"
                   >
-                    Message
+                    {t('profile.message')}
                   </button>
                 )}
                 {data.is_blocked_by_me ? (
@@ -172,7 +172,7 @@ function PublicProfile(props: {
                     disabled={acting}
                     className="rounded-lg px-3 py-1.5 text-xs font-medium tracking-wide cursor-pointer bg-white/5 hover:bg-white/10 border border-white/15 text-indigo-200 disabled:opacity-50"
                   >
-                    Unblock
+                    {t('profile.unblock')}
                   </button>
                 ) : (
                   <button
@@ -181,7 +181,7 @@ function PublicProfile(props: {
                     disabled={acting}
                     className="rounded-lg px-3 py-1.5 text-xs font-medium tracking-wide cursor-pointer bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-red-200 disabled:opacity-50"
                   >
-                    Block
+                    {t('profile.block')}
                   </button>
                 )}
               </div>
@@ -212,10 +212,10 @@ function PublicProfile(props: {
                       <p className="truncate text-sm text-indigo-100">{p.name}</p>
                       {p.updated_at && (
                         <p className="text-[10px] text-indigo-300/40">
-                          Updated {new Date(p.updated_at).toLocaleDateString()}
+                          {t('profile.updated')} {new Date(p.updated_at).toLocaleDateString()}
                         </p>
                       )}
-                      <p className="text-[10px] text-indigo-400/40 mt-0.5">Click to open a copy</p>
+                      <p className="text-[10px] text-indigo-400/40 mt-0.5">{t('profile.open_copy')}</p>
                     </button>
                   </li>
                 ))}
@@ -233,6 +233,7 @@ function PublicProfileContainer(props: {
   func: (value: boolean) => void;
   onMessage: (profileId: number) => void;
 }) {
+  useLanguage();
   const [visible, setVisible] = useState(true);
   return (
     <AnimatedContent

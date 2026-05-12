@@ -1,4 +1,5 @@
 import React, { useMemo, useState, useEffect } from "react";
+import { t, useLanguage } from "./i18n";
 
 const cosmicPalette = {
   bg0: "#05060f",
@@ -187,7 +188,7 @@ function CosmicHero({
             boxShadow: `0 0 8px ${v.accent2}`,
           }}
         />
-        v0.4 · open beta · 24 modules live
+        {t('cosmic.beta_badge')}
       </div>
       <h1
         style={{
@@ -200,7 +201,7 @@ function CosmicHero({
           color: cosmicShared.text,
         }}
       >
-        Your modular synth,
+        {t('home.hero.title1')}
         <br />
         <em
           style={{
@@ -210,7 +211,7 @@ function CosmicHero({
             WebkitTextFillColor: "transparent",
           }}
         >
-          built in the browser.
+          {t('home.hero.title2')}
         </em>
       </h1>
       <p
@@ -223,8 +224,7 @@ function CosmicHero({
           lineHeight: 1.55,
         }}
       >
-        Patch oscillators, filters and effects on an infinite canvas. Learn
-        how sound works, make music, share with the world.
+        {t('home.hero.desc')}
       </p>
       <div
         style={{
@@ -253,7 +253,7 @@ function CosmicHero({
                 boxShadow: `0 0 32px ${v.accent}50`,
               }}
             >
-              + New Project
+              {t('cosmic.new_project')}
             </button>
             <button
               type="button"
@@ -270,7 +270,7 @@ function CosmicHero({
                 fontWeight: 500,
               }}
             >
-              Open the rack
+              {t('home.cta_open')}
             </button>
           </>
         ) : (
@@ -290,7 +290,7 @@ function CosmicHero({
                 fontWeight: 600,
               }}
             >
-              Try it out
+              {t('cosmic.try_it')}
             </button>
             <button
               type="button"
@@ -307,7 +307,7 @@ function CosmicHero({
                 fontWeight: 500,
               }}
             >
-              Get started
+              {t('cosmic.get_started')}
             </button>
           </>
         )}
@@ -529,7 +529,7 @@ function CosmicModuleCatalog() {
               marginBottom: 8,
             }}
           >
-            ── 01 / THE RACK
+            {t('cosmic.the_rack_section')}
           </div>
           <h2
             style={{
@@ -541,8 +541,8 @@ function CosmicModuleCatalog() {
               letterSpacing: "-0.03em",
             }}
           >
-            Twenty-four modules,{" "}
-            <em style={{ color: v.accent }}>infinite cables.</em>
+            {t('cosmic.rack_title')}{" "}
+            <em style={{ color: v.accent }}>{t('cosmic.rack_title_em')}</em>
           </h2>
         </div>
         <div
@@ -552,7 +552,7 @@ function CosmicModuleCatalog() {
             color: cosmicShared.sub,
           }}
         >
-          Browse all →
+          {t('cosmic.browse_all')}
         </div>
       </div>
       <div
@@ -664,7 +664,7 @@ function CosmicPatchOfTheWeek() {
                   marginBottom: 16,
                 }}
               >
-                ── 02 / PATCH OF THE WEEK
+                {t('cosmic.patch_section')}
               </div>
               <h3
                 style={{
@@ -706,7 +706,7 @@ function CosmicPatchOfTheWeek() {
                   fontWeight: 600,
                 }}
               >
-                ▶ Play
+                {t('cosmic.play')}
               </button>
               <button
                 type="button"
@@ -721,7 +721,7 @@ function CosmicPatchOfTheWeek() {
                   fontSize: 13,
                 }}
               >
-                Open patch
+                {t('cosmic.open_patch')}
               </button>
             </div>
           </div>
@@ -812,7 +812,7 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
               marginBottom: 8,
             }}
           >
-            ── 03 / LEADERBOARD
+            {t('cosmic.leaderboard_section')}
           </div>
           <h2
             style={{
@@ -824,8 +824,8 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
               letterSpacing: "-0.03em",
             }}
           >
-            This week&apos;s{" "}
-            <em style={{ color: v.accent2 }}>best hits.</em>
+            {t('cosmic.leaderboard_title')}&apos;{" "}
+            <em style={{ color: v.accent2 }}>{t('cosmic.leaderboard_title_em')}</em>
           </h2>
         </div>
         <button
@@ -841,7 +841,7 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
             padding: 0,
           }}
         >
-          View all →
+          {t('cosmic.view_all')}
         </button>
       </div>
       <GlassPanel style={{ padding: 0, borderRadius: 18, overflow: "hidden" }}>
@@ -858,19 +858,19 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
             textTransform: "uppercase",
           }}
         >
-          <span>Rank</span>
-          <span>Patch</span>
-          <span>Author</span>
-          <span style={{ textAlign: "right" }}>Upvotes</span>
+          <span>{t('cosmic.leaderboard.rank')}</span>
+          <span>{t('cosmic.leaderboard.patch')}</span>
+          <span>{t('cosmic.leaderboard.author')}</span>
+          <span style={{ textAlign: "right" }}>{t('cosmic.leaderboard.upvotes')}</span>
         </div>
         {loading && (
           <div style={{ padding: "32px 24px", fontFamily: cosmicFonts.mono, fontSize: 12, color: cosmicShared.sub, textAlign: "center" }}>
-            loading…
+            {t('cosmic.leaderboard.loading')}
           </div>
         )}
         {!loading && rows.length === 0 && (
           <div style={{ padding: "32px 24px", fontFamily: cosmicFonts.mono, fontSize: 12, color: cosmicShared.sub, textAlign: "center" }}>
-            No votes this week yet — be the first to upvote a patch.
+            {t('cosmic.leaderboard.empty')}
           </div>
         )}
         {!loading && rows.map((r, i) => (
@@ -962,10 +962,10 @@ function CosmicFooter() {
             textTransform: "uppercase",
           }}
         >
-          <span>github</span>
-          <span>discord</span>
-          <span>twitter</span>
-          <span>credits</span>
+          <span>{t('cosmic.footer.github')}</span>
+          <span>{t('cosmic.footer.discord')}</span>
+          <span>{t('cosmic.footer.twitter')}</span>
+          <span>{t('cosmic.footer.credits')}</span>
         </div>
         <div
           style={{
@@ -975,7 +975,7 @@ function CosmicFooter() {
             letterSpacing: "0.12em",
           }}
         >
-          MIT · 2026 · MADE BY HUMANS
+          {t('cosmic.footer.mit')}
         </div>
       </div>
     </div>
@@ -995,6 +995,7 @@ export default function CosmicLanding({
   onTryIt?: () => void;
   onOpenLeaderboard?: () => void;
 }) {
+  useLanguage();
   return (
     <div style={{ fontFamily: cosmicFonts.ui }}>
       <CosmicHero onGetStarted={onGetStarted} isLoggedIn={isLoggedIn} onNewProject={onNewProject} onTryIt={onTryIt} />

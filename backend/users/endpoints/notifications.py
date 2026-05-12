@@ -37,8 +37,10 @@ class NotificationViewSet(viewsets.ReadOnlyModelViewSet):
             n.save(update_fields=['read_at'])
         return Response(NotificationSerializer(n).data)
 
-    @extend_schema(summary="Unread notification count")
+    @extend_schema(summary="Unread notification count (split by type)")
     @action(detail=False, methods=['get'], url_path='unread-count')
     def unread_count(self, request):
-        c = Notification.objects.filter(recipient=request.user.profile, read_at__isnull=True).count()
-        return Response({"unread": c})
+        qs = Notification.objects.filter(recipient=request.user.profile, read_at__isnull=True)
+        messages = qs.filter(type='message').count()
+        other = qs.exclude(type='message').count()
+        return Response({"messages": messages, "notifications": other})

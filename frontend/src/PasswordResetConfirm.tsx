@@ -3,6 +3,7 @@ import { Input } from './Reusables';
 import { extractErrorMessage } from './api';
 import logger from './logger';
 import { validatePasswordStrength, validatePasswordsMatch } from './validators';
+import { t, useLanguage } from './i18n';
 
 const CONFIRM_ENDPOINT = '/api/users/password-reset-confirm/';
 
@@ -12,6 +13,7 @@ type Props = {
 };
 
 export default function PasswordResetConfirmPage({ uid, token }: Props) {
+  useLanguage();
   const [password, setPassword] = useState('');
   const [repeat, setRepeat] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -59,10 +61,10 @@ export default function PasswordResetConfirmPage({ uid, token }: Props) {
       <div className="font-lexend min-h-screen flex items-center justify-center px-4">
         <div className="modal-card max-w-md w-full text-center space-y-4">
           <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">
-            Password reset
+            {t('auth.reset_done_title')}
           </h2>
           <p className="text-indigo-300/70 text-sm">
-            Your password has been updated. You can now log in with the new password.
+            {t('auth.reset_done_desc')}
           </p>
           <button
             type="button"
@@ -70,7 +72,7 @@ export default function PasswordResetConfirmPage({ uid, token }: Props) {
             data-xylo-note="C5"
             className="xylo-note xylo-note--submit"
           >
-            Back to log in
+            {t('auth.back_to_login')}
           </button>
         </div>
       </div>
@@ -81,16 +83,16 @@ export default function PasswordResetConfirmPage({ uid, token }: Props) {
     <div className="font-lexend min-h-screen flex items-center justify-center px-4">
       <div className="modal-card max-w-md w-full">
         <h2 className="text-3xl font-bold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent text-center tracking-wide mb-4">
-          Set a new password
+          {t('auth.set_new_password_title')}
         </h2>
         <p className="text-indigo-300/50 text-xs text-center mb-8">
-          Enter your new password below.
+          {t('auth.set_new_password_desc')}
         </p>
         <form onSubmit={handleSubmit} className="flex flex-col gap-6 mb-5" noValidate>
           <div>
             <Input
               type="password"
-              placeholder="New password"
+              placeholder={t('placeholder.new_password_field')}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete="new-password"
@@ -102,7 +104,7 @@ export default function PasswordResetConfirmPage({ uid, token }: Props) {
           <div>
             <Input
               type="password"
-              placeholder="Repeat new password"
+              placeholder={t('placeholder.repeat_new_field')}
               value={repeat}
               onChange={(e) => setRepeat(e.target.value)}
               autoComplete="new-password"
@@ -117,7 +119,7 @@ export default function PasswordResetConfirmPage({ uid, token }: Props) {
             data-xylo-note="C5"
             className="xylo-note xylo-note--submit"
           >
-            {submitting ? 'Resetting…' : 'Reset password'}
+            {submitting ? t('auth.reset_submitting') : t('auth.reset_submit')}
           </button>
           <button
             type="button"
@@ -125,7 +127,7 @@ export default function PasswordResetConfirmPage({ uid, token }: Props) {
             data-xylo-note="A5"
             className="xylo-note xylo-note--link text-sm self-center"
           >
-            Cancel
+            {t('common.cancel')}
           </button>
         </form>
       </div>

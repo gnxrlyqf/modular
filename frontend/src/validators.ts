@@ -1,4 +1,4 @@
-// Reusable input validators. Pure functions: each returns null on valid, error string on invalid.
+import { t } from './i18n';
 
 export type FieldErrors<K extends string = string> = Partial<Record<K, string>>;
 
@@ -7,7 +7,14 @@ const USERNAME_RE = /^[a-zA-Z0-9_.-]{3,30}$/;
 
 export function validateRequired(value: string | null | undefined, fieldLabel = 'This field'): string | null {
   if (value === null || value === undefined || value.trim() === '') {
-    return `${fieldLabel} is required.`;
+    const map: Record<string, () => string> = {
+      'Email':            () => t('validation.email_required'),
+      'Username':         () => t('validation.username_required'),
+      'Password':         () => t('validation.password_required'),
+      'Code':             () => t('validation.code_required'),
+      'Current password': () => t('validation.current_password_required'),
+    };
+    return (map[fieldLabel] ?? (() => t('validation.required')))();
   }
   return null;
 }
@@ -15,8 +22,8 @@ export function validateRequired(value: string | null | undefined, fieldLabel = 
 export function validateEmail(value: string): string | null {
   const required = validateRequired(value, 'Email');
   if (required) return required;
-  if (!EMAIL_RE.test(value.trim())) return 'Invalid email format.';
-  if (value.length > 254) return 'Email is too long.';
+  if (!EMAIL_RE.test(value.trim())) return t('validation.email_invalid');
+  if (value.length > 254) return t('validation.email_too_long');
   return null;
 }
 
@@ -24,37 +31,37 @@ export function validateUsername(value: string): string | null {
   const required = validateRequired(value, 'Username');
   if (required) return required;
   const v = value.trim();
-  if (v.length < 3) return 'Username must be at least 3 characters.';
-  if (v.length > 30) return 'Username must be at most 30 characters.';
-  if (!USERNAME_RE.test(v)) return 'Username may only contain letters, digits, ., -, _.';
+  if (v.length < 3) return t('validation.username_too_short');
+  if (v.length > 30) return t('validation.username_too_long');
+  if (!USERNAME_RE.test(v)) return t('validation.username_invalid');
   return null;
 }
 
 export function validatePasswordStrength(value: string): string | null {
   const required = validateRequired(value, 'Password');
   if (required) return required;
-  if (value.length < 8) return 'Password must be at least 8 characters.';
-  if (value.length > 128) return 'Password is too long.';
-  if (!/[A-Za-z]/.test(value)) return 'Password must contain a letter.';
-  if (!/[0-9]/.test(value)) return 'Password must contain a digit.';
-  if (/^\d+$/.test(value)) return 'Password cannot be entirely numeric.';
+  if (value.length < 8) return t('validation.password_too_short');
+  if (value.length > 128) return t('validation.password_too_long');
+  if (!/[A-Za-z]/.test(value)) return t('validation.password_no_letter');
+  if (!/[0-9]/.test(value)) return t('validation.password_no_digit');
+  if (/^\d+$/.test(value)) return t('validation.password_numeric');
   return null;
 }
 
 export function validatePasswordsMatch(a: string, b: string): string | null {
-  if (a !== b) return 'Passwords do not match.';
+  if (a !== b) return t('validation.passwords_mismatch');
   return null;
 }
 
 export function validateTOTPCode(value: string): string | null {
   const required = validateRequired(value, 'Code');
   if (required) return required;
-  if (!/^\d{6}$/.test(value.trim())) return 'Code must be 6 digits.';
+  if (!/^\d{6}$/.test(value.trim())) return t('validation.code_invalid');
   return null;
 }
 
 export function validateBio(value: string): string | null {
-  if (value.length > 500) return 'Bio must be at most 500 characters.';
+  if (value.length > 500) return t('validation.bio_too_long');
   return null;
 }
 
