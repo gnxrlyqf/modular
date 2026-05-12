@@ -4,10 +4,9 @@
 # Yousef
 - [ ] implement mixer and splitter modules
 - [ ] implement module delete and disconnect
-- [ ] keyboard cables
 - [ ] Knobs doesnt connect to other outputs 3ndi
+- [ ] the cables implementation doesnt expect two outputs from the keyboard
 
 # Amine
-- [ ] keyboard should not output sound directly
 - [ ] reset module functionality
 

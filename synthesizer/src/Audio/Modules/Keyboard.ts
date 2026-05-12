@@ -2,45 +2,36 @@ import { Module } from "../Abstractions";
 import Patch from "./Patch";
 
 class Keyboard extends Module {
-  private freqOut: GainNode;
-  private trigOut: GainNode;
+  private freqOut: ConstantSourceNode;
+  private trigOut: ConstantSourceNode;
   private dummyOutput: GainNode;
 
   constructor(audioContext: AudioContext) {
     super(audioContext);
-
-    this.freqOut = new GainNode(this.audioContext, { gain: 0 });
-    this.trigOut = new GainNode(this.audioContext, { gain: 0 });
-
+    this.freqOut = new ConstantSourceNode(this.audioContext, { offset: 0 });
+    this.trigOut = new ConstantSourceNode(this.audioContext, { offset: 0 });
+    this.freqOut.start();
+    this.trigOut.start();
     this.dummyOutput = new GainNode(this.audioContext);
   }
 
   private setFrequency(v: number): void {
-    this.freqOut.gain.setValueAtTime(v, this.audioContext.currentTime);
+    this.freqOut.offset.setValueAtTime( v, this.audioContext.currentTime );
   }
 
   private setTrigger(v: number): void {
-    this.trigOut.gain.setValueAtTime(v, this.audioContext.currentTime);
+    this.trigOut.offset.setValueAtTime( v, this.audioContext.currentTime );
   }
 
   setParam(key: string, value: any): void {
     switch (key) {
-      case "freq":
-        this.setFrequency(value);
-        break;
+      case "freq": this.setFrequency(value); break;
 
-      case "trigger":
-        this.setTrigger(value);
-        break;
+      case "trigger": this.setTrigger(value); break;
 
-      case "noteOn":
-        this.setFrequency(value.freq);
-        this.setTrigger(1);
-        break;
+      case "noteOn": this.setFrequency(value.freq); this.setTrigger(1); break;
 
-      case "noteOff":
-        this.setTrigger(0);
-        break;
+      case "noteOff": this.setTrigger(0); break;
     }
   }
 
