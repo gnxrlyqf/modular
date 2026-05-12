@@ -5,6 +5,7 @@ class Keyboard extends Module {
   private freqOut: ConstantSourceNode;
   private trigOut: ConstantSourceNode;
   private dummyOutput: GainNode;
+  private activeNotes: Set<string> = new Set();
 
   constructor(audioContext: AudioContext) {
     super(audioContext);
@@ -16,22 +17,34 @@ class Keyboard extends Module {
   }
 
   private setFrequency(v: number): void {
-    this.freqOut.offset.setValueAtTime( v, this.audioContext.currentTime );
+    this.freqOut.offset.setValueAtTime(v, this.audioContext.currentTime);
   }
 
   private setTrigger(v: number): void {
-    this.trigOut.offset.setValueAtTime( v, this.audioContext.currentTime );
+    this.trigOut.offset.setValueAtTime(v, this.audioContext.currentTime);
   }
 
   setParam(key: string, value: any): void {
     switch (key) {
-      case "freq": this.setFrequency(value); break;
+      case "freq": 
+        this.setFrequency(value); 
+        break;
 
-      case "trigger": this.setTrigger(value); break;
+      case "trigger": 
+        this.setTrigger(value); 
+        break;
 
-      case "noteOn": this.setFrequency(value.freq); this.setTrigger(1); break;
+      case "noteOn": 
+        this.activeNotes.add(value.note);
+        this.setFrequency(value.freq); 
+        this.setTrigger(1); 
+        break;
 
-      case "noteOff": this.setTrigger(0); break;
+      case "noteOff": 
+        this.activeNotes.delete(value);
+        if (this.activeNotes.size === 0)
+          this.setTrigger(0);
+        break;
     }
   }
 
