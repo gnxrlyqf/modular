@@ -1,7 +1,6 @@
 # TODO
 
-## Imran: 
-
+## Imran:
 - [X] Database should be in its own container and/or volume mounted to make it persistent, not ephemeral
 - [ ] Develop nginx image ourselves (in case galoha f subject (chfrha l youssef mn inception))
 - [X] connect front end logs to backend /api/logs if @king made it otherwise make it and connect them
@@ -16,12 +15,12 @@
 - [X] same for scrolling we cant scroll in the matrix or scroll fl modules
 - [X] allow to resend email verification
 - [X] esc to close overlays
-- [ ] language support should be added back
+- [X] language support should be added back
 - [ ] customizable date ranges and filters in the analytics dashboard
 - [ ] add ability to download/upload project (upload with validation)
 - [ ] user be able to delete his own account
 - [ ] use websockets for something (major)
-- [ ] Do I layout mirror on RtL languages?
+- [X] Do I layout mirror on RtL languages?
 - [ ] online status for friends
 - [ ] 
 - [ ] 
