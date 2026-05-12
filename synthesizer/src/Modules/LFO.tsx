@@ -116,10 +116,13 @@ function LFO(props: LFOProps) {
     >
       <div className="flex gap-2 bg-purple-900/50 p-1 rounded-lg">
         <button onClick={() => setSync(false)} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${!sync ? "bg-[#8F0177]" : ""}`}>FREE</button>
-        <button onClick={() => {
-          setSync(true)
-          // disconnect
-        }} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${sync ? "bg-[#8F0177]" : ""}`}>SYNC</button>
+        <button className={`cursor-pointer px-3 py-1 rounded-md text-xs ${sync ? "bg-[#8F0177]" : ""}`}
+          onClick={() => {
+            setSync(true)
+            window.dispatchEvent(new CustomEvent('moduleAction', {detail: {type: 'DISCONNECT', id: props.id}}));
+          }} >
+        SYNC
+        </button>
       </div>
       <div className="w-full flex items-center justify-center">
         {sync ?
