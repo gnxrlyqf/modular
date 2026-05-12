@@ -171,7 +171,7 @@ function GhostModule(props: { type: ModuleType; x: number; y: number; className?
   
   return (
     <div
-      className={`pointer-events-none absolute m-4 rounded-xl border-2 border-dashed border-white/90 bg-white/5 ${props.className ?? ""}`}
+      className={`pointer-events-none absolute rounded-xl border-2 border-dashed border-white/90 bg-white/5 ${props.className ?? ""}`}
       style={{ width: w, height: h, left: props.x, top: props.y }}
     />
   )

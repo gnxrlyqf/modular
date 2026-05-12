@@ -327,8 +327,13 @@ function Scene() {
   // Dock items — use screenToWorld (stable ref, always reads live camera)
   const items = useMemo(
     () => createDockItems((type, e) => {
+      const { w, h } = moduleObjects[type];
       const { x, y } = screenToWorld(e.clientX, e.clientY);
-      setGhost({ type, x: snapToGrid(x), y: snapToGrid(y) });
+      setGhost({
+        type,
+        x: snapToGrid(x - w / 2),
+        y: snapToGrid(y - h / 2),
+      });
     }),
     [screenToWorld]
   );
@@ -381,9 +386,14 @@ function Scene() {
   const handleSceneMouseMove = (e: { clientX: number; clientY: number }) => {
     if (!ghost) return;
     const { x: worldX, y: worldY } = screenToWorld(e.clientX, e.clientY);
+    const { w, h } = moduleObjects[ghost.type];
     setGhost((prev) => {
       if (!prev) return prev;
-      return { ...prev, x: snapToGrid(worldX), y: snapToGrid(worldY) };
+      return {
+        ...prev,
+        x: snapToGrid(worldX - w / 2),
+        y: snapToGrid(worldY - h / 2),
+      };
     });
   };
 

@@ -1,7 +1,5 @@
 import type { ModuleProps } from "../Modules/Modules";
 
-const GRID_SIZE = 16;
-
 export function wouldOverlap(nextX: number, nextY: number, self: HTMLDivElement) {
   const width = self.offsetWidth;
   const height = self.offsetHeight;
@@ -17,11 +15,12 @@ export function wouldOverlap(nextX: number, nextY: number, self: HTMLDivElement)
     const otherRight = otherLeft + other.offsetWidth;
     const otherBottom = otherTop + other.offsetHeight;
 
+    // Use real bounds here; snapping already keeps modules on the grid.
     const intersects =
-      nextX < otherRight + GRID_SIZE &&
-      nextX + width + GRID_SIZE > otherLeft &&
-      nextY < otherBottom + GRID_SIZE &&
-      nextY + height + GRID_SIZE > otherTop;
+      nextX < otherRight &&
+      nextX + width > otherLeft &&
+      nextY < otherBottom &&
+      nextY + height > otherTop;
 
     if (intersects) {
       return true;

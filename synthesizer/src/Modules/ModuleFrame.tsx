@@ -47,7 +47,7 @@ export default function ModuleFrame({
       data-module-id={id}
       style={{ width, height, left: position.x, top: position.y, backgroundColor: baseColor, transition: 'box-shadow 0.2s'}}
       onContextMenu={onContextMenu}
-      className={`bg-linear-to-b to-zinc-800/30 from-90% to-100% absolute m-4 flex flex-col text-white rounded-2xl overflow-visible font-lexend group`}
+      className={`bg-linear-to-b to-zinc-800/30 from-90% to-100% absolute flex flex-col text-white rounded-2xl overflow-visible font-lexend group`}
       onMouseEnter={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = `0 0 ${MODULE_SHADOW_SIZE}px 0 ${shadowColor}`; }}
       onMouseLeave={e => { (e.currentTarget as HTMLDivElement).style.boxShadow = 'none'; }}
     >
