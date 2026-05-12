@@ -11,7 +11,7 @@ class Sync {
 	}
 
 	getFrequency(): number {
-		return ((this.tempo / 60) / this.division);
+		return ((this.tempo / 60) * this.division);
 	}
 }
 
@@ -39,6 +39,7 @@ class LFOscillator extends Module {
 	setSync(div: 0 | false | 1 | 2 | 4 | 8 | 16 | 32): void {
 		if (!div) {
 			this.mode = null;
+			this.setFrequency(1);
 			return;
 		}
 

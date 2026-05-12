@@ -7,7 +7,6 @@ import { KnobParam, Param } from "../Interactions/Params";
 import ModuleFrame from "./ModuleFrame";
 import { audioContext } from "../Scene/Scene";
 import type { ModuleProps } from "./Modules";
-import { useConnection } from "../ConnectionContext";
 
 function SineIcon() {
   return (
