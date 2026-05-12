@@ -640,7 +640,6 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [isAvatarModalOpen, setIsAvatarModalOpen] = useState(false);
   const [isTwoFactorModalOpen, setIsTwoFactorModalOpen] = useState(false);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
 
   useEffect(() => {
     authFetch('/api/users/me/')
@@ -694,10 +693,6 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
     window.location.reload();
   };
 
-  const handleDeleted = () => {
-    props.setLoggedIn?.(false);
-    window.location.reload();
-  };
 
   return (
     <>
@@ -785,9 +780,6 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
           <div className="divider-glow my-2" />
 
           <div className="flex flex-wrap gap-2">
-            <button type="button" onClick={() => setIsDeleteModalOpen(true)} className="rounded-lg px-4 py-1.5 text-xs font-medium bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 text-red-300/80 hover:text-red-200 tracking-wide duration-200 ease-out cursor-pointer">
-              {t('auth.delete_account')}
-            </button>
             <button type="button" onClick={handleLogout} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
               {t('auth.sign_out')}
             </button>
@@ -816,11 +808,6 @@ function AccountSettings(props: { setLoggedIn?: (value: boolean) => void }) {
           onEnabled={() => setTwoFactorEnabled(true)}
         />
       )}
-      <DeleteAccountModal
-        isOpen={isDeleteModalOpen}
-        onClose={() => setIsDeleteModalOpen(false)}
-        onDeleted={handleDeleted}
-      />
     </>
   )
 }
@@ -903,12 +890,40 @@ function GeneralSettings() {
   )
 }
 
-function PrivacySettings() {
+function PrivacySettings(props: { setLoggedIn?: (value: boolean) => void }) {
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+
+  const handleDeleted = () => {
+    clearLocalPrefs();
+    clearAuthCookies();
+    props.setLoggedIn?.(false);
+    window.location.reload();
+  };
+
   return (
-    <SettingsSection title={t('settings.section.privacy')} description={t('settings.section.privacy.desc')}>
-      <div className="settings-row-box text-indigo-300/40 text-sm font-light">{t('common.coming_soon')}</div>
-    </SettingsSection>
-  )
+    <>
+      <SettingsSection title={t('settings.section.privacy')} description={t('settings.section.privacy.desc')}>
+        <div className="space-y-1.5">
+          <p className="text-xs text-indigo-300/50 tracking-wide uppercase">{t('settings.delete_account_title')}</p>
+          <div className="settings-row settings-row-box">
+            <span className="text-indigo-300/40 text-xs font-light">{t('settings.delete_account_desc')}</span>
+            <button
+              type="button"
+              onClick={() => setIsDeleteModalOpen(true)}
+              className="rounded-lg px-3 py-1 text-xs font-medium bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 text-red-300/80 hover:text-red-200 tracking-wide duration-200 ease-out cursor-pointer shrink-0"
+            >
+              {t('auth.delete_account')}
+            </button>
+          </div>
+        </div>
+      </SettingsSection>
+      <DeleteAccountModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onDeleted={handleDeleted}
+      />
+    </>
+  );
 }
 
 function Settings(props: { personal?: boolean; func?: (value: boolean) => void; setLoggedIn?: (value: boolean) => void }) {
@@ -924,7 +939,7 @@ function Settings(props: { personal?: boolean; func?: (value: boolean) => void; 
           <div className="divider-glow" />
           <GeneralSettings />
           <div className="divider-glow" />
-          <PrivacySettings />
+          <PrivacySettings setLoggedIn={props.setLoggedIn} />
         </div>
       </div>
     </div>

@@ -61,10 +61,17 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 class UserSearchSerializer(serializers.ModelSerializer):
     profile_id = serializers.IntegerField(source='profile.id', read_only=True)
+    is_online = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'profile_id']
+        fields = ['id', 'username', 'email', 'profile_id', 'is_online']
+
+    def get_is_online(self, obj):
+        try:
+            return obj.profile.is_online
+        except Exception:
+            return False
 
 class FriendshipSerializer(serializers.ModelSerializer):
     sender_name = serializers.ReadOnlyField(source='sender.display_name')

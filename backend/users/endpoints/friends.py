@@ -168,6 +168,7 @@ class FriendshipViewSet(viewsets.ModelViewSet):
                 'username': other.user.username,
                 'display_name': other.display_name,
                 'avatar': other.avatar.url if other.avatar else None,
+                'is_online': other.is_online,
             })
         return Response(out)
 

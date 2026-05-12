@@ -13,6 +13,7 @@ type Thread = {
   last_message: string;
   last_at: string;
   unread: number;
+  is_online?: boolean;
 };
 
 type FriendRow = {
@@ -20,7 +21,14 @@ type FriendRow = {
   username: string;
   display_name: string;
   avatar: string | null;
+  is_online?: boolean;
 };
+
+function OnlineDot() {
+  return (
+    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#0d0d1a]" />
+  );
+}
 
 type Message = {
   id: number;
@@ -69,11 +77,14 @@ function ThreadList(props: {
             props.activeId === t.profile_id ? 'bg-indigo-500/15 border border-indigo-400/25' : 'hover:bg-white/5'
           }`}
         >
-          <img
-            src={t.avatar ?? FALLBACK_AVATAR}
-            alt={t.username}
-            className="w-9 h-9 rounded-full object-cover shrink-0"
-          />
+          <div className="relative shrink-0">
+            <img
+              src={t.avatar ?? FALLBACK_AVATAR}
+              alt={t.username}
+              className="w-9 h-9 rounded-full object-cover"
+            />
+            {t.is_online && <OnlineDot />}
+          </div>
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-2">
               <p className="truncate text-sm font-medium text-indigo-100">
@@ -183,11 +194,14 @@ function NewConversationPicker(props: {
                 onClick={() => props.onPick(f)}
                 className="user-row flex items-center gap-3 px-2 py-2 text-left rounded-lg hover:bg-white/5"
               >
-                <img
-                  src={f.avatar ?? FALLBACK_AVATAR}
-                  alt={f.username}
-                  className="w-9 h-9 rounded-full object-cover shrink-0"
-                />
+                <div className="relative shrink-0">
+                  <img
+                    src={f.avatar ?? FALLBACK_AVATAR}
+                    alt={f.username}
+                    className="w-9 h-9 rounded-full object-cover"
+                  />
+                  {f.is_online && <OnlineDot />}
+                </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium text-indigo-100">{f.display_name || f.username}</p>
                   <p className="truncate text-[11px] text-indigo-300/40">@{f.username}</p>
@@ -266,16 +280,23 @@ function ChatPane(props: {
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center gap-3 px-3 py-2 border-b border-white/5">
-        <img
-          src={props.thread.avatar ?? FALLBACK_AVATAR}
-          alt={props.thread.username}
-          className="w-8 h-8 rounded-full object-cover"
-        />
+        <div className="relative shrink-0">
+          <img
+            src={props.thread.avatar ?? FALLBACK_AVATAR}
+            alt={props.thread.username}
+            className="w-8 h-8 rounded-full object-cover"
+          />
+          {props.thread.is_online && <OnlineDot />}
+        </div>
         <div className="min-w-0 flex-1">
           <p className="truncate text-sm font-medium text-indigo-100">
             {props.thread.display_name || props.thread.username}
           </p>
-          <p className="truncate text-[10px] text-indigo-300/40">@{props.thread.username}</p>
+          <p className="truncate text-[10px] text-indigo-300/40">
+            {props.thread.is_online
+              ? <span className="text-green-400/80">online</span>
+              : `@${props.thread.username}`}
+          </p>
         </div>
         <button
           type="button"

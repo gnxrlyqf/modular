@@ -9,7 +9,7 @@
 - [ ] when entering instead of pressing button, the drum goes the the 0, 0 position, it should not move 
 
 - [X] verification email not working
-- [ ] changing error output (like login and sign up)
+- [X] changing error output (like login and sign up)
 - [X] did u do the admin ?
 - [X] when i double click on an item fl grid it zooms (like double clickin the top bar or the matrix)
 - [X] same for scrolling we cant scroll in the matrix or scroll fl modules
@@ -18,10 +18,10 @@
 - [X] language support should be added back
 - [ ] customizable date ranges and filters in the analytics dashboard
 - [ ] add ability to download/upload project (upload with validation)
-- [ ] user be able to delete his own account
+- [X] user be able to delete his own account
 - [ ] use websockets for something (major)
 - [X] Do I layout mirror on RtL languages?
-- [ ] online status for friends
+- [X] online status for friends
 - [ ] 
 - [ ] 
 - [ ] 

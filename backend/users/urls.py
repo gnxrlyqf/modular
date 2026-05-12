@@ -31,6 +31,7 @@ from .views import (
     UserAdminAllLogsView,
     UserResendVerificationView,
     UserDashboardTokenView,
+    UserHeartbeatView,
 )
 
 # 1. Router for ViewSets
@@ -68,6 +69,9 @@ urlpatterns = [
 
     # --- Analytics dashboard (Metabase signed embed) ---
     path('dashboard-token/', UserDashboardTokenView.as_view(), name='dashboard_token'),
+
+    # --- Online presence ---
+    path('heartbeat/', UserHeartbeatView.as_view(), name='heartbeat'),
 
     # --- Search ---
     path('search/', UserSearchListView.as_view(), name='user_search'),

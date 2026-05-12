@@ -18,6 +18,7 @@ import { authFetch, clearAuthCookies } from './api';
 import ChatContainer from './Chat';
 import NotificationsContainer from './Notifications';
 import { PrefsProvider } from './Prefs'
+import logoImg from './assets/logo.png'
 import { t, useLanguage } from './i18n';
 
 const ACCESS_COOKIE_NAME = "accessToken";
@@ -92,9 +93,8 @@ function TopBar(props: {
           <div className="relative z-10 grid grid-cols-3 items-center w-full">
 
             {/* ── Left: Logo ── */}
-            <div className="flex items-center gap-2.5 justify-start">
-              <div className="navbar-logo-icon" />
-              <span className="navbar-logo-text">Lmoussiqar</span>
+            <div className="flex items-center justify-start">
+              <img src={logoImg} alt="Lmoussiqar" className="navbar-logo-img" />
             </div>
 
             {/* ── Center: Nav links styled as xylophone bars ── */}
@@ -301,9 +301,17 @@ function MainApp() {
 
   useEffect(() => {
     pollUnread();
-    const t = setInterval(pollUnread, 15000);
+    const t = setInterval(pollUnread, 5000);
     return () => clearInterval(t);
   }, [pollUnread]);
+
+  useEffect(() => {
+    if (!isLoggedIn) return;
+    const beat = () => authFetch('/api/users/heartbeat/', { method: 'POST' }).catch(() => {});
+    beat();
+    const t = setInterval(beat, 30000);
+    return () => clearInterval(t);
+  }, [isLoggedIn]);
 
   const handleLoginSuccess = () => {
     logger.info('auth.login_success');

@@ -128,5 +128,6 @@ class MessageViewSet(viewsets.ModelViewSet):
                 'last_message': m.content[:120],
                 'last_at': m.created_at,
                 'unread': unread,
+                'is_online': other.is_online,
             })
         return Response(threads)

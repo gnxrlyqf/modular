@@ -24,6 +24,7 @@ from .endpoints.messages import MessageViewSet
 from .endpoints.notifications import NotificationViewSet
 from .endpoints.public_profile import public_profile
 from .endpoints.dashboard import DashboardTokenView
+from .endpoints.heartbeat import heartbeat
 from .endpoints.admin import (
     AdminCheckView,
     AdminUserListView,
@@ -142,3 +143,8 @@ class UserAdminAllLogsView(AdminAllLogsView):
 
 class UserDashboardTokenView(DashboardTokenView):
     pass
+
+class UserHeartbeatView(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+    def post(self, request):
+        return heartbeat(request._request)

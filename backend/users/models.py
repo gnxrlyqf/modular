@@ -1,12 +1,17 @@
+from datetime import timedelta
+
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.core.mail import send_mail
 from django.utils.encoding import force_bytes
+from django.utils import timezone
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.conf import settings
+
+ONLINE_THRESHOLD = timedelta(seconds=60)
 
 class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
@@ -35,6 +40,14 @@ class Profile(models.Model):
 
     two_factor_enabled = models.BooleanField(default=False)
     two_factor_secret = models.CharField(max_length=32, blank=True, null=True)
+
+    last_seen = models.DateTimeField(null=True, blank=True)
+
+    @property
+    def is_online(self) -> bool:
+        if self.last_seen is None:
+            return False
+        return (timezone.now() - self.last_seen) < ONLINE_THRESHOLD
 
     def_settings = models.JSONField(
         default=get_default_synth_settings,

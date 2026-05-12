@@ -195,6 +195,12 @@ canvas {
     z-index: 0;
 }
 
+.navbar-logo-img {
+    height: 42px;
+    width: auto;
+    flex-shrink: 0;
+}
+
 .navbar-logo-icon {
     width: 22px;
     height: 22px;

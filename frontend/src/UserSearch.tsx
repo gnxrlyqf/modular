@@ -10,7 +10,14 @@ type ApiUser = {
   username: string;
   email: string;
   profile_id: number | null;
+  is_online?: boolean;
 };
+
+function OnlineDot() {
+  return (
+    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#0d0d1a]" />
+  );
+}
 
 type PaginatedResponse = {
   count: number;
@@ -139,10 +146,11 @@ function UserRow(props: {
   return (
     <div className="user-row flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5">
       <div
-        className={`flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 border border-indigo-400/20 text-xs font-semibold text-indigo-200 tracking-wide ${canClick ? 'cursor-pointer hover:bg-indigo-500/35 transition-colors' : ''}`}
+        className={`relative flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 border border-indigo-400/20 text-xs font-semibold text-indigo-200 tracking-wide ${canClick ? 'cursor-pointer hover:bg-indigo-500/35 transition-colors' : ''}`}
         onClick={canClick ? () => props.onUserClick!(props.user.username) : undefined}
       >
         {initials}
+        {props.user.is_online && <OnlineDot />}
       </div>
       <div
         className={`min-w-0 flex-1 ${canClick ? 'cursor-pointer' : ''}`}

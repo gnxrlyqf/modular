@@ -53,6 +53,10 @@ function FriendRequestActions(props: {
   if (props.resolved === 'declined') {
     return <span className="text-[10px] text-zinc-400 italic">{t('notif.declined')}</span>;
   }
+  if (props.notif.read_at !== null) {
+    // Acted upon in a previous session — don't re-show buttons.
+    return null;
+  }
   if (props.notif.related_id == null) {
     return <span className="text-[10px] text-indigo-300/30 italic">{t('notif.expired')}</span>;
   }
