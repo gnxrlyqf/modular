@@ -91,8 +91,8 @@ class Context {
 				return mod;
 			}
 			case "keyboard": {
-				 const kb = new Keyboard(this.audioContext);
-				 return kb;
+				const kb = new Keyboard(this.audioContext);
+				return kb;
 			}
 			default: {
 				const out = new Output(this.audioContext);
@@ -111,12 +111,14 @@ class Context {
 
 	addCable(cable: Cable) {
 		const id: string = cable.id;
+
 		const [fromId, fromParam] = cable.from.split('.');
 		const [toId, toParam] = cable.to.split('.');
-		
-		void(fromParam);
-		const patch = new Patch(this.modules.get(fromId));
+
+		const patch = new Patch( this.modules.get(fromId), fromParam);
+
 		this.cables.set(id, patch);
+
 		this.modules.get(toId)?.setMod(toParam, patch);
 	}
 

@@ -48,9 +48,10 @@ const PORT_OFFSETS = {
   sequencer: {
     trigger: { x: moduleObjects.sequencer.w - 4, y: moduleObjects.sequencer.h - 56 },
   },
-	keyboard: {
-		output: { x: moduleObjects.keyboard.w - 4, y: moduleObjects.keyboard.h - 56 },
-	},
+  keyboard: {
+    freq: { x: moduleObjects.keyboard.w - 4, y: moduleObjects.keyboard.h - 90 },
+    trigger: { x: moduleObjects.keyboard.w - 4, y: moduleObjects.keyboard.h - 40 },
+  },
 };
 
 type Cable = {
