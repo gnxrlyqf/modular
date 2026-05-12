@@ -116,9 +116,15 @@ function LFO(props: LFOProps) {
     >
       <div className="flex gap-2 bg-purple-900/50 p-1 rounded-lg">
         <button onClick={() => setSync(false)} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${!sync ? "bg-[#8F0177]" : ""}`}>FREE</button>
-        <button onClick={() => setSync(true)} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${sync ? "bg-[#8F0177]" : ""}`}>SYNC</button>
+        <button className={`cursor-pointer px-3 py-1 rounded-md text-xs ${sync ? "bg-[#8F0177]" : ""}`}
+          onClick={() => {
+            setSync(true)
+            window.dispatchEvent(new CustomEvent('moduleAction', {detail: {type: 'DISCONNECT', id: props.id}}));
+          }} >
+        SYNC
+        </button>
       </div>
-      <div className="w-full flex items-center">
+      <div className="w-full flex items-center justify-center">
         {sync ?
         		<div className="p-1 rounded-xl border-[3px] flex flex-col items-center gap-1 mx-5"
               style={{borderColor: color}}
@@ -137,7 +143,7 @@ function LFO(props: LFOProps) {
             className="w-[90%] h-2 rounded-lg appearance-none cursor-pointer bg-zinc-700 accent-[#8F0177]"
           />
           <div className="mt-6 mb-2">
-            <RadioSelect value={time} onChange={setTime} >
+            <RadioSelect name={`${props.id}-time-radio`} value={time} onChange={setTime} >
               <RadioSelectOption value={""}>S</RadioSelectOption>
               <RadioSelectOption value={"t"}>trip</RadioSelectOption>
               <RadioSelectOption value={"."}>dot</RadioSelectOption>

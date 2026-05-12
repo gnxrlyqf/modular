@@ -27,20 +27,26 @@ class Sequencer extends Module {
 		}
 
 		if (this.timer !== null)
-			clearInterval(this.timer);
+			clearTimeout(this.timer);
 
-		const interval = (this.tempo / 60) / this.length;
-		let time = this.audioContext.currentTime;
+		const stepDuration = (this.tempo / 60) / this.length;
 		let index = 0;
+		let nextStepTime = this.audioContext.currentTime;
 
-		this.timer = setInterval(() => {
+		const scheduleStep = () => {
 			const val = this.sequence[index] ?? 0;
-			this.signal.offset.setValueAtTime(val, time);
-			// notify listeners before advancing time/index
-			this.stepListeners.forEach((cb) => cb(index, val, time));
-			time += interval;
+			this.signal.offset.setValueAtTime(val, nextStepTime);
+			this.stepListeners.forEach((cb) => cb(index, val, nextStepTime));
+			
 			index = (index + 1) % this.length;
-		}, interval * 1000);
+			nextStepTime += stepDuration;
+			
+			// Schedule next step relative to audio context time
+			const delayUntilNextStep = Math.max(0, (nextStepTime - this.audioContext.currentTime) * 1000);
+			this.timer = setTimeout(scheduleStep, delayUntilNextStep);
+		};
+
+		this.timer = setTimeout(scheduleStep, 0);
 	}
 
 	setMod(key: string, patch: Patch | null): void {

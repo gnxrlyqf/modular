@@ -4,6 +4,7 @@ export function wouldOverlap(nextX: number, nextY: number, self: HTMLDivElement)
   const width = self.offsetWidth;
   const height = self.offsetHeight;
   const modules = document.querySelectorAll<HTMLDivElement>('[data-patch-module="true"]');
+  const margin = 20; // Add spacing between modules
 
   for (const other of modules) {
     if (other === self) {
@@ -17,10 +18,10 @@ export function wouldOverlap(nextX: number, nextY: number, self: HTMLDivElement)
 
     // Use real bounds here; snapping already keeps modules on the grid.
     const intersects =
-      nextX < otherRight &&
-      nextX + width > otherLeft &&
-      nextY < otherBottom &&
-      nextY + height > otherTop;
+      nextX < otherRight + margin &&
+      nextX + width + margin > otherLeft &&
+      nextY < otherBottom + margin &&
+      nextY + height + margin > otherTop;
 
     if (intersects) {
       return true;
