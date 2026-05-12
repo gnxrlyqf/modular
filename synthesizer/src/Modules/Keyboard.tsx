@@ -5,8 +5,7 @@ import { useContextMenu } from "../Utils/useContextMenu";
 import ModuleFrame from "./ModuleFrame";
 import styled from "styled-components";
 import { audioContext } from "../Scene/Scene";
-import { RadioSelect, RadioSelectOption } from "../Interactions/RadioSelect";
-
+import { Param } from "../Interactions/Params";
 
 
 type KeyType = "white" | "black";
@@ -29,14 +28,14 @@ interface KeyboardProps extends ModuleProps {
   // Add specific keyboard settings here if needed (e.g. octave)
 }
 
-const MODULE_WIDTH = 704; 
-const MODULE_HEIGHT = 320;
+const MODULE_WIDTH = 672; 
+const MODULE_HEIGHT = 352;
 
 const WHITE_KEY_WIDTH = 45;
 const BLACK_KEY_WIDTH = 28;
 
-const BLACK_KEY_HEIGHT = 100;
-const WHITE_KEY_HEIGHT = 180;
+const BLACK_KEY_HEIGHT = 80;
+const WHITE_KEY_HEIGHT = 140;
 const OCTAVES = 2;
 
 const WHITE_PATTERN = ["C", "D", "E", "F", "G", "A", "B"];
@@ -57,7 +56,6 @@ const NOTE_TO_SEMITONE: Record<string, number> = {
 const KeyboardBed = styled.div`
   position: relative;
   display: flex;
-  margin-top: 0px;
 `;
 
 const StyledKey = styled.div<{ $keyType: KeyType; $isActive: boolean; $left?: number;}>`
@@ -126,7 +124,9 @@ function Keyboard(props: KeyboardProps) {
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#a0a0a0ff";
   const [activeNotes, setActiveNotes] = useState<Record<string, boolean>>({});
-  const [octaveShift, setOctaveShift] = useState(0);
+  const [octaveShift, setOctaveShift] = useState(3);
+  // const [lastFreq, setLastFreq] = useState(0);
+  const [sync, setSync] = useState(false);
 
   const MIN_OCTAVE = 0;
   const MAX_OCTAVE = 4;
@@ -174,15 +174,22 @@ function Keyboard(props: KeyboardProps) {
 
   const handleNoteDown = (noteId: string) => {
     setActiveNotes((p) => ({ ...p, [noteId]: true }));
-
+    const freq = getFrequency(noteId);
+    audioContext.setParam(props.id, "freq", freq);
+    audioContext.setParam(props.id, "trigger", 1);
     audioContext.setParam(props.id, "noteOn", {
       note: noteId,
-      freq: getFrequency(noteId),
+      freq,
     });
   };
 
   const handleNoteUp = (noteId: string) => {
-    setActiveNotes((p) => ({ ...p, [noteId]: false }));
+    setActiveNotes((p) => {
+      const updated = { ...p, [noteId]: false };
+      const anyStillPressed = Object.values(updated).some(Boolean);
+      if (!anyStillPressed) audioContext.setParam(props.id, "trigger", 0);
+      return updated;
+    });
     audioContext.setParam(props.id, "noteOff", noteId);
   };
 
@@ -203,33 +210,40 @@ function Keyboard(props: KeyboardProps) {
       onContextMenu={handleContextMenu}
       onHeaderMouseDown={onMouseDown}
     >
-      {/* Octave Shifting fih 7 octaves*/}
-      <div className="mb-2 flex items-center justify-center gap-4">
-        <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40"
-          onClick={decrementOctave} disabled={octaveShift === MIN_OCTAVE} > 
-          −
-        </button>
-        <div className="w-10 text-center text-zinc-300 text-sm">
-          {octaveShift}
+      <div className="w-full flex items-center justify-between">
+        <div className="ml-7 flex gap-2 bg-[#a0a0a0ff] p-1 rounded-lg">
+          <button onClick={() => setSync(false)} className={`px-3 py-1 rounded-md text-xs ${!sync ? "bg-[#444444ff]" : ""}`}>
+            FREE
+          </button>
+          <button onClick={() => setSync(true)} className={`px-3 py-1 rounded-md text-xs ${sync ? "bg-[#444444ff]" : ""}`}>
+            HOLD
+          </button>
         </div>
-        <button className="px-3 py-1 rounded-md bg-zinc-800 text-zinc-200 disabled:opacity-40"
-          onClick={incrementOctave} disabled={octaveShift === MAX_OCTAVE} >
-          +
-        </button>
+        <div className="ml-[17%] flex items-center gap-2">
+          <button className="w-7 h-7 flex items-center justify-center rounded-md bg-[#a0a0a0ff] text-[#444444ff] disabled:opacity-40" onClick={decrementOctave} disabled={octaveShift === MIN_OCTAVE} >
+            −
+          </button>
+          <div className="w-10 h-9 flex items-center justify-center rounded-md bg-[#a0a0a0ff] text-[#444444ff]">{octaveShift}</div>
+          <button className="w-7 h-7 flex items-center justify-center rounded-md bg-[#a0a0a0ff] text-[#444444ff] disabled:opacity-40" onClick={incrementOctave} disabled={octaveShift === MAX_OCTAVE} >
+            +
+          </button>
+        </div>
+        <div className="w-full flex flex-col gap-4 pl-12">
+          <Param id={props.id} name="freq" polarity="source" color={color} />
+          <Param id={props.id} name="trigger" polarity="source" color={color}/>
+        </div>
       </div>
-
-      <KeyboardBed>
-        {keys.map((k) => (
-          <Key
-            key={k.note}
-            keyType={k.type}
-            left={k.left}
-            isActive={!!activeNotes[k.note]}
-            onPress={() => handleNoteDown(k.note)}
-            onRelease={() => handleNoteUp(k.note)}
-          />
-        ))}
-      </KeyboardBed>
+      <div className="flex flex-1 w-full items-center justify-center mt-1">
+        <KeyboardBed>
+          {keys.map((k) => (
+            <Key key={k.note} keyType={k.type} left={k.left}
+              isActive={!!activeNotes[k.note]}
+              onPress={() => handleNoteDown(k.note)}
+              onRelease={() => handleNoteUp(k.note)}
+            />
+          ))}
+        </KeyboardBed>
+      </div>
     </ModuleFrame>
   );
 }
