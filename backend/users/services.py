@@ -141,9 +141,17 @@ class OAuthService:
     def get_or_create_social_user(provider, data):
         social_acc = SocialAccount.objects.filter(provider=provider, provider_id=data['id']).first()
         if social_acc:
-            return social_acc.user
+            user = social_acc.user
+            if not user.is_verified:
+                user.is_verified = True
+                user.save(update_fields=['is_verified'])
+            return user
 
         user = User.objects.filter(email=data['email']).first()
+
+        if user and not user.is_verified:
+            user.is_verified = True
+            user.save(update_fields=['is_verified'])
 
         if not user:
             base_username = data['username']
@@ -160,6 +168,7 @@ class OAuthService:
                 username=unique_username,
                 email=data['email'],
                 password=None,
+                is_verified=True,
             )
 
         SocialAccount.objects.get_or_create(

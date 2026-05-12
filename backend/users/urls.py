@@ -30,6 +30,7 @@ from .views import (
     UserAdminLogsView,
     UserAdminAllLogsView,
     UserResendVerificationView,
+    UserDashboardTokenView,
 )
 
 # 1. Router for ViewSets
@@ -64,6 +65,9 @@ urlpatterns = [
     # --- 2FA Management ---
     path('2fa/enable/', UserEnable2FAView.as_view(), name='enable_2fa'),
     path('2fa/verify/', UserVerify2FAView.as_view(), name='verify_2fa'),
+
+    # --- Analytics dashboard (Metabase signed embed) ---
+    path('dashboard-token/', UserDashboardTokenView.as_view(), name='dashboard_token'),
 
     # --- Search ---
     path('search/', UserSearchListView.as_view(), name='user_search'),

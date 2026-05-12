@@ -4,6 +4,7 @@ import { AnimatedContent } from './ReactBits/ReactBits'
 import LoginOverlay from "./Login";
 import { ProjectsContainer } from "./Projects";
 import ProfileContainer from "./Profile";
+import DashboardContainer from "./Dashboard";
 import SettingsContainer from "./Settings";
 import { UserSearchContainer } from "./UserSearch";
 import { AdminContainer, useIsAdmin } from "./Admin";
@@ -182,6 +183,7 @@ function MainApp() {
   const [projectsInitialOrdering, setProjectsInitialOrdering] = useState('-created_at');
   const [showSettings, setShowSettings] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [showDashboard, setShowDashboard] = useState(false);
   const [showUserSearch, setShowUserSearch] = useState(false);
   const [showAdmin, setShowAdmin] = useState(false);
   const [publicProfileUser, setPublicProfileUser] = useState<string | null>(null);
@@ -247,34 +249,51 @@ function MainApp() {
   const handleLoginOpen = () => {
     logger.action('nav.login_open');
     setShowProjects(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
-    setShowAdmin(false); setPublicProfileUser(null);
+    setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
     setShowLogin(true);
   };
   const handleProjectsOpen = () => {
     logger.action('nav.projects_open');
     setShowLogin(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
-    setShowAdmin(false); setPublicProfileUser(null);
+    setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
     setProjectsInitialOrdering('-created_at');
     setShowProjects(true);
   };
 
+  const anyOverlayOpen =
+    showProjects || showUserSearch || showAdmin || showProfile || showSettings || showDashboard || publicProfileUser !== null;
+
+  const pendingLeaderboardScroll = useRef(false);
+
+  useEffect(() => {
+    if (!anyOverlayOpen && pendingLeaderboardScroll.current) {
+      pendingLeaderboardScroll.current = false;
+      setTimeout(() => {
+        document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
+      }, 50);
+    }
+  }, [anyOverlayOpen]);
+
   const handleLeaderboardOpen = () => {
     logger.action('nav.leaderboard_open');
-    setShowLogin(false); setShowProfile(false); setShowSettings(false); setShowUserSearch(false);
-    setShowAdmin(false); setPublicProfileUser(null);
-    setProjectsInitialOrdering('-net_votes');
-    setShowProjects(true);
+    if (anyOverlayOpen) {
+      pendingLeaderboardScroll.current = true;
+      setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
+      setShowUserSearch(false); setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+    } else {
+      document.getElementById('leaderboard')?.scrollIntoView({ behavior: 'smooth' });
+    }
   };
   const handleProfileOpen = () => {
     logger.action('nav.profile_open');
     setShowLogin(false); setShowProjects(false); setShowSettings(false); setShowUserSearch(false);
-    setShowAdmin(false); setPublicProfileUser(null);
+    setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
     setShowProfile(true);
   };
   const handleUserSearchOpen = () => {
     logger.action('nav.user_search_open');
     setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
-    setShowAdmin(false); setPublicProfileUser(null);
+    setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
     setShowUserSearch(true);
   };
   const handleAdminOpen = () => {
@@ -284,10 +303,17 @@ function MainApp() {
     setShowAdmin(true);
   };
 
+  const handleDashboardOpen = () => {
+    logger.action('nav.dashboard_open');
+    setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
+    setShowUserSearch(false); setShowAdmin(false); setPublicProfileUser(null);
+    setShowDashboard(true);
+  };
+
   const handlePublicProfileOpen = (username: string) => {
     logger.action('nav.public_profile_open', { username });
     setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
-    setShowUserSearch(false); setShowAdmin(false);
+    setShowUserSearch(false); setShowAdmin(false); setShowDashboard(false);
     setPublicProfileUser(username);
   };
 
@@ -310,8 +336,21 @@ function MainApp() {
     window.open(SYNTH_URL, '_blank', 'noreferrer');
   };
 
-  const anyOverlayOpen =
-    showProjects || showUserSearch || showAdmin || showProfile || showSettings || publicProfileUser !== null;
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      if (showLogin) { setShowLogin(false); return; }
+      if (publicProfileUser) { setPublicProfileUser(null); return; }
+      if (showUserSearch) { setShowUserSearch(false); return; }
+      if (showAdmin) { setShowAdmin(false); return; }
+      if (showSettings) { setShowSettings(false); return; }
+      if (showDashboard) { setShowDashboard(false); return; }
+      if (showProfile) { setShowProfile(false); return; }
+      if (showProjects) { setShowProjects(false); return; }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => document.removeEventListener('keydown', onKeyDown);
+  }, [showLogin, showProjects, showProfile, showSettings, showDashboard, showUserSearch, showAdmin, publicProfileUser]);
 
   return (
     <XyloProvider>
@@ -341,7 +380,10 @@ function MainApp() {
           {showUserSearch && <UserSearchContainer func={setShowUserSearch} onUserClick={handlePublicProfileOpen} />}
           {showAdmin && isAdmin && <AdminContainer func={setShowAdmin} />}
           {showProfile && (
-            <ProfileContainer func={setShowProfile} set={setShowSettings} setLoggedIn={setIsLoggedIn} />
+            <ProfileContainer func={setShowProfile} set={setShowSettings} setLoggedIn={setIsLoggedIn} onOpenDashboard={handleDashboardOpen} />
+          )}
+          {showDashboard && (
+            <DashboardContainer func={setShowDashboard} />
           )}
           {showSettings && (
             <SettingsContainer

@@ -1,10 +1,12 @@
+import datetime as dt
 from datetime import date
 from django.shortcuts import render, get_object_or_404
-from django.db.models import Sum, Case, When, IntegerField, Value
+from django.db.models import Sum, Case, When, IntegerField, Value, Count, Q
 from django.db.models.functions import Coalesce
+from django.utils import timezone
 from rest_framework import generics, filters
 from rest_framework.pagination import PageNumberPagination
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema, OpenApiParameter
@@ -136,6 +138,41 @@ class CommunityProjectSearchView(generics.ListAPIView):
         return Project.objects.annotate(
             net_votes=_net_votes_annotation()
         ).prefetch_related('votes').all()
+
+
+# ─── Weekly leaderboard ───────────────────────────────────────────────────────
+
+class WeeklyLeaderboardView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        today = timezone.now().date()
+        week_start = today - dt.timedelta(days=today.weekday())
+        week_start_dt = timezone.make_aware(dt.datetime.combine(week_start, dt.time.min))
+
+        projects = (
+            Project.objects
+            .annotate(
+                weekly_upvotes=Count(
+                    'votes',
+                    filter=Q(votes__vote=1, votes__created_at__gte=week_start_dt),
+                )
+            )
+            .filter(weekly_upvotes__gt=0)
+            .select_related('user')
+            .order_by('-weekly_upvotes')[:10]
+        )
+
+        data = [
+            {
+                'id': str(p.id),
+                'name': p.name,
+                'username': p.user.username,
+                'weekly_upvotes': p.weekly_upvotes,
+            }
+            for p in projects
+        ]
+        return Response(data)
 
 
 # ─── Share ────────────────────────────────────────────────────────────────────

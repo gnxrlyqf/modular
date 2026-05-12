@@ -168,25 +168,32 @@ function Scene() {
     if (!hasFetched.current || !projectIdRef.current) return;
     if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
     if (savedTimerRef.current) clearTimeout(savedTimerRef.current);
-    setStatusQueued('saving');
+    if (queuedTransitionRef.current) clearTimeout(queuedTransitionRef.current);
+    setSaveStatus('saving');
+    const startedAt = Date.now();
+    const SAVING_MIN_MS = 500;
     try {
-      // Attach current session snapshot so analytics are always up-to-date in the DB
       const sessionSnapshot = sessionTrackerRef.current?.getSnapshot() ?? analyticsRef.current.session;
       const analyticsPayload: ProjectAnalytics = { ...analyticsRef.current, session: sessionSnapshot };
-      await authFetch(`/api/projects/${projectIdRef.current}/`, {
+      const resp = await authFetch(`/api/projects/${projectIdRef.current}/`, {
         method: 'PATCH',
         body: JSON.stringify({ config: { camera, modules, cables }, analytics: analyticsPayload }),
       });
-      setStatusQueued('saved', () => {
+      if (!resp.ok) throw new Error(`PATCH ${resp.status}`);
+      const remain = Math.max(0, SAVING_MIN_MS - (Date.now() - startedAt));
+      savedTimerRef.current = setTimeout(() => {
+        setSaveStatus('saved');
         savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 2000);
-      });
+      }, remain);
     } catch (e) {
       console.error(e);
-      setStatusQueued('error', () => {
+      const remain = Math.max(0, SAVING_MIN_MS - (Date.now() - startedAt));
+      savedTimerRef.current = setTimeout(() => {
+        setSaveStatus('error');
         savedTimerRef.current = setTimeout(() => setSaveStatus('idle'), 3000);
-      });
+      }, remain);
     }
-  }, [camera, modules, cables, setStatusQueued]);
+  }, [camera, modules, cables]);
 
   // Autosave 1.5s after any scene change
   useEffect(() => {

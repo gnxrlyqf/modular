@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState, useEffect } from "react";
 
 const cosmicPalette = {
   bg0: "#05060f",
@@ -766,17 +766,24 @@ function CosmicPatchOfTheWeek() {
   );
 }
 
+type LeaderboardRow = { id: string; name: string; username: string; weekly_upvotes: number };
+
 function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
-  const rows = [
-    { rank: 1, user: "@nebular", patch: "Voidcaller", plays: "12.4k", delta: "+2" },
-    { rank: 2, user: "@kira_oss", patch: "Submarine Bells", plays: "9.8k", delta: "—" },
-    { rank: 3, user: "@plinko", patch: "Saw In Half", plays: "7.1k", delta: "+5" },
-    { rank: 4, user: "@dustmote", patch: "Long Decay", plays: "6.4k", delta: "-1" },
-    { rank: 5, user: "@hexcoil", patch: "Bitter Bloom", plays: "5.2k", delta: "+1" },
-  ];
-  const cols = "60px 1fr 1.2fr 100px 80px";
+  const [rows, setRows] = useState<LeaderboardRow[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch('/api/community/weekly/')
+      .then((r) => r.ok ? r.json() : Promise.reject(r.status))
+      .then((data: LeaderboardRow[]) => setRows(data))
+      .catch(() => setRows([]))
+      .finally(() => setLoading(false));
+  }, []);
+
+  const cols = "60px 1fr 1.2fr 100px";
   return (
     <div
+      id="leaderboard"
       style={{
         position: "relative",
         zIndex: 5,
@@ -818,7 +825,7 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
             }}
           >
             This week&apos;s{" "}
-            <em style={{ color: v.accent2 }}>signal.</em>
+            <em style={{ color: v.accent2 }}>best hits.</em>
           </h2>
         </div>
         <button
@@ -854,20 +861,26 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
           <span>Rank</span>
           <span>Patch</span>
           <span>Author</span>
-          <span style={{ textAlign: "right" }}>Plays</span>
-          <span style={{ textAlign: "right" }}>Δ</span>
+          <span style={{ textAlign: "right" }}>Upvotes</span>
         </div>
-        {rows.map((r, i) => (
+        {loading && (
+          <div style={{ padding: "32px 24px", fontFamily: cosmicFonts.mono, fontSize: 12, color: cosmicShared.sub, textAlign: "center" }}>
+            loading…
+          </div>
+        )}
+        {!loading && rows.length === 0 && (
+          <div style={{ padding: "32px 24px", fontFamily: cosmicFonts.mono, fontSize: 12, color: cosmicShared.sub, textAlign: "center" }}>
+            No votes this week yet — be the first to upvote a patch.
+          </div>
+        )}
+        {!loading && rows.map((r, i) => (
           <div
-            key={r.rank}
+            key={r.id}
             style={{
               display: "grid",
               gridTemplateColumns: cols,
               padding: "16px 24px",
-              borderBottom:
-                i < rows.length - 1
-                  ? `1px solid ${cosmicShared.panelEdge}`
-                  : "none",
+              borderBottom: i < rows.length - 1 ? `1px solid ${cosmicShared.panelEdge}` : "none",
               alignItems: "center",
             }}
           >
@@ -875,53 +888,20 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
               style={{
                 fontFamily: cosmicFonts.display,
                 fontSize: 22,
-                color: r.rank === 1 ? v.accent3 : cosmicShared.text,
+                color: i === 0 ? v.accent3 : cosmicShared.text,
                 fontStyle: "italic",
               }}
             >
-              {String(r.rank).padStart(2, "0")}
+              {String(i + 1).padStart(2, "0")}
             </span>
-            <span
-              style={{
-                fontFamily: cosmicFonts.ui,
-                fontSize: 15,
-                color: cosmicShared.text,
-              }}
-            >
-              {r.patch}
+            <span style={{ fontFamily: cosmicFonts.ui, fontSize: 15, color: cosmicShared.text }}>
+              {r.name}
             </span>
-            <span
-              style={{
-                fontFamily: cosmicFonts.mono,
-                fontSize: 13,
-                color: cosmicShared.sub,
-              }}
-            >
-              {r.user}
+            <span style={{ fontFamily: cosmicFonts.mono, fontSize: 13, color: cosmicShared.sub }}>
+              @{r.username}
             </span>
-            <span
-              style={{
-                fontFamily: cosmicFonts.mono,
-                fontSize: 13,
-                color: cosmicShared.text,
-                textAlign: "right",
-              }}
-            >
-              {r.plays}
-            </span>
-            <span
-              style={{
-                fontFamily: cosmicFonts.mono,
-                fontSize: 12,
-                textAlign: "right",
-                color: r.delta.startsWith("+")
-                  ? v.accent
-                  : r.delta.startsWith("-")
-                  ? "#f87171"
-                  : cosmicShared.sub,
-              }}
-            >
-              {r.delta}
+            <span style={{ fontFamily: cosmicFonts.mono, fontSize: 13, color: v.accent, textAlign: "right" }}>
+              ↑{r.weekly_upvotes}
             </span>
           </div>
         ))}

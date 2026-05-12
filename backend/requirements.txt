@@ -11,6 +11,7 @@ django-prometheus
 requests
 gunicorn>=22.0
 pyotp
+PyJWT>=2.8
 
 # --- Test deps (used in CI / local pytest runs) ---
 pytest>=8.0

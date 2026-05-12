@@ -20,6 +20,7 @@ class ProjectVote(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='project_votes')
     project = models.ForeignKey(Project, on_delete=models.CASCADE, related_name='votes')
     vote = models.SmallIntegerField()  # 1 = upvote, -1 = downvote
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
 
     class Meta:
         unique_together = ('user', 'project')

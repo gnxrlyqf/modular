@@ -21,6 +21,7 @@ django.setup()
 from django.conf import settings  # noqa: E402
 from django.contrib.auth import get_user_model  # noqa: E402
 
+from projects.models import Project, ProjectVote  # noqa: E402
 from users.models import Friendship, Profile  # noqa: E402
 
 User = get_user_model()
@@ -113,6 +114,47 @@ def add_random_friendships(users, count=5, seed=42):
         added += 1
 
 
+# Predefined projects: (owner_username, project_name)
+PROJECTS = [
+    ("test1", "Acid Bassline"),
+    ("test1", "Ambient Pad"),
+    ("test2", "Glitch Sequencer"),
+    ("test3", "Lo-Fi Beat"),
+    ("test4", "FM Lead"),
+    ("test5", "Drone Patch"),
+    ("test6", "Techno Stab"),
+    ("test7", "Wobble Bass"),
+]
+
+DEFAULT_CONFIG = {"camera": {}, "modules": [], "cables": []}
+
+
+def ensure_project(owner, name):
+    proj, created = Project.objects.get_or_create(
+        user=owner,
+        name=name,
+        defaults={'config': DEFAULT_CONFIG, 'analytics': {}},
+    )
+    print(f"{'project ' if created else 'projkeep'} {owner.username}/{name}")
+    return proj
+
+
+def add_random_votes(projects, voters, seed=42):
+    rng = random.Random(seed)
+    for proj in projects:
+        # pick random subset of voters (excluding owner)
+        eligible = [u for u in voters if u.id != proj.user_id]
+        k = rng.randint(1, min(len(eligible), 6))
+        for voter in rng.sample(eligible, k):
+            vote = rng.choice([1, 1, 1, -1])  # bias upvotes
+            ProjectVote.objects.update_or_create(
+                user=voter, project=proj, defaults={'vote': vote},
+            )
+    print(f"votes   {ProjectVote.objects.count()} total "
+          f"(up={ProjectVote.objects.filter(vote=1).count()}, "
+          f"down={ProjectVote.objects.filter(vote=-1).count()})")
+
+
 def run():
     users = [ensure_user(d) for d in USERS]
     by_name = {u.username: u for u in users}
@@ -125,9 +167,19 @@ def run():
 
     add_random_friendships(users, count=4)
 
+    projects = []
+    for owner_name, proj_name in PROJECTS:
+        owner = by_name.get(owner_name)
+        if owner:
+            projects.append(ensure_project(owner, proj_name))
+
+    add_random_votes(projects, users)
+
     admin_names = getattr(settings, 'ADMIN_USERNAMES', None) or []
     print("\nsummary:")
     print(f"  users:       {User.objects.count()}")
+    print(f"  projects:    {Project.objects.count()}")
+    print(f"  votes:       {ProjectVote.objects.count()}")
     print(f"  friendships: {Friendship.objects.count()} "
           f"(pending={Friendship.objects.filter(status='pending').count()}, "
           f"accepted={Friendship.objects.filter(status='accepted').count()})")

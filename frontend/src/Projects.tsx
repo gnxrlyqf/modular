@@ -150,6 +150,101 @@ function RenameModal(props: {
   );
 }
 
+// ─── Settings Modal ───────────────────────────────────────────────────────────
+
+function SettingsModal(props: {
+  card: ApiProject;
+  onClose: () => void;
+  onSave: (id: string, patch: { name?: string; config?: Record<string, unknown> }) => Promise<void>;
+}) {
+  const [name, setName] = useState(props.card.name);
+  const [thumbnail, setThumbnail] = useState<string | null>((props.card.config?.thumbnail as string | undefined) ?? null);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
+      setError('Image must be JPEG/PNG/WebP/GIF.');
+      return;
+    }
+    if (file.size > 2 * 1024 * 1024) {
+      setError('Image must be ≤ 2 MB.');
+      return;
+    }
+    setError(null);
+    const reader = new FileReader();
+    reader.onload = () => setThumbnail(typeof reader.result === 'string' ? reader.result : null);
+    reader.readAsDataURL(file);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const patch: { name?: string; config?: Record<string, unknown> } = {};
+    const trimmed = name.trim();
+    if (trimmed && trimmed !== props.card.name) patch.name = trimmed;
+    const currentThumb = (props.card.config?.thumbnail as string | undefined) ?? null;
+    if (thumbnail !== currentThumb) {
+      patch.config = { ...(props.card.config ?? {}), thumbnail };
+    }
+    if (!patch.name && !patch.config) { props.onClose(); return; }
+    setSubmitting(true);
+    setError(null);
+    try {
+      await props.onSave(props.card.id, patch);
+      props.onClose();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to save.');
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const preview = thumbnail ?? FALLBACK_IMAGE;
+
+  return (
+    <div className="modal-backdrop">
+      <div className="modal-card max-w-sm font-lexend">
+        <div className="flex items-center justify-between pb-4">
+          <h3 className="text-lg font-semibold text-indigo-200 tracking-wide">Project Settings</h3>
+          <CloseButton onClick={props.onClose} />
+        </div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-xs text-indigo-300/60 mb-1.5 tracking-wide">Picture</label>
+            <div className="flex items-center gap-3">
+              <img src={preview} alt="" className="h-14 w-20 object-cover rounded-lg shrink-0" />
+              <label className="glass glass-hover rounded-lg px-3 py-1.5 text-xs font-medium text-indigo-300/80 hover:text-white cursor-pointer">
+                Choose…
+                <input type="file" accept="image/jpeg,image/png,image/webp,image/gif" onChange={handleFile} className="hidden" />
+              </label>
+              {thumbnail && (
+                <button type="button" onClick={() => setThumbnail(null)} className="text-xs text-red-300/70 hover:text-red-200 cursor-pointer">
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
+          <div>
+            <label className="block text-xs text-indigo-300/60 mb-1.5 tracking-wide">Name</label>
+            <Input type="text" required value={name} onChange={e => setName(e.target.value)} className="w-full" />
+          </div>
+          {error && <p className="text-red-300/80 text-sm">{error}</p>}
+          <div className="flex justify-end gap-2">
+            <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
+              Cancel
+            </button>
+            <button type="submit" disabled={submitting} className="glass glass-hover glow-indigo rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out hover:scale-105 disabled:opacity-60 disabled:cursor-not-allowed disabled:hover:scale-100 cursor-pointer">
+              {submitting ? 'Saving…' : 'Save'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 // ─── Toolbar ──────────────────────────────────────────────────────────────────
 
 function NewButton(props: { onClick?: () => void }) {
@@ -288,11 +383,19 @@ function Card(props: {
   onVote?: (id: string, vote: 0 | 1 | -1) => void;
   onFork?: (id: string, config: Record<string, unknown> | null) => void; // sync — no backend project created
   onShare?: (id: string) => void;
+  onSettings?: (card: ApiProject) => void;
   onUserClick?: (username: string) => void;
   showVotes?: boolean;
   isOwn?: boolean;
   listView?: boolean;
 }) {
+  const showAuthor = (props.showVotes || !props.isOwn) && !!props.card.username;
+  const GearIcon = (
+    <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="12" cy="12" r="3"/>
+      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+    </svg>
+  );
   const cardRef = useRef<HTMLAnchorElement>(null);
   const cardTitle = props.card.name || `Untitled project ${props.index + 1}`;
   const cardTime = formatDate(props.card.created_at);
@@ -375,7 +478,7 @@ function Card(props: {
         <img className="rounded-lg h-10 w-16 object-cover shrink-0" src={cardImage} alt={cardTitle} />
         <div className="min-w-0 flex-1">
           <span className="truncate text-sm text-indigo-100 font-medium block">{cardTitle}</span>
-          {!props.isOwn && props.card.username && (
+          {showAuthor && (
             <button
               type="button"
               className="text-xs text-indigo-400/60 hover:text-indigo-300 transition-colors cursor-pointer"
@@ -385,6 +488,16 @@ function Card(props: {
             </button>
           )}
         </div>
+        {props.isOwn && props.onSettings && (
+          <button
+            type="button"
+            aria-label="Project settings"
+            className="shrink-0 text-indigo-300/40 hover:text-indigo-200 p-1 cursor-pointer"
+            onClick={e => { e.preventDefault(); e.stopPropagation(); props.onSettings?.(props.card); }}
+          >
+            {GearIcon}
+          </button>
+        )}
         {props.showVotes ? (
           <div className="flex items-center gap-1 shrink-0" onClick={e => e.preventDefault()}>
             <button
@@ -439,15 +552,27 @@ function Card(props: {
             <span className="ml-auto pl-3 whitespace-nowrap text-xs text-indigo-300/40">{cardTime}</span>
           )}
         </div>
-        {!props.isOwn && props.card.username && (
-          <div className="px-3 pb-2 -mt-1">
-            <button
-              type="button"
-              className="text-xs text-indigo-400/60 hover:text-indigo-300 transition-colors cursor-pointer"
-              onClick={e => { e.preventDefault(); e.stopPropagation(); props.onUserClick?.(props.card.username!); }}
-            >
-              by @{props.card.username}
-            </button>
+        {(showAuthor || (props.isOwn && props.onSettings)) && (
+          <div className="px-3 pb-2 -mt-1 flex items-center justify-between gap-2">
+            {showAuthor ? (
+              <button
+                type="button"
+                className="text-xs text-indigo-400/60 hover:text-indigo-300 transition-colors cursor-pointer"
+                onClick={e => { e.preventDefault(); e.stopPropagation(); props.onUserClick?.(props.card.username!); }}
+              >
+                by @{props.card.username}
+              </button>
+            ) : <span />}
+            {props.isOwn && props.onSettings && (
+              <button
+                type="button"
+                aria-label="Project settings"
+                className="text-indigo-300/40 hover:text-indigo-200 p-1 cursor-pointer ml-auto"
+                onClick={e => { e.preventDefault(); e.stopPropagation(); props.onSettings?.(props.card); }}
+              >
+                {GearIcon}
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -468,6 +593,7 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
   const [totalCount, setTotalCount] = useState(0);
   const [createModalOpen, setCreateModalOpen] = useState(false);
   const [renameModal, setRenameModal] = useState<{ id: string; currentName: string } | null>(null);
+  const [settingsModal, setSettingsModal] = useState<ApiProject | null>(null);
   const [refetchTick, setRefetchTick] = useState(0);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
 
@@ -610,6 +736,21 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
     setTotalCount(prev => prev - 1);
   };
 
+  const handleSettingsSave = async (id: string, patch: { name?: string; config?: Record<string, unknown> }) => {
+    const response = await authFetch(`/api/projects/${id}/`, {
+      method: 'PATCH',
+      body: JSON.stringify(patch),
+    });
+    if (!response.ok) {
+      const msg = await extractErrorMessage(response, 'Failed to save project.');
+      logger.error('project.settings_failed', { id, status: response.status });
+      throw new Error(msg);
+    }
+    logger.action('project.settings_save', { id, fields: Object.keys(patch) });
+    const updated: ApiProject = await response.json();
+    setCards(prev => prev.map(c => c.id === updated.id ? updated : c));
+  };
+
   const handleRename = async (name: string) => {
     if (!renameModal) return;
     const response = await authFetch(`/api/projects/${renameModal.id}/`, {
@@ -675,6 +816,7 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
                 onVote={handleVote}
                 onFork={!isOwn ? handleFork : undefined}
                 onShare={isOwn ? handleShare : undefined}
+                onSettings={isOwn ? setSettingsModal : undefined}
                 onUserClick={props.onUserClick}
                 showVotes={isCommunity}
                 isOwn={isOwn}
@@ -719,6 +861,14 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
           currentName={renameModal.currentName}
           onClose={() => setRenameModal(null)}
           onRename={handleRename}
+        />
+      )}
+
+      {settingsModal && (
+        <SettingsModal
+          card={settingsModal}
+          onClose={() => setSettingsModal(null)}
+          onSave={handleSettingsSave}
         />
       )}
     </>

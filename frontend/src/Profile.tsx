@@ -5,6 +5,13 @@ import { authFetch, clearAuthCookies, getCookie, REFRESH_COOKIE } from "./api";
 import { CloseButton } from "./Reusables";
 import logger from './logger';
 
+type ProfileContainerProps = {
+  func: (value: boolean) => void;
+  set: (value: boolean) => void;
+  setLoggedIn?: (value: boolean) => void;
+  onOpenDashboard?: () => void;
+};
+
 type UserInfo = {
   id: number;
   username: string;
@@ -18,12 +25,22 @@ type UserProfile = {
 
 const FALLBACK_AVATAR = "https://picsum.photos/600/600";
 
-function Profile(props: { func: (value: boolean) => void; set: (value: boolean) => void; setLoggedIn?: (value: boolean) => void }) {
+function Profile(props: ProfileContainerProps) {
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+
+  const handleOpenDashboard = () => {
+    logger.action('profile.open_dashboard');
+    if (props.onOpenDashboard) {
+      props.onOpenDashboard();
+      props.func(false);
+    } else {
+      setError('Dashboard not available in this view.');
+    }
+  };
 
   const handleLogout = async () => {
     if (loggingOut) return;
@@ -92,6 +109,13 @@ function Profile(props: { func: (value: boolean) => void; set: (value: boolean) 
         <div className="flex items-center gap-2">
           <button
             type="button"
+            onClick={handleOpenDashboard}
+            className="glass glass-hover rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer"
+          >
+            Dashboard
+          </button>
+          <button
+            type="button"
             onClick={handleLogout}
             disabled={loggingOut}
             className="glass glass-hover rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer disabled:opacity-50"
@@ -144,7 +168,7 @@ function Profile(props: { func: (value: boolean) => void; set: (value: boolean) 
   )
 }
 
-function ProfileContainer(props: { func: (value: boolean) => void; set: (value: boolean) => void; setLoggedIn?: (value: boolean) => void }) {
+function ProfileContainer(props: ProfileContainerProps) {
   const [visible, setVisible] = useState(true);
   const openSettingsOnCloseRef = useRef(false);
 
@@ -192,7 +216,7 @@ function ProfileContainer(props: { func: (value: boolean) => void; set: (value: 
           threshold={0.1}
           delay={.1}
         >
-          <Profile func={handleClose} set={handleOpenSettings} setLoggedIn={props.setLoggedIn}/>
+          <Profile func={handleClose} set={handleOpenSettings} setLoggedIn={props.setLoggedIn} onOpenDashboard={props.onOpenDashboard}/>
         </AnimatedContent>
     </AnimatedContent>
   )

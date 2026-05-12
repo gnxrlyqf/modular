@@ -23,6 +23,7 @@ from .endpoints.register import RegisterView, ResendVerificationView
 from .endpoints.messages import MessageViewSet
 from .endpoints.notifications import NotificationViewSet
 from .endpoints.public_profile import public_profile
+from .endpoints.dashboard import DashboardTokenView
 from .endpoints.admin import (
     AdminCheckView,
     AdminUserListView,
@@ -135,4 +136,9 @@ class UserAdminLogsView(AdminUserLogsView):
     pass
 
 class UserAdminAllLogsView(AdminAllLogsView):
+    pass
+
+# --- 7. ANALYTICS DASHBOARD ---
+
+class UserDashboardTokenView(DashboardTokenView):
     pass
