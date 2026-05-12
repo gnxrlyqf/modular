@@ -99,9 +99,6 @@ class Context {
 				return out;
 			}
 		}
-		const gain = new Gain(this.audioContext);
-		gain.setGain(module.params.g);
-		return gain;
 	}
 
 	addModule(module: Module) {

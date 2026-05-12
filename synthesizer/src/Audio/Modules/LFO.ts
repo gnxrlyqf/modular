@@ -62,7 +62,7 @@ class LFOscillator extends Module {
 
 	setMod(key: string, patch: Patch | null): void {
 		switch (key) {
-			case "frequency":
+			case "freq":
 				this.setFreqModulator(patch);
 				break;
 		}

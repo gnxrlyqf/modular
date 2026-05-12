@@ -7,6 +7,7 @@ import { KnobParam, Param } from "../Interactions/Params";
 import ModuleFrame from "./ModuleFrame";
 import { audioContext } from "../Scene/Scene";
 import type { ModuleProps } from "./Modules";
+import { useConnection } from "../ConnectionContext";
 
 function SineIcon() {
   return (
@@ -116,7 +117,10 @@ function LFO(props: LFOProps) {
     >
       <div className="flex gap-2 bg-purple-900/50 p-1 rounded-lg">
         <button onClick={() => setSync(false)} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${!sync ? "bg-[#8F0177]" : ""}`}>FREE</button>
-        <button onClick={() => setSync(true)} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${sync ? "bg-[#8F0177]" : ""}`}>SYNC</button>
+        <button onClick={() => {
+          setSync(true)
+          // disconnect
+        }} className={`cursor-pointer px-3 py-1 rounded-md text-xs ${sync ? "bg-[#8F0177]" : ""}`}>SYNC</button>
       </div>
       <div className="w-full flex items-center">
         {sync ?
