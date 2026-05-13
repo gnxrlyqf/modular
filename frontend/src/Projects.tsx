@@ -40,12 +40,84 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
 }
 
+// ─── Project JSON validation ──────────────────────────────────────────────────
+
+const VALID_MODULE_TYPES = new Set([
+  'oscillator', 'gain', 'envelope', 'output', 'lfo',
+  'filter', 'distortion', 'modulator', 'keyboard', 'sequencer',
+]);
+
+function validateProjectJson(raw: unknown): string | null {
+  if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) {
+    return 'File must be a JSON object.';
+  }
+  const obj = raw as Record<string, unknown>;
+
+  if (!('camera' in obj)) return 'Missing field: camera';
+  const cam = obj.camera as Record<string, unknown>;
+  if (typeof cam !== 'object' || cam === null) return 'camera must be an object';
+  if (typeof cam.x !== 'number') return 'camera.x must be a number';
+  if (typeof cam.y !== 'number') return 'camera.y must be a number';
+
+  if (!('modules' in obj)) return 'Missing field: modules';
+  if (!Array.isArray(obj.modules)) return 'modules must be an array';
+
+  if (!('cables' in obj)) return 'Missing field: cables';
+  if (!Array.isArray(obj.cables)) return 'cables must be an array';
+
+  for (let i = 0; i < (obj.modules as unknown[]).length; i++) {
+    const m = (obj.modules as unknown[])[i] as Record<string, unknown>;
+    if (typeof m !== 'object' || m === null) return `modules[${i}] must be an object`;
+    if (typeof m.id !== 'string') return `modules[${i}].id must be a string`;
+    if (typeof m.type !== 'string' || !VALID_MODULE_TYPES.has(m.type)) {
+      return `modules[${i}].type "${m.type}" is not a valid module type`;
+    }
+    if (typeof m.x !== 'number') return `modules[${i}].x must be a number`;
+    if (typeof m.y !== 'number') return `modules[${i}].y must be a number`;
+    if (typeof m.params !== 'object' || m.params === null) return `modules[${i}].params must be an object`;
+  }
+
+  return null;
+}
+
 // ─── Create Modal ────────────────────────────────────────────────────────────
 
-function CreateModal(props: { onClose: () => void; onCreate: (name: string) => Promise<void> }) {
+function CreateModal(props: { onClose: () => void; onCreate: (name: string, config?: Record<string, unknown>) => Promise<void> }) {
   const [name, setName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [importedConfig, setImportedConfig] = useState<Record<string, unknown> | null>(null);
+  const [importFileName, setImportFileName] = useState<string | null>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const parsed = JSON.parse(reader.result as string);
+        const err = validateProjectJson(parsed);
+        if (err) {
+          setError(`Invalid project file: ${err}`);
+          setImportedConfig(null);
+          setImportFileName(null);
+        } else {
+          setError(null);
+          setImportedConfig(parsed as Record<string, unknown>);
+          setImportFileName(file.name);
+          if (!name.trim()) {
+            setName(file.name.replace(/\.json$/i, ''));
+          }
+        }
+      } catch {
+        setError('Invalid project file: could not parse JSON');
+        setImportedConfig(null);
+        setImportFileName(null);
+      }
+    };
+    reader.readAsText(file);
+    e.target.value = '';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -53,7 +125,7 @@ function CreateModal(props: { onClose: () => void; onCreate: (name: string) => P
     setSubmitting(true);
     setError(null);
     try {
-      await props.onCreate(name.trim());
+      await props.onCreate(name.trim(), importedConfig ?? undefined);
       props.onClose();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create project.');
@@ -79,6 +151,29 @@ function CreateModal(props: { onClose: () => void; onCreate: (name: string) => P
             placeholder={t('projects.name_placeholder')}
             className="w-full"
           />
+          <div>
+            <p className="text-xs text-indigo-300/50 mb-1.5 tracking-wide">{t('projects.import_json_hint')}</p>
+            {importFileName ? (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-indigo-300/80 truncate flex-1">{t('projects.import_json_selected')}: {importFileName}</span>
+                <button
+                  type="button"
+                  onClick={() => { setImportedConfig(null); setImportFileName(null); }}
+                  className="text-xs text-red-300/70 hover:text-red-200 cursor-pointer shrink-0"
+                >
+                  {t('projects.import_json_clear')}
+                </button>
+              </div>
+            ) : (
+              <label className="glass glass-hover rounded-lg px-3 py-1.5 text-xs font-medium text-indigo-300/80 hover:text-white cursor-pointer inline-flex items-center gap-1.5">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+                {t('projects.import_json')}
+                <input type="file" accept=".json,application/json" onChange={handleFileChange} className="hidden" />
+              </label>
+            )}
+          </div>
           {error && <p className="text-red-300/80 text-sm">{error}</p>}
           <div className="flex justify-end gap-2">
             <button type="button" onClick={props.onClose} className="glass glass-hover rounded-lg px-4 py-1.5 text-sm font-medium text-indigo-300/80 hover:text-white tracking-wide duration-200 ease-out cursor-pointer">
@@ -675,12 +770,12 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
     setRefetchTick((t) => t + 1);
   };
 
-  const handleCreate = async (name: string) => {
+  const handleCreate = async (name: string, config?: Record<string, unknown>) => {
     const response = await authFetch('/api/projects/', {
       method: 'POST',
       body: JSON.stringify({
         name,
-        config: { camera: { x: 0, y: 0 }, modules: [], cables: [] },
+        config: config ?? { camera: { x: 0, y: 0 }, modules: [], cables: [] },
       }),
     });
 

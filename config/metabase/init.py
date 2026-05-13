@@ -7,11 +7,11 @@ Runs as a one-shot init container alongside Metabase. On every start it:
   3. Adds the trandandan Postgres data source if missing.
   4. Creates a "trandandan" collection if missing.
   5. Creates / updates 12 native-SQL cards, all parameterised by {{user_id}}
-     (locked, server-pinned in the JWT) and most also by an optional {{day}}
-     filter (enabled, drives crossfilter from the Active Days card).
+     (locked, server-pinned in the JWT) and most also by an optional
+     {{date_range}} filter (enabled, `date/range` picker — value is
+     `YYYY-MM-DD~YYYY-MM-DD`, split via SPLIT_PART in SQL).
   6. Creates a dashboard wiring those cards to two parameters (`user_id`,
-     `day`), wires the Active Days card's bar clicks to set `day`
-     (single-dashboard crossfilter), enables signed-JWT embedding.
+     `date_range`), enables signed-JWT embedding.
   7. Writes the resulting dashboard id + embedding secret to /shared/metabase.json
      so the Django backend can sign per-user embed tokens.
 
@@ -62,9 +62,9 @@ SERIES_COLORS  = [COLOR_INDIGO, COLOR_VIOLET, COLOR_CYAN, COLOR_BLUE, COLOR_FUCH
 
 
 # ─── Card definitions ──────────────────────────────────────────────────────
-# `accepts_day` controls whether the card's SQL/parameters wire up the
-# optional {{day}} crossfilter slot. Cards without it stay global so the
-# dashboard still has anchor numbers when a day is selected.
+# `accepts_range` controls whether the card's SQL/parameters wire up the
+# optional {{date_range}} filter. Cards without it stay global so the
+# dashboard still shows anchor numbers when a range is selected.
 CARDS: list[dict[str, Any]] = [
     # ── Row 0 — top KPI scalars ────────────────────────────────────────────
     {
@@ -73,11 +73,12 @@ CARDS: list[dict[str, Any]] = [
             "SELECT COUNT(*) AS projects "
             "FROM projects_project "
             "WHERE user_id = {{user_id}} "
-            "[[ AND DATE(created_at) = CAST({{day}} AS date) ]]"
+            "[[ AND DATE(created_at) BETWEEN SPLIT_PART({{date_range}}, '~', 1)::date "
+            "                             AND SPLIT_PART({{date_range}}, '~', 2)::date ]]"
         ),
         "display": "scalar",
         "pos": (0, 0, 6, 3),
-        "accepts_day": True,
+        "accepts_range": True,
         "viz": {
             "scalar.field": "projects",
             "column_settings": {'["name","projects"]': {"number_style": "decimal"}},
@@ -89,11 +90,12 @@ CARDS: list[dict[str, Any]] = [
             "SELECT COALESCE(SUM((analytics->'session'->>'session_duration')::int), 0) AS total_seconds "
             "FROM projects_project "
             "WHERE user_id = {{user_id}} "
-            "[[ AND DATE(updated_at) = CAST({{day}} AS date) ]]"
+            "[[ AND DATE(updated_at) BETWEEN SPLIT_PART({{date_range}}, '~', 1)::date "
+            "                             AND SPLIT_PART({{date_range}}, '~', 2)::date ]]"
         ),
         "display": "scalar",
         "pos": (6, 0, 6, 3),
-        "accepts_day": True,
+        "accepts_range": True,
         "viz": {"scalar.field": "total_seconds"},
     },
     {
@@ -102,11 +104,12 @@ CARDS: list[dict[str, Any]] = [
             "SELECT COALESCE(AVG((analytics->'session'->>'session_duration')::int), 0)::int AS avg_seconds "
             "FROM projects_project "
             "WHERE user_id = {{user_id}} "
-            "[[ AND DATE(updated_at) = CAST({{day}} AS date) ]]"
+            "[[ AND DATE(updated_at) BETWEEN SPLIT_PART({{date_range}}, '~', 1)::date "
+            "                             AND SPLIT_PART({{date_range}}, '~', 2)::date ]]"
         ),
         "display": "scalar",
         "pos": (12, 0, 6, 3),
-        "accepts_day": True,
+        "accepts_range": True,
         "viz": {"scalar.field": "avg_seconds"},
     },
     {
@@ -124,7 +127,7 @@ CARDS: list[dict[str, Any]] = [
         ),
         "display": "scalar",
         "pos": (18, 0, 3, 3),
-        "accepts_day": False,
+        "accepts_range": False,
         "viz": {"scalar.field": "streak"},
     },
     {
@@ -139,7 +142,7 @@ CARDS: list[dict[str, Any]] = [
         ),
         "display": "line",
         "pos": (21, 0, 3, 3),
-        "accepts_day": False,
+        "accepts_range": False,
         "viz": {
             "graph.dimensions": ["day"],
             "graph.metrics": ["sessions"],
@@ -169,7 +172,7 @@ CARDS: list[dict[str, Any]] = [
         ),
         "display": "bar",
         "pos": (0, 3, 24, 5),
-        "accepts_day": False,
+        "accepts_range": False,
         "viz": {
             "graph.dimensions": ["day"],
             "graph.metrics": ["seconds"],
@@ -190,12 +193,14 @@ CARDS: list[dict[str, Any]] = [
             "FROM projects_project p "
             "WHERE p.user_id = {{user_id}} "
             "  AND p.analytics->'session'->>'opened_at' IS NOT NULL "
-            "[[ AND DATE((p.analytics->'session'->>'opened_at')::timestamp) = CAST({{day}} AS date) ]] "
+            "[[ AND DATE((p.analytics->'session'->>'opened_at')::timestamp) "
+            "       BETWEEN SPLIT_PART({{date_range}}, '~', 1)::date "
+            "           AND SPLIT_PART({{date_range}}, '~', 2)::date ]] "
             "GROUP BY 1 ORDER BY 1"
         ),
         "display": "bar",
         "pos": (0, 7, 12, 5),
-        "accepts_day": True,
+        "accepts_range": True,
         "viz": {
             "graph.dimensions": ["hour"],
             "graph.metrics": ["sessions"],
@@ -214,7 +219,7 @@ CARDS: list[dict[str, Any]] = [
         ),
         "display": "row",
         "pos": (12, 7, 12, 5),
-        "accepts_day": False,
+        "accepts_range": False,
         "viz": {
             "graph.dimensions": ["module_type"],
             "graph.metrics": ["count"],
@@ -232,7 +237,7 @@ CARDS: list[dict[str, Any]] = [
         ),
         "display": "line",
         "pos": (0, 12, 12, 5),
-        "accepts_day": False,
+        "accepts_range": False,
         "viz": {
             "graph.dimensions": ["day"],
             "graph.metrics": ["projects"],
@@ -254,7 +259,7 @@ CARDS: list[dict[str, Any]] = [
         ),
         "display": "line",
         "pos": (12, 12, 12, 5),
-        "accepts_day": False,
+        "accepts_range": False,
         "viz": {
             "graph.dimensions": ["day"],
             "graph.metrics": ["cumulative_upvotes"],
@@ -272,14 +277,15 @@ CARDS: list[dict[str, Any]] = [
             "       p.created_at::date AS created "
             "FROM projects_project p LEFT JOIN projects_projectvote v ON v.project_id = p.id "
             "WHERE p.user_id = {{user_id}} "
-            "[[ AND DATE(p.created_at) = CAST({{day}} AS date) ]] "
+            "[[ AND DATE(p.created_at) BETWEEN SPLIT_PART({{date_range}}, '~', 1)::date "
+            "                               AND SPLIT_PART({{date_range}}, '~', 2)::date ]] "
             "GROUP BY p.id, p.name, p.created_at "
             "ORDER BY net_votes DESC, upvotes DESC "
             "LIMIT 10"
         ),
         "display": "table",
         "pos": (0, 17, 12, 7),
-        "accepts_day": True,
+        "accepts_range": True,
         "viz": {
             "table.columns": [
                 {"name": "project",   "enabled": True},
@@ -297,7 +303,7 @@ CARDS: list[dict[str, Any]] = [
         ),
         "display": "scalar",
         "pos": (12, 17, 6, 3),
-        "accepts_day": False,
+        "accepts_range": False,
         "viz": {"scalar.field": "shares"},
     },
     {
@@ -309,19 +315,11 @@ CARDS: list[dict[str, Any]] = [
         ),
         "display": "scalar",
         "pos": (18, 17, 6, 3),
-        "accepts_day": False,
+        "accepts_range": False,
         "viz": {"scalar.field": "net_votes"},
     },
 ]
 
-# Cards whose bar/line clicks set the dashboard `day` crossfilter.
-# Must have a column named "day" (date) in their result set.
-DAY_SOURCE_CARDS = {
-    "Active Days (last 90)",
-    "Projects Created Over Time",
-    "Upvote Velocity (cumulative)",
-    "Streak Trend (30d)",
-}
 
 
 # ─── Helpers ────────────────────────────────────────────────────────────────
@@ -461,18 +459,18 @@ def _build_card_body(spec: dict[str, Any], db_id: int) -> dict[str, Any]:
         "name": "User ID", "slug": "user_id",
     }]
 
-    if spec.get("accepts_day"):
-        day_tag_id   = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{spec['name']}|day"))
-        day_param_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{spec['name']}|param|day"))
-        template_tags["day"] = {
-            "id": day_tag_id, "name": "day",
-            "display-name": "Day",
+    if spec.get("accepts_range"):
+        range_tag_id   = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{spec['name']}|date_range"))
+        range_param_id = str(uuid.uuid5(uuid.NAMESPACE_OID, f"{spec['name']}|param|date_range"))
+        template_tags["date_range"] = {
+            "id": range_tag_id, "name": "date_range",
+            "display-name": "Date Range",
             "type": "text", "required": False,
         }
         parameters.append({
-            "id": day_param_id, "type": "date/single",
-            "target": ["variable", ["template-tag", "day"]],
-            "name": "Day", "slug": "day",
+            "id": range_param_id, "type": "date/range",
+            "target": ["variable", ["template-tag", "date_range"]],
+            "name": "Date Range", "slug": "date_range",
         })
 
     return {
@@ -535,8 +533,8 @@ def ensure_dashboard(cards: list[dict], collection_id: int) -> int:
     existing = find_dashboard(DASHBOARD_NAME, collection_id)
 
     # Stable param ids across runs so dashcard mappings don't churn.
-    user_param_id = str(uuid.uuid5(uuid.NAMESPACE_OID, "dashboard|user_id"))
-    day_param_id  = str(uuid.uuid5(uuid.NAMESPACE_OID, "dashboard|day"))
+    user_param_id       = str(uuid.uuid5(uuid.NAMESPACE_OID, "dashboard|user_id"))
+    date_range_param_id = str(uuid.uuid5(uuid.NAMESPACE_OID, "dashboard|date_range"))
 
     if existing:
         dash_id = existing["id"]
@@ -575,26 +573,14 @@ def ensure_dashboard(cards: list[dict], collection_id: int) -> int:
             "card_id": card["id"],
             "target": ["variable", ["template-tag", "user_id"]],
         }]
-        if spec.get("accepts_day"):
+        if spec.get("accepts_range"):
             param_mappings.append({
-                "parameter_id": day_param_id,
+                "parameter_id": date_range_param_id,
                 "card_id": card["id"],
-                "target": ["variable", ["template-tag", "day"]],
+                "target": ["variable", ["template-tag", "date_range"]],
             })
 
         viz_settings: dict[str, Any] = {}
-        # Bar/line cards with a `day` column emit crossfilter clicks → `day` param.
-        if spec["name"] in DAY_SOURCE_CARDS:
-            viz_settings["click_behavior"] = {
-                "type": "crossfilter",
-                "parameterMapping": {
-                    day_param_id: {
-                        "id": day_param_id,
-                        "source": {"type": "column", "id": "day", "name": "day"},
-                        "target": {"type": "parameter", "id": day_param_id},
-                    }
-                },
-            }
 
         dashcards.append({
             "id": -(idx + 1),
@@ -617,10 +603,10 @@ def ensure_dashboard(cards: list[dict], collection_id: int) -> int:
                     "sectionId": "number",
                 },
                 {
-                    "id": day_param_id,
-                    "name": "Day",
-                    "slug": "day",
-                    "type": "date/single",
+                    "id": date_range_param_id,
+                    "name": "Date Range",
+                    "slug": "date_range",
+                    "type": "date/range",
                     "sectionId": "date",
                 },
             ],
@@ -634,7 +620,7 @@ def ensure_dashboard(cards: list[dict], collection_id: int) -> int:
         f"{MB_URL}/api/dashboard/{dash_id}",
         json={
             "enable_embedding": True,
-            "embedding_params": {"user_id": "locked", "day": "enabled"},
+            "embedding_params": {"user_id": "locked", "date_range": "enabled"},
         },
     ).raise_for_status()
 

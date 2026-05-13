@@ -198,6 +198,10 @@
   "projects.context.share": "Share",
   "projects.context.copy_id": "Copy ID",
   "projects.context.delete": "Delete",
+  "projects.import_json": "Import JSON",
+  "projects.import_json_hint": "Optional — import an existing project file",
+  "projects.import_json_selected": "File selected",
+  "projects.import_json_clear": "Clear",
 
   "users.find_title": "Find Users",
   "users.search_placeholder": "Search users…",
