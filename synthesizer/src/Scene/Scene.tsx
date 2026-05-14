@@ -13,6 +13,7 @@ import type {Cable} from '../Patch/Cable'
 import Context from "../Audio/Context";
 import {RenderModules, parseModules} from "../Modules/Modules";
 import { authFetch } from "../api";
+import logger from "../logger";
 import { useViewport } from "../Viewport/useViewport";
 import { SessionTracker } from "../Analytics/sessionTracker";
 import { computeModuleCounts } from "../Analytics/moduleCounts";
@@ -115,6 +116,7 @@ function Scene() {
           setModules(parsedModules);
           setCables(parsedCables);
           loadCamera(parsedCamera);
+          logger.info('project.fork_loaded', { modules: parsedModules.length, cables: parsedCables.length });
         } catch {
           // malformed fork_config — start empty
         }
@@ -123,6 +125,7 @@ function Scene() {
       }
 
       if (!pid) {
+        logger.info('project.guest_mode');
         setLoading(false);
         return;
       }
@@ -130,7 +133,9 @@ function Scene() {
       try {
         const resp = await authFetch(`/api/projects/${pid}/`);
         if (!resp.ok) {
-          setLoadError(resp.status === 404 ? 'Project not found.' : `Failed to load project (${resp.status}).`);
+          const errMsg = resp.status === 404 ? 'Project not found.' : `Failed to load project (${resp.status}).`;
+          logger.error('project.load_failed', { project_id: pid, status: resp.status });
+          setLoadError(errMsg);
           setLoading(false);
           return;
         }
@@ -154,8 +159,10 @@ function Scene() {
         setModules(parsedModules);
         setCables(parsedCables);
         loadCamera(parsedCamera);
+        logger.info('project.loaded', { project_id: pid, modules: parsedModules.length, cables: parsedCables.length });
       } catch {
         setLoadError('Network error loading project.');
+        logger.error('project.load_network_error', { project_id: pid });
       } finally {
         setLoading(false);
         hasFetched.current = true;
@@ -180,6 +187,7 @@ function Scene() {
         body: JSON.stringify({ config: { camera, modules, cables }, analytics: analyticsPayload }),
       });
       if (!resp.ok) throw new Error(`PATCH ${resp.status}`);
+      logger.action('project.saved', { project_id: projectIdRef.current, modules: modules.length, cables: cables.length });
       const remain = Math.max(0, SAVING_MIN_MS - (Date.now() - startedAt));
       savedTimerRef.current = setTimeout(() => {
         setSaveStatus('saved');
@@ -187,6 +195,7 @@ function Scene() {
       }, remain);
     } catch (e) {
       console.error(e);
+      logger.error('project.save_failed', { project_id: projectIdRef.current, error: String(e) });
       const remain = Math.max(0, SAVING_MIN_MS - (Date.now() - startedAt));
       savedTimerRef.current = setTimeout(() => {
         setSaveStatus('error');
@@ -279,12 +288,15 @@ function Scene() {
         case 'DELETE':
           setCables((prev) => prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id)));
           setModules((prev) => prev.filter((m) => m.id !== id));
+          logger.action('module.deleted', { module_id: id, project_id: projectIdRef.current });
           break;
         case 'RENAME':
           setModules((prev) => prev.map((m) => (m.id === id ? { ...m, title: name } : m)));
+          logger.action('module.renamed', { module_id: id, name, project_id: projectIdRef.current });
           break;
         case 'DISCONNECT':
           setCables((prev) => prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id)));
+          logger.action('module.disconnected', { module_id: id, project_id: projectIdRef.current });
           break;
         case 'RESET':
           setModules((prev) =>
@@ -296,6 +308,7 @@ function Scene() {
               return { ...m, params: newParams };
             })
           );
+          logger.action('module.reset', { module_id: id, project_id: projectIdRef.current });
           break;
       }
     };
@@ -370,6 +383,7 @@ function Scene() {
       const module = instantiateModule(ghost.type, ghost.x, ghost.y);
       audioContext.addModule(module);
       setModules((prev) => [...prev, module]);
+      logger.action('module.created', { module_id: module.id, type: ghost.type, x: ghost.x, y: ghost.y, project_id: projectIdRef.current });
       setGhost(null);
       return;
     }
@@ -566,6 +580,7 @@ function Scene() {
                 a.download = `project-${projectIdRef.current ?? 'untitled'}.json`;
                 a.click();
                 URL.revokeObjectURL(url);
+                logger.action('project.downloaded', { project_id: projectIdRef.current, modules: modules.length, cables: cables.length });
               }}
               className="flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-md border border-zinc-600 text-zinc-300 hover:text-white hover:bg-white/10 transition-colors cursor-pointer"
               title="Download project as JSON"

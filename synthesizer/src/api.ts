@@ -1,7 +1,7 @@
-const ACCESS_COOKIE = 'accessToken';
+export const ACCESS_COOKIE = 'accessToken';
 const REFRESH_COOKIE = 'refreshToken';
 
-function getCookie(name: string): string | null {
+export function getCookie(name: string): string | null {
   const entry = document.cookie
     .split(';')
     .map(c => c.trim())
