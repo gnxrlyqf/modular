@@ -451,6 +451,7 @@ def _build_card_body(spec: dict[str, Any], db_id: int) -> dict[str, Any]:
             "id": user_tag_id, "name": "user_id",
             "display-name": "User ID",
             "type": "number", "required": True,
+            "default": "0",
         },
     }
     parameters = [{
@@ -494,7 +495,8 @@ def ensure_card(spec: dict[str, Any], db_id: int, collection_id: int) -> dict:
         # Compare critical fields; if unchanged, skip the PUT.
         same_sql  = existing.get("dataset_query", {}).get("native", {}).get("query") == spec["sql"]
         same_disp = existing.get("display") == spec["display"]
-        if same_sql and same_disp:
+        same_tags = existing.get("dataset_query", {}).get("native", {}).get("template-tags", {}) == body["dataset_query"]["native"]["template-tags"]
+        if same_sql and same_disp and same_tags:
             return existing
         log(f"updating card: {spec['name']}")
         r = session.put(f"{MB_URL}/api/card/{existing['id']}", json=body)
