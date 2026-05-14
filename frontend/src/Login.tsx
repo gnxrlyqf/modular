@@ -737,7 +737,7 @@ function LoginOverlay(props: { func?: (value: boolean) => void; onSuccess?: () =
       disappearDuration={0.4}
       onDisappearanceComplete={() => props.func && props.func(false)}
     >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-md" />
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-md login-backdrop" />
       <LoginPage func={setVisible} onSuccess={props.onSuccess} />
     </AnimatedContent>
   );

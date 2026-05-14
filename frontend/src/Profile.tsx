@@ -25,7 +25,8 @@ type UserProfile = {
   avatar: string | null;
 };
 
-const FALLBACK_AVATAR = "https://picsum.photos/600/600";
+import defaultProfileImg from './assets/default_profile.png';
+const FALLBACK_AVATAR = defaultProfileImg;
 
 function Profile(props: ProfileContainerProps) {
   useLanguage();

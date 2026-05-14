@@ -25,7 +25,8 @@ type PublicProfileData = {
 };
 
 const SYNTH_URL = (import.meta.env.VITE_SYNTHESIZER_URL as string | undefined) ?? 'http://localhost:5174';
-const FALLBACK_AVATAR = "https://picsum.photos/600/600";
+import defaultProfileImg from './assets/default_profile.png';
+const FALLBACK_AVATAR = defaultProfileImg;
 
 function PublicProfile(props: {
   username: string;

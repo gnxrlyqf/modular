@@ -19,7 +19,8 @@ export type Notification = {
   created_at: string;
 };
 
-const FALLBACK_AVATAR = "https://picsum.photos/120/120";
+import defaultProfileImg from './assets/default_profile.png';
+const FALLBACK_AVATAR = defaultProfileImg;
 
 function relTime(iso: string): string {
   const d = new Date(iso).getTime();

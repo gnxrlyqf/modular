@@ -26,7 +26,7 @@ type FriendRow = {
 
 function OnlineDot() {
   return (
-    <span className="absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400 border-2 border-[#0d0d1a]" />
+    <span className="online-dot absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400" />
   );
 }
 
@@ -41,7 +41,8 @@ type Message = {
   read_at: string | null;
 };
 
-const FALLBACK_AVATAR = "https://picsum.photos/120/120";
+import defaultProfileImg from './assets/default_profile.png';
+const FALLBACK_AVATAR = defaultProfileImg;
 
 function ThreadList(props: {
   threads: Thread[];

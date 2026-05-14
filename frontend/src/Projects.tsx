@@ -34,7 +34,8 @@ type PaginatedResponse = {
   results: ApiProject[];
 };
 
-const FALLBACK_IMAGE = "https://via.placeholder.com/1920x1080?text=Project";
+import defaultProjectImg from './assets/default_project.png';
+const FALLBACK_IMAGE = defaultProjectImg;
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -876,7 +877,7 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
       <div className="flex flex-col sm:flex-row gap-2 my-2 sm:items-center">
         <Filters onDateSort={handleDateSort} onNameSort={handleNameSort} ordering={ordering} />
         <Search value={searchQuery} onChange={handleSearchChange} />
-        <div className="mr-3 sm:ml-0 ml-3 flex items-center gap-2">
+        <div className="me-3 sm:ms-0 ms-3 flex items-center gap-2">
           <ViewToggle mode={viewMode} onChange={setViewMode} />
           <NewButton onClick={() => setCreateModalOpen(true)} />
         </div>

@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from "react";
 import { t, useLanguage } from "./i18n";
+import { usePrefs } from "./Prefs";
 
 const cosmicPalette = {
   bg0: "#05060f",
@@ -18,12 +19,55 @@ const cosmicFonts = {
   mono: '"JetBrains Mono", ui-monospace, monospace',
 };
 
-const cosmicShared = {
+type CosmicShared = {
+  text: string;
+  sub: string;
+  panel: string;
+  panelEdge: string;
+  panelBlur: boolean;
+  panelShadow: string;
+  moduleCard: string;
+  waveformBg: string;
+  knobBg: string;
+  knobShadow: string;
+  portInactive: string;
+  barInactive: string;
+};
+
+const SHARED_DARK: CosmicShared = {
   text: "#e8ecff",
   sub: "#8a92b8",
   panel: "rgba(18, 22, 48, 0.55)",
   panelEdge: "rgba(140, 160, 220, 0.12)",
+  panelBlur: true,
+  panelShadow: "0 12px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+  moduleCard: "linear-gradient(180deg, rgba(20,24,55,0.6), rgba(8,10,28,0.6))",
+  waveformBg: "rgba(5,7,20,0.6)",
+  knobBg: "radial-gradient(circle at 30% 30%, #2a2f55, #0c0f24)",
+  knobShadow: "inset 0 -2px 4px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.4)",
+  portInactive: "rgba(255,255,255,0.06)",
+  barInactive: "rgba(255,255,255,0.15)",
 };
+
+const SHARED_LIGHT: CosmicShared = {
+  text: "#1e1b4b",
+  sub: "rgba(30, 27, 75, 0.55)",
+  panel: "#ffffff",
+  panelEdge: "rgba(99, 102, 241, 0.15)",
+  panelBlur: false,
+  panelShadow: "0 4px 24px rgba(99, 102, 241, 0.10), 0 1px 4px rgba(0,0,0,0.05)",
+  moduleCard: "rgba(99, 102, 241, 0.04)",
+  waveformBg: "rgba(99, 102, 241, 0.04)",
+  knobBg: "radial-gradient(circle at 30% 30%, #dde6ff, #c7d2fe)",
+  knobShadow: "inset 0 -1px 3px rgba(99,102,241,0.15), 0 1px 4px rgba(0,0,0,0.08)",
+  portInactive: "rgba(99, 102, 241, 0.10)",
+  barInactive: "rgba(30, 27, 75, 0.14)",
+};
+
+function useCosmicShared(): CosmicShared {
+  const { prefs } = usePrefs();
+  return prefs.theme === "light" ? SHARED_LIGHT : SHARED_DARK;
+}
 
 const v = cosmicPalette;
 
@@ -84,17 +128,17 @@ function GlassPanel({
   style,
   ...rest
 }: React.HTMLAttributes<HTMLDivElement>) {
+  const shared = useCosmicShared();
   return (
     <div
       {...rest}
       style={{
-        background: cosmicShared.panel,
-        backdropFilter: "blur(24px)",
-        WebkitBackdropFilter: "blur(24px)",
-        border: `1px solid ${cosmicShared.panelEdge}`,
+        background: shared.panel,
+        backdropFilter: shared.panelBlur ? "blur(24px)" : "none",
+        WebkitBackdropFilter: shared.panelBlur ? "blur(24px)" : "none",
+        border: `1px solid ${shared.panelEdge}`,
         borderRadius: 18,
-        boxShadow:
-          "0 12px 60px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.05)",
+        boxShadow: shared.panelShadow,
         ...style,
       }}
     >
@@ -112,6 +156,7 @@ function Knob({
   size?: number;
   color: string;
 }) {
+  const shared = useCosmicShared();
   const angle = -135 + value * 270;
   return (
     <div
@@ -119,11 +164,10 @@ function Knob({
         width: size,
         height: size,
         borderRadius: "50%",
-        background: "radial-gradient(circle at 30% 30%, #2a2f55, #0c0f24)",
-        border: `1px solid ${cosmicShared.panelEdge}`,
+        background: shared.knobBg,
+        border: `1px solid ${shared.panelEdge}`,
         position: "relative",
-        boxShadow:
-          "inset 0 -2px 4px rgba(0,0,0,0.5), 0 2px 6px rgba(0,0,0,0.4)",
+        boxShadow: shared.knobShadow,
       }}
     >
       <div
@@ -155,6 +199,7 @@ function CosmicHero({
   onNewProject?: () => void;
   onTryIt?: () => void;
 }) {
+  const shared = useCosmicShared();
   return (
     <div
       style={{
@@ -198,7 +243,7 @@ function CosmicHero({
           lineHeight: 1.02,
           letterSpacing: "-0.04em",
           margin: "0 0 24px",
-          color: cosmicShared.text,
+          color: shared.text,
         }}
       >
         {t('home.hero.title1')}
@@ -218,7 +263,7 @@ function CosmicHero({
         style={{
           fontFamily: cosmicFonts.ui,
           fontSize: 18,
-          color: cosmicShared.sub,
+          color: shared.sub,
           maxWidth: 540,
           margin: "0 auto 40px",
           lineHeight: 1.55,
@@ -263,8 +308,8 @@ function CosmicHero({
                 borderRadius: 14,
                 cursor: "pointer",
                 background: "transparent",
-                color: cosmicShared.text,
-                border: `1px solid ${cosmicShared.panelEdge}`,
+                color: shared.text,
+                border: `1px solid ${shared.panelEdge}`,
                 fontFamily: cosmicFonts.ui,
                 fontSize: 15,
                 fontWeight: 500,
@@ -283,7 +328,7 @@ function CosmicHero({
                 borderRadius: 14,
                 border: "none",
                 cursor: "pointer",
-                background: cosmicShared.text,
+                background: `linear-gradient(135deg, ${v.accent}, ${v.accent3})`,
                 color: "#05060f",
                 fontFamily: cosmicFonts.ui,
                 fontSize: 15,
@@ -300,8 +345,8 @@ function CosmicHero({
                 borderRadius: 14,
                 cursor: "pointer",
                 background: "transparent",
-                color: cosmicShared.text,
-                border: `1px solid ${cosmicShared.panelEdge}`,
+                color: shared.text,
+                border: `1px solid ${shared.panelEdge}`,
                 fontFamily: cosmicFonts.ui,
                 fontSize: 15,
                 fontWeight: 500,
@@ -317,6 +362,7 @@ function CosmicHero({
 }
 
 function CosmicSynthPreview() {
+  const shared = useCosmicShared();
   const modules = [
     { name: "OSC.A", tag: "SAWTOOTH", accent: v.accent2, knobs: [0.6, 0.3, 0.8] },
     { name: "FILTER", tag: "LOW PASS · 24", accent: v.accent, knobs: [0.5, 0.7, 0.4] },
@@ -353,9 +399,8 @@ function CosmicSynthPreview() {
             <div
               key={m.name}
               style={{
-                background:
-                  "linear-gradient(180deg, rgba(20,24,55,0.6), rgba(8,10,28,0.6))",
-                border: `1px solid ${cosmicShared.panelEdge}`,
+                background: shared.moduleCard,
+                border: `1px solid ${shared.panelEdge}`,
                 borderRadius: 14,
                 padding: 14,
               }}
@@ -382,7 +427,7 @@ function CosmicSynthPreview() {
                   style={{
                     fontFamily: cosmicFonts.mono,
                     fontSize: 9,
-                    color: cosmicShared.sub,
+                    color: shared.sub,
                     letterSpacing: "0.08em",
                   }}
                 >
@@ -406,7 +451,7 @@ function CosmicSynthPreview() {
                   gap: 6,
                   justifyContent: "space-between",
                   paddingTop: 10,
-                  borderTop: `1px dashed ${cosmicShared.panelEdge}`,
+                  borderTop: `1px dashed ${shared.panelEdge}`,
                 }}
               >
                 {[0, 1, 2, 3].map((k) => (
@@ -419,7 +464,7 @@ function CosmicSynthPreview() {
                       background:
                         k < 2
                           ? `radial-gradient(circle, ${m.accent}, ${m.accent}40)`
-                          : "rgba(255,255,255,0.06)",
+                          : shared.portInactive,
                       boxShadow: k < 2 ? `0 0 8px ${m.accent}` : "none",
                     }}
                   />
@@ -432,9 +477,9 @@ function CosmicSynthPreview() {
           style={{
             marginTop: 14,
             padding: "14px 18px",
-            background: "rgba(5,7,20,0.6)",
+            background: shared.waveformBg,
             borderRadius: 12,
-            border: `1px solid ${cosmicShared.panelEdge}`,
+            border: `1px solid ${shared.panelEdge}`,
             display: "flex",
             alignItems: "center",
             gap: 14,
@@ -471,7 +516,7 @@ function CosmicSynthPreview() {
                 width={4}
                 height={b.h}
                 rx={2}
-                fill={b.active ? v.accent2 : "rgba(255,255,255,0.15)"}
+                fill={b.active ? v.accent2 : shared.barInactive}
               />
             ))}
           </svg>
@@ -479,7 +524,7 @@ function CosmicSynthPreview() {
             style={{
               fontFamily: cosmicFonts.mono,
               fontSize: 11,
-              color: cosmicShared.sub,
+              color: shared.sub,
               flexShrink: 0,
             }}
           >
@@ -492,12 +537,17 @@ function CosmicSynthPreview() {
 }
 
 function CosmicModuleCatalog() {
+  const shared = useCosmicShared();
   const cats = [
-    { type: "OSC", count: 6, color: v.accent2, items: ["Saw", "Square", "Sine", "Wavetable", "FM", "Noise"] },
-    { type: "FILTER", count: 4, color: v.accent, items: ["LP24", "HP12", "BP", "Comb"] },
-    { type: "MOD", count: 5, color: v.accent3, items: ["LFO", "ADSR", "AR", "S&H", "Random"] },
-    { type: "FX", count: 6, color: v.accent2, items: ["Delay", "Reverb", "Chorus", "Drive", "Bitcrush", "Comp"] },
-    { type: "UTIL", count: 3, color: v.accent, items: ["Mixer", "VCA", "Scope"] },
+    { type: "OSC",   count: 4, color: v.accent2, items: ["Sine", "Square", "Saw", "Triangle"] },
+    { type: "LFO",   count: 2, color: v.accent,  items: ["Free", "Sync"] },
+    { type: "ENV",   count: 4, color: v.accent3, items: ["Attack", "Decay", "Sustain", "Release"] },
+    { type: "MOD",   count: 4, color: v.accent2, items: ["FM", "AM", "RM", "PM"] },
+    { type: "DIST",  count: 4, color: v.accent,  items: ["Sinoid", "Soft Clip", "Hard Clip", "Bitcrush"] },
+    { type: "FILTER",count: 4, color: v.accent3, items: ["HP", "LP", "Notch", "Bandpass"] },
+    { type: "SEQ",   count: 4, color: v.accent2, items: ["4 steps", "8 steps", "16 steps", "32 steps"] },
+    { type: "KBD",   count: 1, color: v.accent,  items: ["8 octaves"] },
+    { type: "UTIL",  count: 3, color: v.accent3, items: ["Gain", "Mixer", "Splitter"] },
   ];
   return (
     <div
@@ -536,7 +586,7 @@ function CosmicModuleCatalog() {
               fontFamily: cosmicFonts.display,
               fontSize: "clamp(28px, 5vw, 48px)",
               fontWeight: 400,
-              color: cosmicShared.text,
+              color: shared.text,
               margin: 0,
               letterSpacing: "-0.03em",
             }}
@@ -549,7 +599,7 @@ function CosmicModuleCatalog() {
           style={{
             fontFamily: cosmicFonts.ui,
             fontSize: 13,
-            color: cosmicShared.sub,
+            color: shared.sub,
           }}
         >
           {t('cosmic.browse_all')}
@@ -558,7 +608,7 @@ function CosmicModuleCatalog() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))",
+          gridTemplateColumns: "repeat(3, 1fr)",
           gap: 12,
         }}
       >
@@ -586,7 +636,7 @@ function CosmicModuleCatalog() {
                 style={{
                   fontFamily: cosmicFonts.display,
                   fontSize: 28,
-                  color: cosmicShared.text,
+                  color: shared.text,
                   fontStyle: "italic",
                 }}
               >
@@ -609,7 +659,7 @@ function CosmicModuleCatalog() {
                   style={{
                     fontFamily: cosmicFonts.ui,
                     fontSize: 12,
-                    color: cosmicShared.sub,
+                    color: shared.sub,
                   }}
                 >
                   · {it}
@@ -624,6 +674,7 @@ function CosmicModuleCatalog() {
 }
 
 function CosmicPatchOfTheWeek() {
+  const shared = useCosmicShared();
   const points: Array<[number, number]> = [
     [60, 80], [140, 60], [220, 110], [300, 70], [340, 160],
     [260, 200], [180, 220], [100, 180], [60, 80],
@@ -671,7 +722,7 @@ function CosmicPatchOfTheWeek() {
                   fontFamily: cosmicFonts.display,
                   fontSize: 40,
                   fontWeight: 400,
-                  color: cosmicShared.text,
+                  color: shared.text,
                   margin: "0 0 12px",
                   letterSpacing: "-0.03em",
                   lineHeight: 1.05,
@@ -683,11 +734,11 @@ function CosmicPatchOfTheWeek() {
                 style={{
                   fontFamily: cosmicFonts.ui,
                   fontSize: 14,
-                  color: cosmicShared.sub,
+                  color: shared.sub,
                 }}
               >
                 by{" "}
-                <span style={{ color: cosmicShared.text }}>@kira_oss</span> ·
+                <span style={{ color: shared.text }}>@kira_oss</span> ·
                 12 modules · 4 LFOs
               </div>
             </div>
@@ -715,8 +766,8 @@ function CosmicPatchOfTheWeek() {
                   borderRadius: 100,
                   cursor: "pointer",
                   background: "transparent",
-                  color: cosmicShared.text,
-                  border: `1px solid ${cosmicShared.panelEdge}`,
+                  color: shared.text,
+                  border: `1px solid ${shared.panelEdge}`,
                   fontFamily: cosmicFonts.ui,
                   fontSize: 13,
                 }}
@@ -728,7 +779,7 @@ function CosmicPatchOfTheWeek() {
           <div
             style={{
               background: `radial-gradient(ellipse at center, ${v.nebulaA}, transparent 70%), radial-gradient(ellipse at 80% 80%, ${v.nebulaB}, transparent 60%)`,
-              borderLeft: `1px solid ${cosmicShared.panelEdge}`,
+              borderLeft: `1px solid ${shared.panelEdge}`,
               position: "relative",
               display: "flex",
               alignItems: "center",
@@ -769,6 +820,7 @@ function CosmicPatchOfTheWeek() {
 type LeaderboardRow = { id: string; name: string; username: string; weekly_upvotes: number };
 
 function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
+  const shared = useCosmicShared();
   const [rows, setRows] = useState<LeaderboardRow[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -819,7 +871,7 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
               fontFamily: cosmicFonts.display,
               fontSize: "clamp(28px, 5vw, 48px)",
               fontWeight: 400,
-              color: cosmicShared.text,
+              color: shared.text,
               margin: 0,
               letterSpacing: "-0.03em",
             }}
@@ -834,7 +886,7 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
           style={{
             fontFamily: cosmicFonts.mono,
             fontSize: 12,
-            color: cosmicShared.sub,
+            color: shared.sub,
             background: "none",
             border: "none",
             cursor: onOpen ? "pointer" : "default",
@@ -850,10 +902,10 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
             display: "grid",
             gridTemplateColumns: cols,
             padding: "14px 24px",
-            borderBottom: `1px solid ${cosmicShared.panelEdge}`,
+            borderBottom: `1px solid ${shared.panelEdge}`,
             fontFamily: cosmicFonts.mono,
             fontSize: 10,
-            color: cosmicShared.sub,
+            color: shared.sub,
             letterSpacing: "0.15em",
             textTransform: "uppercase",
           }}
@@ -864,12 +916,12 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
           <span style={{ textAlign: "right" }}>{t('cosmic.leaderboard.upvotes')}</span>
         </div>
         {loading && (
-          <div style={{ padding: "32px 24px", fontFamily: cosmicFonts.mono, fontSize: 12, color: cosmicShared.sub, textAlign: "center" }}>
+          <div style={{ padding: "32px 24px", fontFamily: cosmicFonts.mono, fontSize: 12, color: shared.sub, textAlign: "center" }}>
             {t('cosmic.leaderboard.loading')}
           </div>
         )}
         {!loading && rows.length === 0 && (
-          <div style={{ padding: "32px 24px", fontFamily: cosmicFonts.mono, fontSize: 12, color: cosmicShared.sub, textAlign: "center" }}>
+          <div style={{ padding: "32px 24px", fontFamily: cosmicFonts.mono, fontSize: 12, color: shared.sub, textAlign: "center" }}>
             {t('cosmic.leaderboard.empty')}
           </div>
         )}
@@ -880,7 +932,7 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
               display: "grid",
               gridTemplateColumns: cols,
               padding: "16px 24px",
-              borderBottom: i < rows.length - 1 ? `1px solid ${cosmicShared.panelEdge}` : "none",
+              borderBottom: i < rows.length - 1 ? `1px solid ${shared.panelEdge}` : "none",
               alignItems: "center",
             }}
           >
@@ -888,16 +940,16 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
               style={{
                 fontFamily: cosmicFonts.display,
                 fontSize: 22,
-                color: i === 0 ? v.accent3 : cosmicShared.text,
+                color: i === 0 ? v.accent3 : shared.text,
                 fontStyle: "italic",
               }}
             >
               {String(i + 1).padStart(2, "0")}
             </span>
-            <span style={{ fontFamily: cosmicFonts.ui, fontSize: 15, color: cosmicShared.text }}>
+            <span style={{ fontFamily: cosmicFonts.ui, fontSize: 15, color: shared.text }}>
               {r.name}
             </span>
-            <span style={{ fontFamily: cosmicFonts.mono, fontSize: 13, color: cosmicShared.sub }}>
+            <span style={{ fontFamily: cosmicFonts.mono, fontSize: 13, color: shared.sub }}>
               @{r.username}
             </span>
             <span style={{ fontFamily: cosmicFonts.mono, fontSize: 13, color: v.accent, textAlign: "right" }}>
@@ -911,12 +963,13 @@ function CosmicLeaderboard({ onOpen }: { onOpen?: () => void }) {
 }
 
 function CosmicFooter() {
+  const shared = useCosmicShared();
   return (
     <div
       style={{
         position: "relative",
         zIndex: 5,
-        borderTop: `1px solid ${cosmicShared.panelEdge}`,
+        borderTop: `1px solid ${shared.panelEdge}`,
         padding: "40px 24px",
         maxWidth: 1180,
         margin: "0 auto",
@@ -936,7 +989,7 @@ function CosmicFooter() {
             display: "flex",
             alignItems: "center",
             gap: 10,
-            color: cosmicShared.text,
+            color: shared.text,
             fontFamily: cosmicFonts.display,
             fontSize: 18,
           }}
@@ -957,21 +1010,33 @@ function CosmicFooter() {
             gap: 24,
             fontFamily: cosmicFonts.mono,
             fontSize: 11,
-            color: cosmicShared.sub,
-            letterSpacing: "0.1em",
-            textTransform: "uppercase",
+            letterSpacing: "0.05em",
           }}
         >
-          <span>{t('cosmic.footer.github')}</span>
-          <span>{t('cosmic.footer.discord')}</span>
-          <span>{t('cosmic.footer.twitter')}</span>
-          <span>{t('cosmic.footer.credits')}</span>
+          {[
+            { href: "https://github.com/gnxrlyqf/modular", label: "GitHub" },
+            { href: "https://google.com",      label: "Google" },
+            { href: "https://youtube.com",     label: "YouTube" },
+            { href: "https://soundcloud.com",  label: "SoundCloud" },
+          ].map(({ href, label }) => (
+            <a
+              key={href}
+              href={href}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{ color: shared.sub, textDecoration: "none" }}
+              onMouseEnter={(e) => (e.currentTarget.style.color = shared.text)}
+              onMouseLeave={(e) => (e.currentTarget.style.color = shared.sub)}
+            >
+              {label}
+            </a>
+          ))}
         </div>
         <div
           style={{
             fontFamily: cosmicFonts.mono,
             fontSize: 10,
-            color: cosmicShared.sub,
+            color: shared.sub,
             letterSpacing: "0.12em",
           }}
         >
