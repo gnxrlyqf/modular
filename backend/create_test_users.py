@@ -12,6 +12,7 @@ admin login works out of the box.
 import os
 import random
 import sys
+from datetime import datetime, timedelta, timezone
 
 import django
 
@@ -53,6 +54,73 @@ PREDEFINED = [
     ("test1", "test4", "pending"),
     ("test5", "test1", "pending"),
     ("test4", "test6", "accepted"),
+]
+
+
+def _ts(days_ago: int, hour: int = 10) -> str:
+    """ISO timestamp for N days ago at given UTC hour."""
+    dt = datetime.now(tz=timezone.utc) - timedelta(days=days_ago)
+    return dt.replace(hour=hour, minute=0, second=0, microsecond=0).isoformat()
+
+
+def _date_str(days_ago: int) -> str:
+    dt = datetime.now(tz=timezone.utc) - timedelta(days=days_ago)
+    return dt.strftime('%Y-%m-%d')
+
+
+def _make_analytics(days_ago: int, hour: int, duration: int, modules: dict, share_count: int) -> dict:
+    """Build a realistic analytics blob that Metabase SQL can query."""
+    opened = _ts(days_ago, hour)
+    closed_dt = datetime.fromisoformat(opened) + timedelta(seconds=duration)
+    closed = closed_dt.isoformat()
+    # shared_days: one entry per share spaced ~7 days apart
+    shared_days = [_date_str(days_ago + i * 7) for i in range(share_count)]
+    return {
+        "session": {
+            "opened_at": opened,
+            "closed_at": closed,
+            "session_duration": duration,
+            "idle_time": duration // 8,
+        },
+        "modules": modules,
+        "sharing": {
+            "share_count": share_count,
+            "shared_days": shared_days,
+        },
+    }
+
+
+DEFAULT_CONFIG = {"camera": {}, "modules": [], "cables": []}
+
+# (owner, name, created_days_ago, updated_days_ago, hour, session_duration_s, modules, share_count)
+# Spread over 90 days; keep several recent to build a streak.
+PROJECTS = [
+    ("test1", "Acid Bassline",    62, 1,  14, 2700,
+     {"oscillators": 2, "filters": 2, "effects": 1, "envelopes": 1, "outputs": 1}, 3),
+    ("test1", "Ambient Pad",      45, 2,  21, 1800,
+     {"oscillators": 1, "filters": 1, "lfos": 2, "effects": 2, "outputs": 1}, 1),
+    ("test1", "Dark Arp",         20, 0,  16, 3300,
+     {"oscillators": 3, "filters": 1, "envelopes": 2, "gains": 1, "outputs": 1}, 2),
+    ("test2", "Glitch Sequencer", 55, 3,   9, 4200,
+     {"oscillators": 2, "modulators": 3, "effects": 2, "outputs": 1}, 4),
+    ("test2", "Noise Drone",      30, 4,  23, 900,
+     {"oscillators": 1, "gains": 2, "effects": 1, "outputs": 1}, 0),
+    ("test3", "Lo-Fi Beat",       80, 5,  11, 2100,
+     {"oscillators": 2, "filters": 1, "envelopes": 1, "outputs": 1}, 2),
+    ("test3", "Rain Machine",     15, 0,  18, 1500,
+     {"oscillators": 1, "lfos": 1, "gains": 1, "outputs": 1}, 1),
+    ("test4", "FM Lead",          70, 6,  13, 3600,
+     {"oscillators": 4, "envelopes": 2, "filters": 1, "outputs": 1}, 5),
+    ("test5", "Drone Patch",      40, 2,  20, 5400,
+     {"oscillators": 2, "lfos": 3, "gains": 2, "effects": 1, "outputs": 1}, 2),
+    ("test6", "Techno Stab",      25, 1,  15, 1200,
+     {"oscillators": 2, "filters": 2, "envelopes": 1, "outputs": 1}, 3),
+    ("test7", "Wobble Bass",      88, 7,  10, 2400,
+     {"oscillators": 1, "filters": 3, "lfos": 2, "outputs": 1}, 1),
+    ("test7", "Karplus Bass",     10, 0,  17, 3000,
+     {"oscillators": 2, "filters": 1, "modulators": 1, "outputs": 1}, 0),
+    ("test8", "Pad Swells",       50, 3,  12, 1800,
+     {"oscillators": 2, "lfos": 2, "filters": 1, "effects": 1, "outputs": 1}, 2),
 ]
 
 
@@ -114,28 +182,28 @@ def add_random_friendships(users, count=5, seed=42):
         added += 1
 
 
-# Predefined projects: (owner_username, project_name)
-PROJECTS = [
-    ("test1", "Acid Bassline"),
-    ("test1", "Ambient Pad"),
-    ("test2", "Glitch Sequencer"),
-    ("test3", "Lo-Fi Beat"),
-    ("test4", "FM Lead"),
-    ("test5", "Drone Patch"),
-    ("test6", "Techno Stab"),
-    ("test7", "Wobble Bass"),
-]
+def ensure_project(owner, name, created_days_ago, updated_days_ago, hour, duration, modules, share_count):
+    analytics = _make_analytics(updated_days_ago, hour, duration, modules, share_count)
+    created_ts = datetime.now(tz=timezone.utc) - timedelta(days=created_days_ago)
+    updated_ts = datetime.now(tz=timezone.utc) - timedelta(days=updated_days_ago)
 
-DEFAULT_CONFIG = {"camera": {}, "modules": [], "cables": []}
-
-
-def ensure_project(owner, name):
     proj, created = Project.objects.get_or_create(
         user=owner,
         name=name,
-        defaults={'config': DEFAULT_CONFIG, 'analytics': {}},
+        defaults={'config': DEFAULT_CONFIG, 'analytics': analytics},
     )
-    print(f"{'project ' if created else 'projkeep'} {owner.username}/{name}")
+    if not created:
+        proj.analytics = analytics
+        proj.save(update_fields=['analytics'])
+
+    # Force created_at / updated_at — auto_now(_add) fields require update()
+    Project.objects.filter(pk=proj.pk).update(
+        created_at=created_ts,
+        updated_at=updated_ts,
+    )
+    proj.refresh_from_db()
+    print(f"{'project ' if created else 'projkeep'} {owner.username}/{name} "
+          f"(created -{created_days_ago}d, updated -{updated_days_ago}d)")
     return proj
 
 
@@ -168,10 +236,10 @@ def run():
     add_random_friendships(users, count=4)
 
     projects = []
-    for owner_name, proj_name in PROJECTS:
+    for owner_name, proj_name, created_ago, updated_ago, hour, duration, modules, shares in PROJECTS:
         owner = by_name.get(owner_name)
         if owner:
-            projects.append(ensure_project(owner, proj_name))
+            projects.append(ensure_project(owner, proj_name, created_ago, updated_ago, hour, duration, modules, shares))
 
     add_random_votes(projects, users)
 
