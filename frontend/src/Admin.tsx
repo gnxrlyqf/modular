@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
-import { AnimatedContent } from './ReactBits/ReactBits';
 import { authFetch, extractErrorMessage } from './api';
-import { CloseButton } from './Reusables';
 import logger from './logger';
 import { t, useLanguage } from './i18n';
+import OverlayShell from './OverlayShell';
+import { StatusPill, PillButton } from './OverlayParts';
 
 type AdminUser = {
   id: number;
@@ -21,55 +21,95 @@ type LogEntry = {
   created_at: string;
 };
 
-function UserRow(props: {
-  user: AdminUser;
-  onDelete: (id: number) => void;
-  onViewLogs: (id: number) => void;
-  busy: boolean;
-}) {
-  return (
-    <div className="settings-row settings-row-box">
-      <div className="flex flex-col">
-        <span className="text-indigo-100 text-sm">{props.user.username}</span>
-        <span className="text-indigo-300/40 text-xs">id={props.user.id}{props.user.email ? ` · ${props.user.email}` : ''}</span>
-      </div>
-      <div className="flex gap-2">
-        <button
-          type="button"
-          onClick={() => props.onViewLogs(props.user.id)}
-          className="glass glass-hover rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer"
-        >
-          {t('common.logs')}
-        </button>
-        <button
-          type="button"
-          disabled={props.busy}
-          onClick={() => props.onDelete(props.user.id)}
-          className="rounded-lg px-3 py-1 text-xs font-medium bg-red-500/15 border border-red-500/30 hover:bg-red-500/25 text-red-300/80 hover:text-red-200 tracking-wide cursor-pointer disabled:opacity-50"
-        >
-          {t('common.delete')}
-        </button>
-      </div>
-    </div>
-  );
+// ─── Log level badge ──────────────────────────────────────────────────────────
+
+function levelColor(level: string): string {
+  if (level === 'error')   return 'var(--danger)';
+  if (level === 'warning') return 'var(--warning)';
+  if (level === 'action')  return 'var(--accent)';
+  if (level === 'debug')   return 'var(--sub)';
+  return 'var(--accent-2)';
 }
+
+// ─── Log list ─────────────────────────────────────────────────────────────────
 
 function LogList(props: { logs: LogEntry[] }) {
   if (props.logs.length === 0) {
-    return <p className="text-indigo-300/40 text-xs italic">{t('admin.no_logs')}</p>;
+    return (
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)', fontStyle: 'italic', padding: '8px 0' }}>
+        {t('admin.no_logs')}
+      </div>
+    );
   }
   return (
-    <div className="space-y-1.5 max-h-80 overflow-y-auto">
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 4, maxHeight: 320, overflowY: 'auto' }}>
       {props.logs.map((l) => (
-        <div key={l.id} className="text-xs font-mono text-indigo-200/80 border-l-2 border-indigo-500/30 pl-2">
-          <span className="text-indigo-300/50">{new Date(l.created_at).toISOString().slice(11, 19)}</span>
-          <span className={`ml-2 uppercase ${l.level === 'error' ? 'text-red-300/90' : l.level === 'warning' ? 'text-yellow-300/80' : 'text-indigo-300/70'}`}>{l.level}</span>
-          <span className="ml-2">{l.message}</span>
+        <div key={l.id} style={{
+          display: 'grid',
+          gridTemplateColumns: '52px 64px 1fr',
+          gap: 10,
+          alignItems: 'baseline',
+          padding: '4px 8px',
+          borderRadius: 6,
+          background: 'var(--panel-inner)',
+          borderInlineStart: `2px solid ${levelColor(l.level)}`,
+          fontFamily: 'var(--font-mono)',
+          fontSize: 11,
+        }}>
+          <span style={{ color: 'var(--sub-dim)' }}>{new Date(l.created_at).toISOString().slice(11, 19)}</span>
+          <span style={{ color: levelColor(l.level), textTransform: 'uppercase', letterSpacing: '0.05em' }}>{l.level}</span>
+          <span style={{ color: 'var(--text-mute)', wordBreak: 'break-all' }}>{l.message}</span>
         </div>
       ))}
     </div>
   );
 }
+
+// ─── User row ─────────────────────────────────────────────────────────────────
+
+function UserRow(props: {
+  user: AdminUser;
+  onDelete: (id: number) => void;
+  onViewLogs: (id: number) => void;
+  busy: boolean;
+  logsOpen: boolean;
+}) {
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '10px 14px',
+      borderRadius: 'var(--radius-sm)',
+      background: 'var(--field-bg)',
+      border: '1px solid var(--panel-edge)',
+      transition: 'border-color 150ms ease',
+    }}>
+      {/* Identity */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--text)', fontWeight: 500 }}>{props.user.username}</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)', marginBlockStart: 2 }}>
+          id={props.user.id}{props.user.email ? ` · ${props.user.email}` : ''}
+        </div>
+      </div>
+
+      {/* Actions */}
+      <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+        <PillButton
+          variant={props.logsOpen ? 'solid' : 'outline'}
+          onClick={() => props.onViewLogs(props.user.id)}
+        >
+          {t('common.logs')}
+        </PillButton>
+        <PillButton variant="danger" onClick={() => props.onDelete(props.user.id)} disabled={props.busy}>
+          {t('common.delete')}
+        </PillButton>
+      </div>
+    </div>
+  );
+}
+
+// ─── Admin panel ──────────────────────────────────────────────────────────────
 
 function AdminPanel(props: { onClose: () => void }) {
   useLanguage();
@@ -86,12 +126,9 @@ function AdminPanel(props: { onClose: () => void }) {
     setError(null);
     try {
       const res = await authFetch('/api/users/admin/users/');
-      if (!res.ok) {
-        throw new Error(await extractErrorMessage(res, 'Failed to load users.'));
-      }
+      if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to load users.'));
       const data = await res.json();
-      const list = Array.isArray(data) ? data : (data?.results ?? []);
-      setUsers(list);
+      setUsers(Array.isArray(data) ? data : (data?.results ?? []));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load users.');
     } finally {
@@ -99,9 +136,7 @@ function AdminPanel(props: { onClose: () => void }) {
     }
   };
 
-  useEffect(() => {
-    refresh();
-  }, []);
+  useEffect(() => { refresh(); }, []);
 
   const handleDelete = async (id: number) => {
     if (!confirm(t('admin.confirm_delete'))) return;
@@ -109,9 +144,7 @@ function AdminPanel(props: { onClose: () => void }) {
     setError(null);
     try {
       const res = await authFetch(`/api/users/admin/users/${id}/`, { method: 'DELETE' });
-      if (!res.ok && res.status !== 204) {
-        throw new Error(await extractErrorMessage(res, 'Delete failed.'));
-      }
+      if (!res.ok && res.status !== 204) throw new Error(await extractErrorMessage(res, 'Delete failed.'));
       logger.action('admin.user_deleted', { id });
       setUsers((prev) => prev.filter((u) => u.id !== id));
       if (logsForUser?.userId === id) setLogsForUser(null);
@@ -123,16 +156,14 @@ function AdminPanel(props: { onClose: () => void }) {
   };
 
   const handleViewLogs = async (id: number) => {
+    if (logsForUser?.userId === id) { setLogsForUser(null); return; }
     setLogsLoading(true);
     setLogsForUser({ userId: id, logs: [] });
     try {
       const res = await authFetch(`/api/users/admin/users/${id}/logs/`);
-      if (!res.ok) {
-        throw new Error(await extractErrorMessage(res, 'Failed to load logs.'));
-      }
+      if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to load logs.'));
       const data = await res.json();
-      const logs: LogEntry[] = Array.isArray(data) ? data : (data?.results ?? []);
-      setLogsForUser({ userId: id, logs });
+      setLogsForUser({ userId: id, logs: Array.isArray(data) ? data : (data?.results ?? []) });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to load logs.');
       setLogsForUser(null);
@@ -141,83 +172,103 @@ function AdminPanel(props: { onClose: () => void }) {
     }
   };
 
-  const filtered = users.filter((u) =>
-    !search || u.username.toLowerCase().includes(search.toLowerCase())
+  const filtered = users.filter((u) => !search || u.username.toLowerCase().includes(search.toLowerCase()));
+
+  const logsUser = logsForUser ? users.find((u) => u.id === logsForUser.userId) : null;
+
+  const headerRight = (
+    <PillButton variant="outline" onClick={refresh}>
+      {t('admin.refresh')}
+    </PillButton>
   );
 
   return (
-    <div className="font-lexend overlay-panel rounded-2xl z-50 w-full max-w-3xl mx-3 sm:mx-auto">
-      <div className="flex justify-between items-center px-5 pt-5 pb-2">
-        <h1 className="text-2xl font-semibold bg-gradient-to-r from-indigo-200 via-blue-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">
-          {t('admin.title')}
-        </h1>
-        <CloseButton onClick={props.onClose} />
-      </div>
+    <OverlayShell
+      kicker="── Admin · Console"
+      title={t('admin.title')}
+      headerRight={headerRight}
+      width={860}
+      maxHeight="90vh"
+      onClose={props.onClose}
+    >
+      <div style={{ padding: '16px 20px', display: 'flex', flexDirection: 'column', gap: 16 }}>
 
-      <div className="mx-3 sm:mx-4 mb-4 mt-2 rounded-xl border border-white/6 bg-white/2 p-4 sm:p-5 md:p-6 space-y-5">
-        <div className="flex items-center gap-2">
+        {/* Search bar */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: 'var(--field-bg)', border: '1px solid var(--panel-edge)', borderRadius: 'var(--radius-sm)', padding: '8px 12px' }}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+          </svg>
           <input
             type="search"
             placeholder={t('admin.filter')}
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="flex-1 px-3 py-2 rounded-lg bg-white/5 text-indigo-100 border border-white/10 placeholder:text-indigo-300/30 outline-none focus:border-indigo-500/40"
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--text)' }}
           />
-          <button
-            type="button"
-            onClick={refresh}
-            className="glass glass-hover rounded-lg px-3 py-2 text-xs font-medium text-indigo-300/80 hover:text-white cursor-pointer"
-          >
-            {t('admin.refresh')}
-          </button>
         </div>
 
-        {error && <p className="text-red-300/80 text-sm">{error}</p>}
-
-        <section className="space-y-2">
-          <h2 className="text-sm uppercase tracking-wider text-indigo-300/60">{t('admin.users')} ({filtered.length})</h2>
-          {loading && <p className="text-indigo-300/50 text-xs">{t('common.loading')}</p>}
-          {!loading && filtered.length === 0 && (
-            <p className="text-indigo-300/40 text-xs italic">{t('admin.no_users')}</p>
-          )}
-          <div className="space-y-2">
-            {filtered.map((u) => (
-              <UserRow
-                key={u.id}
-                user={u}
-                onDelete={handleDelete}
-                onViewLogs={handleViewLogs}
-                busy={busyDelete === u.id}
-              />
-            ))}
+        {/* Error */}
+        {error && (
+          <div style={{ background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.25)', borderRadius: 'var(--radius-sm)', padding: '8px 12px', fontFamily: 'var(--font-mono)', fontSize: 12, color: 'var(--danger)' }}>
+            {error}
           </div>
-        </section>
+        )}
 
+        {/* Users section header */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--sub-dim)' }}>
+            {t('admin.users')}
+          </span>
+          {!loading && (
+            <StatusPill color="var(--accent-2)" text={`${filtered.length}`} />
+          )}
+        </div>
+
+        {/* User list */}
+        {loading && (
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)', textAlign: 'center', padding: '20px 0' }}>{t('common.loading')}</div>
+        )}
+        {!loading && filtered.length === 0 && (
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)', fontStyle: 'italic', textAlign: 'center', padding: '20px 0' }}>{t('admin.no_users')}</div>
+        )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+          {filtered.map((u) => (
+            <UserRow
+              key={u.id}
+              user={u}
+              onDelete={handleDelete}
+              onViewLogs={handleViewLogs}
+              busy={busyDelete === u.id}
+              logsOpen={logsForUser?.userId === u.id}
+            />
+          ))}
+        </div>
+
+        {/* Logs panel */}
         {logsForUser && (
-          <section className="space-y-2 pt-3 border-t border-white/10">
-            <div className="flex items-center justify-between">
-              <h2 className="text-sm uppercase tracking-wider text-indigo-300/60">
-                {t('admin.logs_for')} #{logsForUser.userId}
-              </h2>
-              <button
-                type="button"
-                onClick={() => setLogsForUser(null)}
-                className="text-xs text-indigo-300/50 hover:text-indigo-200 cursor-pointer"
-              >
-                {t('common.close')}
+          <div style={{ borderTop: '1px solid var(--panel-edge)', paddingBlockStart: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--sub-dim)' }}>
+                {t('admin.logs_for')} <span style={{ color: 'var(--accent)' }}>@{logsUser?.username ?? `#${logsForUser.userId}`}</span>
+              </span>
+              <button type="button" onClick={() => setLogsForUser(null)}
+                style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)', background: 'none', border: 'none', cursor: 'pointer', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                {t('common.close')} ×
               </button>
             </div>
             {logsLoading ? (
-              <p className="text-indigo-300/50 text-xs">{t('common.loading')}</p>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)', textAlign: 'center', padding: '16px 0' }}>{t('common.loading')}</div>
             ) : (
               <LogList logs={logsForUser.logs} />
             )}
-          </section>
+          </div>
         )}
       </div>
-    </div>
+    </OverlayShell>
   );
 }
+
+// ─── useIsAdmin hook (unchanged) ──────────────────────────────────────────────
 
 export function useIsAdmin(): { isAdmin: boolean | null; refresh: () => void } {
   const [isAdmin, setIsAdmin] = useState<boolean | null>(null);
@@ -225,56 +276,21 @@ export function useIsAdmin(): { isAdmin: boolean | null; refresh: () => void } {
   const refresh = () => {
     authFetch('/api/users/admin/check/')
       .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        setIsAdmin(Boolean(data?.is_admin));
-      })
+      .then((data) => { setIsAdmin(Boolean(data?.is_admin)); })
       .catch(() => setIsAdmin(false));
   };
 
-  useEffect(() => {
-    refresh();
-  }, []);
+  useEffect(() => { refresh(); }, []);
 
   return { isAdmin, refresh };
 }
 
-export function AdminContainer(props: { func?: (value: boolean) => void }) {
-  const [visible, setVisible] = useState(true);
+// ─── Container ────────────────────────────────────────────────────────────────
 
-  return (
-    <AnimatedContent
-      className="items-center mx-auto z-10"
-      distance={0}
-      direction="vertical"
-      reverse={false}
-      duration={1}
-      ease="power3.out"
-      initialOpacity={1}
-      animateOpacity
-      scale={1}
-      visible={visible}
-      threshold={0.1}
-      delay={0.1}
-      disappearDuration={0.5}
-      onDisappearanceComplete={() => props.func && props.func(false)}
-    >
-      <AnimatedContent
-        distance={50}
-        direction="vertical"
-        reverse={false}
-        duration={1}
-        ease="power3.out"
-        initialOpacity={1}
-        animateOpacity
-        scale={1}
-        visible={true}
-        threshold={0.1}
-        delay={0.1}
-      >
-        <AdminPanel onClose={() => setVisible(false)} />
-      </AnimatedContent>
-    </AnimatedContent>
-  );
+export function AdminContainer(props: { func?: (value: boolean) => void }) {
+  useLanguage();
+  const handleClose = () => props.func?.(false);
+  return <AdminPanel onClose={handleClose} />;
 }
 
 export default AdminContainer;
