@@ -51,7 +51,7 @@ function Sequencer(props: SequencerProps) {
   const { menu, handleContextMenu } = useContextMenu();
   const [sequence, setSequence] = useState<number[]>(props.s);
   const [seqLen, setSeqLen] = useState<number>(props.l);
-  const color = "#63748d"
+  const color = "#2FA084"
 
   const onMouseDown = useDrag(props, position, setPosition, moduleRef);
   // useEffect(() => {setRelease(props.r)}, [props.r]); // must do this for reset func later

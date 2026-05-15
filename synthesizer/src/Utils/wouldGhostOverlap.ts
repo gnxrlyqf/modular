@@ -1,4 +1,4 @@
-import type { Module } from "../Scene/Modules";
+import type { Module } from "../Modules/Modules";
 
 type ModuleSizeMap = Record<Module["type"], { w: number; h: number }>;
 
