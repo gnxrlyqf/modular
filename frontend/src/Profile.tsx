@@ -1,11 +1,11 @@
 import { useEffect, useRef, useState } from "react";
-import { AnimatedContent } from './ReactBits/ReactBits';
 import { Projects } from "./Projects";
 import { authFetch, clearAuthCookies, getCookie, REFRESH_COOKIE } from "./api";
 import { clearLocalPrefs } from './Prefs';
-import { CloseButton } from "./Reusables";
 import logger from './logger';
 import { t, useLanguage } from './i18n';
+import OverlayShell from './OverlayShell';
+import { AvatarRing, PillButton } from './OverlayParts';
 
 type ProfileContainerProps = {
   func: (value: boolean) => void;
@@ -28,21 +28,47 @@ type UserProfile = {
 import defaultProfileImg from './assets/default_profile.png';
 const FALLBACK_AVATAR = defaultProfileImg;
 
-function Profile(props: ProfileContainerProps) {
+// ─── Settings gear icon ───────────────────────────────────────────────────────
+
+function GearIcon() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M13.6006 21.0761L19.0608 17.9236C19.6437 17.5871 19.9346 17.4188 20.1465 17.1834C20.3341 16.9751 20.4759 16.7297 20.5625 16.4632C20.6602 16.1626 20.6602 15.8267 20.6602 15.1568V8.84268C20.6602 8.17277 20.6602 7.83694 20.5625 7.53638C20.4759 7.26982 20.3341 7.02428 20.1465 6.816C19.9355 6.58161 19.6453 6.41405 19.0674 6.08043L13.5996 2.92359C13.0167 2.58706 12.7259 2.41913 12.416 2.35328C12.1419 2.295 11.8584 2.295 11.5843 2.35328C11.2744 2.41914 10.9826 2.58706 10.3997 2.92359L4.93843 6.07666C4.35623 6.41279 4.06535 6.58073 3.85352 6.816C3.66597 7.02428 3.52434 7.26982 3.43773 7.53638C3.33984 7.83765 3.33984 8.17436 3.33984 8.84742V15.1524C3.33984 15.8254 3.33984 16.1619 3.43773 16.4632C3.52434 16.7297 3.66597 16.9751 3.85352 17.1834C4.06548 17.4188 4.35657 17.5871 4.93945 17.9236L10.3997 21.0761C10.9826 21.4126 11.2744 21.5806 11.5843 21.6465C11.8584 21.7047 12.1419 21.7047 12.416 21.6465C12.7259 21.5806 13.0177 21.4126 13.6006 21.0761Z" />
+      <path d="M9 11.9998C9 13.6566 10.3431 14.9998 12 14.9998C13.6569 14.9998 15 13.6566 15 11.9998C15 10.3429 13.6569 8.99976 12 8.99976C10.3431 8.99976 9 10.3429 9 11.9998Z" />
+    </svg>
+  );
+}
+
+function GridIcon() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" />
+      <rect x="3" y="14" width="7" height="7" /><rect x="14" y="14" width="7" height="7" />
+    </svg>
+  );
+}
+
+// ─── Profile inner component ──────────────────────────────────────────────────
+
+function Profile(props: {
+  onClose: () => void;
+  onOpenSettings: () => void;
+  setLoggedIn?: (value: boolean) => void;
+  onOpenDashboard?: () => void;
+}) {
   useLanguage();
   const [userInfo, setUserInfo] = useState<UserInfo | null>(null);
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
+  const [projectCount, setProjectCount] = useState<number | null>(null);
 
   const handleOpenDashboard = () => {
     logger.action('profile.open_dashboard');
     if (props.onOpenDashboard) {
       props.onOpenDashboard();
-      props.func(false);
-    } else {
-      setError('Dashboard not available in this view.');
+      props.onClose();
     }
   };
 
@@ -53,18 +79,13 @@ function Profile(props: ProfileContainerProps) {
     const refresh = getCookie(REFRESH_COOKIE);
     if (refresh) {
       try {
-        await authFetch('/api/users/logout/', {
-          method: 'POST',
-          body: JSON.stringify({ refresh }),
-        });
-      } catch {
-        /* ignore */
-      }
+        await authFetch('/api/users/logout/', { method: 'POST', body: JSON.stringify({ refresh }) });
+      } catch { /* proceed */ }
     }
     clearLocalPrefs();
     clearAuthCookies();
     props.setLoggedIn?.(false);
-    props.func(false);
+    props.onClose();
     window.location.reload();
   };
 
@@ -73,20 +94,20 @@ function Profile(props: ProfileContainerProps) {
       setLoading(true);
       setError(null);
       try {
-        const [meResp, profileResp] = await Promise.all([
+        const [meResp, profileResp, projectsResp] = await Promise.all([
           authFetch('/api/users/me/'),
           authFetch('/api/users/profile/me/'),
+          authFetch('/api/search/?page=1'),
         ]);
-
-        if (!meResp.ok || !profileResp.ok) {
-          throw new Error('Failed to load profile.');
-        }
-
+        if (!meResp.ok || !profileResp.ok) throw new Error('Failed to load profile.');
         const [me, prof] = await Promise.all([
           meResp.json() as Promise<UserInfo>,
           profileResp.json() as Promise<UserProfile>,
         ]);
-
+        if (projectsResp.ok) {
+          const pd = await projectsResp.json();
+          setProjectCount(typeof pd.count === 'number' ? pd.count : null);
+        }
         logger.action('profile.view', { username: me.username });
         setUserInfo(me);
         setProfile(prof);
@@ -97,7 +118,6 @@ function Profile(props: ProfileContainerProps) {
         setLoading(false);
       }
     };
-
     load();
   }, []);
 
@@ -106,125 +126,115 @@ function Profile(props: ProfileContainerProps) {
   const bio = profile?.bio || '';
   const avatarSrc = profile?.avatar ?? FALLBACK_AVATAR;
 
-  return (
-    <div className="font-lexend overlay-panel rounded-2xl z-50 w-full max-w-[60rem] mx-3 sm:mx-auto">
-      {/* Header row: close + logout + settings */}
-      <div className="flex items-center justify-between px-4 pt-4">
-        <CloseButton onClick={() => { props.set(false); props.func(false); }} />
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={handleOpenDashboard}
-            className="glass glass-hover rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer"
-          >
-            {t('profile.dashboard')}
-          </button>
-          <button
-            type="button"
-            onClick={handleLogout}
-            disabled={loggingOut}
-            className="glass glass-hover rounded-lg px-3 py-1 text-xs font-medium text-indigo-300/80 hover:text-white tracking-wide cursor-pointer disabled:opacity-50"
-          >
-            {loggingOut ? t('auth.signing_out') : t('auth.sign_out')}
-          </button>
-          <button type="button" aria-label="Settings"
-            onClick={() => { logger.action('profile.open_settings'); props.func(false); props.set(true); }}
-            className="btn-close"
-          >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M13.6006 21.0761L19.0608 17.9236C19.6437 17.5871 19.9346 17.4188 20.1465 17.1834C20.3341 16.9751 20.4759 16.7297 20.5625 16.4632C20.6602 16.1626 20.6602 15.8267 20.6602 15.1568V8.84268C20.6602 8.17277 20.6602 7.83694 20.5625 7.53638C20.4759 7.26982 20.3341 7.02428 20.1465 6.816C19.9355 6.58161 19.6453 6.41405 19.0674 6.08043L13.5996 2.92359C13.0167 2.58706 12.7259 2.41913 12.416 2.35328C12.1419 2.295 11.8584 2.295 11.5843 2.35328C11.2744 2.41914 10.9826 2.58706 10.3997 2.92359L4.93843 6.07666C4.35623 6.41279 4.06535 6.58073 3.85352 6.816C3.66597 7.02428 3.52434 7.26982 3.43773 7.53638C3.33984 7.83765 3.33984 8.17436 3.33984 8.84742V15.1524C3.33984 15.8254 3.33984 16.1619 3.43773 16.4632C3.52434 16.7297 3.66597 16.9751 3.85352 17.1834C4.06548 17.4188 4.35657 17.5871 4.93945 17.9236L10.3997 21.0761C10.9826 21.4126 11.2744 21.5806 11.5843 21.6465C11.8584 21.7047 12.1419 21.7047 12.416 21.6465C12.7259 21.5806 13.0177 21.4126 13.6006 21.0761Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-              <path d="M9 11.9998C9 13.6566 10.3431 14.9998 12 14.9998C13.6569 14.9998 15 13.6566 15 11.9998C15 10.3429 13.6569 8.99976 12 8.99976C10.3431 8.99976 9 10.3429 9 11.9998Z" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-            </svg>
-          </button>
-        </div>
-      </div>
+  const headerRight = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <PillButton variant="outline" onClick={handleOpenDashboard} aria-label={t('profile.dashboard')}>
+        <GridIcon /> {t('profile.dashboard')}
+      </PillButton>
+      <PillButton variant="icon" onClick={props.onOpenSettings} aria-label="Settings">
+        <GearIcon />
+      </PillButton>
+    </div>
+  );
 
+  const customTitle = (
+    <span>
+      <span style={{ fontFamily: 'var(--font-display)', fontWeight: 400 }}>{displayName} </span>
+      <span style={{ fontFamily: 'var(--font-mono)', fontSize: 14, color: 'var(--sub)', letterSpacing: '0.05em' }}>@{username}</span>
+    </span>
+  );
+
+  return (
+    <OverlayShell
+      kicker={t('overlays.profile.kicker')}
+      title={customTitle}
+      headerRight={headerRight}
+      width={1080}
+      maxHeight="92vh"
+      onClose={props.onClose}
+    >
       {loading && (
-        <div className="px-6 py-8 text-indigo-300/50 text-sm text-center font-light">{t('profile.loading')}</div>
+        <div style={{ padding: '32px 28px', color: 'var(--sub)', fontFamily: 'var(--font-mono)', fontSize: 12, textAlign: 'center' }}>
+          {t('profile.loading')}
+        </div>
       )}
 
       {!loading && error && (
-        <div className="px-6 pb-4 text-red-300/80 text-sm">{error}</div>
+        <div style={{ padding: '16px 28px', color: 'var(--danger)', fontSize: 13 }}>{error}</div>
       )}
 
       {!loading && !error && (
-        <div className="px-4 sm:px-6 py-5">
-          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-3 sm:gap-5 text-center sm:text-left">
-            <img
-              src={avatarSrc}
-              alt={displayName}
-              className="w-20 h-20 rounded-full object-cover avatar-ring shrink-0"
-            />
-            <div className="min-w-0">
-              <h2 className="text-xl sm:text-2xl font-bold text-white leading-tight truncate">{displayName}</h2>
-              <p className="text-sm text-indigo-300/60 mt-0.5">@{username}</p>
+        <>
+          {/* ── Identity strip ── */}
+          <div style={{ padding: '20px 28px', display: 'flex', alignItems: 'center', gap: 20, borderBottom: '1px solid var(--panel-edge)' }}>
+            <AvatarRing src={avatarSrc} alt={displayName} size={64} />
+
+            {/* Meta */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--sub)', marginBlockEnd: 4 }}>
+                {t('overlays.profile.member_since')} May 2026
+              </div>
+              {bio && (
+                <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 14, color: 'var(--text-mute)', lineHeight: 1.5 }}>
+                  "{bio}"
+                </div>
+              )}
+            </div>
+
+            {/* Stats */}
+            <div style={{ paddingInline: 20, textAlign: 'center', flexShrink: 0 }}>
+              <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 28, color: 'var(--text)', lineHeight: 1.1 }}>
+                {projectCount ?? '—'}
+              </div>
+              <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub)', textTransform: 'uppercase', letterSpacing: '0.1em', marginBlockStart: 2 }}>
+                {t('overlays.profile.stats.projects')}
+              </div>
             </div>
           </div>
-          {bio && (
-            <p className="mt-4 text-indigo-100/80 text-sm leading-relaxed">{bio}</p>
-          )}
-        </div>
+
+          {/* ── Patches section ── */}
+          <div style={{ padding: '0 28px 28px' }}>
+            <Projects user={userInfo?.username} />
+          </div>
+
+          {/* Sign out */}
+          <div style={{ padding: '12px 28px 20px', borderTop: '1px solid var(--panel-edge)', display: 'flex', justifyContent: 'flex-end' }}>
+            <PillButton variant="danger" onClick={handleLogout}>
+              {loggingOut ? t('auth.signing_out') : t('auth.sign_out')}
+            </PillButton>
+          </div>
+        </>
       )}
-
-      <div className="divider-glow mx-4" />
-
-      <Projects user={userInfo?.username} />
-    </div>
-  )
+    </OverlayShell>
+  );
 }
 
+// ─── Container ────────────────────────────────────────────────────────────────
+
 function ProfileContainer(props: ProfileContainerProps) {
-  const [visible, setVisible] = useState(true);
-  const openSettingsOnCloseRef = useRef(false);
+  const openSettingsRef = useRef(false);
 
   const handleClose = () => {
-    openSettingsOnCloseRef.current = false;
-    setVisible(false);
+    const openSettings = openSettingsRef.current;
+    openSettingsRef.current = false;
+    props.set(openSettings);
+    props.func(false);
   };
 
   const handleOpenSettings = () => {
-    openSettingsOnCloseRef.current = true;
-    setVisible(false);
+    openSettingsRef.current = true;
+    props.set(true);
+    props.func(false);
   };
 
   return (
-    <AnimatedContent
-      className="items-center mx-auto z-10"
-      distance={0}
-      direction="vertical"
-      reverse={false}
-      duration={1}
-      ease="power3.out"
-      initialOpacity={1}
-      animateOpacity
-      scale={1}
-      visible={visible}
-      threshold={0.1}
-      delay={0.1}
-      disappearDuration={0.25}
-      onDisappearanceComplete={() => {
-        props.set(openSettingsOnCloseRef.current);
-        props.func(false);
-        openSettingsOnCloseRef.current = false;
-      }}
-    >
-        <AnimatedContent
-          distance={50}
-          direction="vertical"
-          reverse={false}
-          duration={1}
-          ease="power3.out"
-          initialOpacity={1}
-          animateOpacity
-          scale={1}
-          visible={true}
-          threshold={0.1}
-          delay={.1}
-        >
-          <Profile func={handleClose} set={handleOpenSettings} setLoggedIn={props.setLoggedIn} onOpenDashboard={props.onOpenDashboard}/>
-        </AnimatedContent>
-    </AnimatedContent>
-  )
+    <Profile
+      onClose={handleClose}
+      onOpenSettings={handleOpenSettings}
+      setLoggedIn={props.setLoggedIn}
+      onOpenDashboard={props.onOpenDashboard}
+    />
+  );
 }
 
-export default ProfileContainer
+export default ProfileContainer;

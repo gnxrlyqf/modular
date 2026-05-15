@@ -493,7 +493,7 @@ function MainApp() {
           {publicProfileUser && <PublicProfileContainer username={publicProfileUser} func={(v) => { if (!v) setPublicProfileUser(null); }} onMessage={(profileId) => { setPublicProfileUser(null); handleChatOpenWithThread(profileId); }} />}
           {showUserSearch && <UserSearchContainer func={setShowUserSearch} onUserClick={handlePublicProfileOpen} onMessage={(profileId) => { setShowUserSearch(false); handleChatOpenWithThread(profileId); }} />}
           {showChat && <ChatContainer func={setShowChat} initialThreadId={chatInitialThreadId} onViewProfile={handlePublicProfileOpen} />}
-          {showNotifications && <NotificationsContainer func={setShowNotifications} onOpenMessage={(profileId) => { setShowNotifications(false); handleChatOpenWithThread(profileId); }} onFriendsChanged={pollUnread} />}
+          {showNotifications && <NotificationsContainer func={setShowNotifications} onOpenMessage={(profileId) => { setShowNotifications(false); handleChatOpenWithThread(profileId); }} onFriendsChanged={pollUnread} onOpenCommunity={() => { setShowNotifications(false); setShowProjects(true); }} />}
           {showAdmin && isAdmin && <AdminContainer func={setShowAdmin} />}
           {showProfile && (
             <ProfileContainer func={setShowProfile} set={setShowSettings} setLoggedIn={setIsLoggedIn} onOpenDashboard={handleDashboardOpen} />

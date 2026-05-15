@@ -12,6 +12,7 @@
  * fallback. When the English value is also missing the raw key is returned.
  */
 
+import { cloneElement, type ReactNode, type ReactElement } from 'react';
 import { useState, useEffect } from 'react';
 import en from './locales/en.json';
 import ar from './locales/ar.json';
@@ -51,6 +52,45 @@ export function t(key: I18nKey): string {
   const enVal = en[key];
   if (enVal) return enVal;
   return key;
+}
+
+/**
+ * Plural helper: returns the singular or plural translation key's value
+ * based on count. English rule: 1 = singular, all else = plural.
+ *
+ * Usage: tn('projects.count_one', 'projects.count_other', n)
+ * → "1 project" or "3 projects"
+ */
+export function tn(keyOne: I18nKey, keyOther: I18nKey, count: number): string {
+  const base = count === 1 ? t(keyOne) : t(keyOther);
+  return `${count} ${base}`;
+}
+
+/**
+ * Rich-text translation: replaces {placeholder} slots in a translated
+ * string with React nodes. Returns an array of string/node segments.
+ *
+ * Usage:
+ *   richT('notif.liked', { actor: <strong>name</strong>, subject: <em>patch</em> })
+ *
+ * The translation string uses {actor} and {subject} as slot markers.
+ */
+export function richT(
+  key: I18nKey,
+  components: Record<string, ReactNode>
+): ReactNode[] {
+  const template = t(key);
+  const parts = template.split(/(\{[^}]+\})/g);
+  return parts.map((part, i) => {
+    const match = part.match(/^\{([^}]+)\}$/);
+    if (match) {
+      const name = match[1];
+      return name in components
+        ? cloneElement(components[name] as ReactElement, { key: i })
+        : part;
+    }
+    return part;
+  });
 }
 
 export const SUPPORTED_LANGUAGES: Array<{ code: string; label: string; native: string; rtl?: boolean }> = [

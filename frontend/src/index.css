@@ -532,6 +532,579 @@ canvas {
     box-shadow: 0 0 16px rgba(99, 102, 241, 0.3);
 }
 
+/* ═══════════════════════════════════════════════════════════════
+   OVERLAY SYSTEM — Design tokens (brief §A.3)
+   All new overlay components consume these. Old components keep
+   their existing --bg-overlay / --bg-glass tokens untouched.
+   ═══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* Surfaces */
+  --bg-0:              #05060f;
+  --bg-1:              #0b0e23;
+  --panel:             rgba(18, 22, 48, 0.62);
+  --panel-inner:       rgba(12, 16, 38, 0.55);
+  --panel-edge:        rgba(140, 160, 220, 0.14);
+  --panel-edge-bright: rgba(167, 139, 250, 0.30);
+  --field-bg:          rgba(8, 10, 28, 0.55);
+
+  /* Accents */
+  --accent:   #a78bfa;
+  --accent-2: #7dd3fc;
+  --accent-3: #f0abfc;
+
+  /* Text */
+  --text:     #e8ecff;
+  --text-mute:#c8cef0;
+  --sub:      #8a92b8;
+  --sub-dim:  #6a7299;
+
+  /* Semantic */
+  --success:  #34d399;
+  --danger:   #f87171;
+  --warning:  #fbbf24;
+
+  /* On-accent */
+  --on-accent: #0b0820;
+
+  /* Geometry */
+  --radius-pill: 100px;
+  --radius-lg:   22px;
+  --radius-md:   16px;
+  --radius-sm:   10px;
+  --radius-xs:   8px;
+
+  /* Typography */
+  --font-display: "Fraunces", "Noto Naskh Arabic", "Noto Serif SC", Georgia, serif;
+  --font-ui:      "Inter", "Noto Sans Arabic", "Noto Sans SC", system-ui, sans-serif;
+  --font-mono:    "JetBrains Mono", ui-monospace, monospace;
+}
+
+[data-theme="light"] {
+  --bg-0:              #f5f4ff;
+  --bg-1:              #ebe7ff;
+  --panel:             rgba(255, 255, 255, 0.65);
+  --panel-inner:       rgba(245, 242, 255, 0.7);
+  --panel-edge:        rgba(120, 100, 180, 0.18);
+  --panel-edge-bright: rgba(124,  58, 237, 0.40);
+  --field-bg:          rgba(255, 255, 255, 0.55);
+
+  --accent:   #7c3aed;
+  --accent-2: #0ea5e9;
+  --accent-3: #d946ef;
+
+  --text:     #1a1530;
+  --text-mute:#3a3055;
+  --sub:      #6b6280;
+  --sub-dim:  #8b82a0;
+
+  --success:  #059669;
+  --danger:   #dc2626;
+  --warning:  #d97706;
+
+  --on-accent: #ffffff;
+}
+
+/* ─── Glass recipe (§A.5) ─── */
+.glass-shell {
+  background: var(--panel);
+  backdrop-filter: blur(28px) saturate(140%);
+  -webkit-backdrop-filter: blur(28px) saturate(140%);
+  border: 1px solid var(--panel-edge-bright);
+  border-radius: var(--radius-lg);
+  box-shadow:
+    0 40px 120px rgba(0, 0, 0, 0.55),
+    0 0 0 1px rgba(255, 255, 255, 0.02),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 0 80px rgba(167, 139, 250, 0.12);
+}
+[data-theme="light"] .glass-shell {
+  box-shadow:
+    0 30px 100px rgba(80, 60, 140, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9),
+    0 0 60px rgba(124, 58, 237, 0.10);
+}
+
+.glass-card {
+  background: var(--panel-inner);
+  border: 1px solid var(--panel-edge);
+  border-radius: var(--radius-md);
+  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+.glass-card:hover {
+  border-color: var(--panel-edge-bright);
+  box-shadow: 0 12px 32px rgba(0,0,0,0.3), 0 0 20px rgba(167,139,250,0.12);
+  transform: translateY(-2px);
+}
+
+/* ─── Overlay shell decorative glows (§A.6) ─── */
+.overlay-shell {
+  position: relative;
+  overflow: hidden;
+}
+.overlay-shell::before {
+  content: "";
+  position: absolute;
+  inset-block-start: -100px;
+  inset-inline-end: -100px;
+  width: 280px;
+  height: 280px;
+  pointer-events: none;
+  aria-hidden: true;
+  background: radial-gradient(circle, color-mix(in oklch, var(--accent) 25%, transparent), transparent 70%);
+  z-index: 0;
+}
+.overlay-shell::after {
+  content: "";
+  position: absolute;
+  inset-block-end: -100px;
+  inset-inline-start: -100px;
+  width: 280px;
+  height: 280px;
+  pointer-events: none;
+  background: radial-gradient(circle, color-mix(in oklch, var(--accent-2) 18%, transparent), transparent 70%);
+  z-index: 0;
+}
+[data-theme="light"] .overlay-shell::before { opacity: 0.55; }
+[data-theme="light"] .overlay-shell::after  { opacity: 0.55; }
+
+/* ─── Overlay backdrop (§A.8) ─── */
+.overlay-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(5, 7, 20, 0.4);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  padding: 1rem;
+}
+
+/* ─── Overlay entry animation (§A.8) ─── */
+@keyframes overlay-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.overlay-enter {
+  animation: overlay-in 180ms ease forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .overlay-enter { animation: none; opacity: 1; }
+  .glass-card { transition: none; }
+  .glass-card:hover { transform: none; }
+}
+
+/* ─── Overlay content zone (above the decorative glows) ─── */
+.overlay-content {
+  position: relative;
+  z-index: 1;
+}
+
+/* ─── Overlay header ─── */
+.overlay-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 28px;
+  border-bottom: 1px solid var(--panel-edge);
+  gap: 12px;
+}
+
+/* ─── Kicker typography (§A.4) ─── */
+.kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--accent);
+  line-height: 1;
+  margin-block-end: 4px;
+}
+
+/* ─── Overlay title ─── */
+.overlay-title {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 400;
+  letter-spacing: -0.025em;
+  color: var(--text);
+  line-height: 1.1;
+}
+
+/* ─── Overlay close button ─── */
+.overlay-close {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-xs);
+  background: transparent;
+  border: 1px solid var(--panel-edge);
+  color: var(--sub);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  line-height: 1;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+  flex-shrink: 0;
+}
+.overlay-close:hover {
+  background: var(--panel-inner);
+  border-color: var(--panel-edge-bright);
+  color: var(--text);
+}
+.overlay-close:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ─── Status pill (§A.9) ─── */
+.status-pill {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+/* ─── Toggle switch (§A.9) ─── */
+.toggle-track {
+  position: relative;
+  width: 40px;
+  height: 22px;
+  border-radius: 11px;
+  background: var(--panel-edge);
+  border: 1px solid var(--panel-edge);
+  cursor: pointer;
+  transition: background 180ms ease, border-color 180ms ease;
+  flex-shrink: 0;
+}
+.toggle-track[aria-checked="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+}
+.toggle-knob {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  inset-block-start: 2px;
+  inset-inline-start: 2px;
+  transition: inset-inline-start 180ms ease;
+  pointer-events: none;
+}
+.toggle-track[aria-checked="true"] .toggle-knob {
+  inset-inline-start: 20px;
+}
+
+/* ─── Pill button (§A.9) ─── */
+.pill-btn {
+  border-radius: var(--radius-pill);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  padding: 6px 16px;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  border: 1px solid transparent;
+}
+.pill-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.pill-btn--solid {
+  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+  color: var(--on-accent);
+  border-color: transparent;
+}
+.pill-btn--solid:hover {
+  box-shadow: 0 0 20px rgba(167,139,250,0.4);
+  transform: translateY(-1px);
+}
+.pill-btn--outline {
+  background: var(--panel-inner);
+  border-color: var(--panel-edge);
+  color: var(--text-mute);
+}
+.pill-btn--outline:hover {
+  border-color: var(--panel-edge-bright);
+  color: var(--text);
+}
+.pill-btn--icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+  background: var(--panel-inner);
+  border-color: var(--panel-edge);
+  color: var(--sub);
+}
+.pill-btn--icon:hover {
+  border-color: var(--panel-edge-bright);
+  color: var(--text);
+}
+.pill-btn--danger {
+  background: transparent;
+  border-color: rgba(248, 113, 113, 0.35);
+  color: var(--danger);
+}
+.pill-btn--danger:hover {
+  background: rgba(248, 113, 113, 0.08);
+  border-color: var(--danger);
+}
+
+/* ─── Avatar ring (§A.9) ─── */
+.avatar-ring-conic {
+  border-radius: 50%;
+  padding: 2px;
+  background: conic-gradient(from 0deg, var(--accent), var(--accent-2), var(--accent-3), var(--accent));
+  animation: avatar-spin 18s linear infinite;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.avatar-ring-conic img,
+.avatar-ring-conic .avatar-inner {
+  border-radius: 50%;
+  display: block;
+  animation: avatar-counter-spin 18s linear infinite;
+}
+@keyframes avatar-spin         { to { transform: rotate(360deg); } }
+@keyframes avatar-counter-spin { to { transform: rotate(-360deg); } }
+@media (prefers-reduced-motion: reduce) {
+  .avatar-ring-conic { animation: none; }
+  .avatar-ring-conic img, .avatar-ring-conic .avatar-inner { animation: none; }
+}
+
+/* ─── Field row (Settings) ─── */
+.field-row {
+  display: grid;
+  grid-template-columns: 180px 1fr auto;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--panel-edge);
+  background: var(--field-bg);
+  transition: border-color 150ms ease;
+}
+.field-row:hover { border-color: var(--panel-edge-bright); }
+.field-row:hover .field-edit-btn { opacity: 1; }
+.field-label {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--sub);
+}
+.field-value {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text);
+}
+.field-edit-btn {
+  opacity: 0;
+  transition: opacity 150ms ease;
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--sub);
+  padding: 4px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+}
+.field-edit-btn:hover { color: var(--accent); }
+.field-edit-btn:focus-visible { opacity: 1; outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ─── Sidebar nav item (Settings) ─── */
+.sidebar-item {
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease;
+  border: 1px solid transparent;
+  position: relative;
+}
+.sidebar-item:hover { background: rgba(167,139,250,0.05); }
+.sidebar-item.active {
+  background: rgba(167,139,250,0.08);
+  border-color: var(--panel-edge);
+}
+.sidebar-item.active::before {
+  content: "";
+  position: absolute;
+  inset-block: 6px;
+  inset-inline-start: -1px;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+}
+.sidebar-label {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text-mute);
+}
+.sidebar-hint {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--sub-dim);
+  margin-block-start: 2px;
+}
+
+/* ─── Mono section header ─── */
+.section-kicker {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.22em;
+  color: var(--sub-dim);
+  padding: 16px 0 8px;
+  border-bottom: 1px solid var(--panel-edge);
+  margin-block-end: 8px;
+}
+
+/* ─── Notification row ─── */
+.notif-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: start;
+  gap: 10px;
+  padding: 10px 16px;
+  border-radius: var(--radius-sm);
+  border-inline-start: 2px solid transparent;
+  transition: background 150ms ease, border-color 150ms ease;
+  cursor: pointer;
+  position: relative;
+}
+.notif-row:hover { background: rgba(167,139,250,0.08); }
+.notif-row.unread {
+  background: rgba(167,139,250,0.05);
+  border-inline-start-color: var(--accent);
+}
+
+/* ─── Tab bar ─── */
+.tab-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.tab-btn {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+  color: var(--sub);
+  background: transparent;
+  white-space: nowrap;
+}
+.tab-btn:hover { color: var(--text-mute); }
+.tab-btn.active {
+  background: rgba(167,139,250,0.18);
+  color: var(--accent);
+  border-color: rgba(167,139,250,0.25);
+}
+.tab-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ─── Conversation row (Chat) ─── */
+.conv-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease;
+  border: 1px solid transparent;
+  border-inline-start-width: 2px;
+  border-inline-start-color: transparent;
+  position: relative;
+}
+.conv-row:hover { background: rgba(167,139,250,0.05); }
+.conv-row.active {
+  background: rgba(167,139,250,0.06);
+  border-color: var(--panel-edge);
+  border-inline-start-color: var(--accent);
+  box-shadow: inset 0 0 20px rgba(167,139,250,0.03);
+}
+
+/* ─── Message bubble ─── */
+.bubble-theirs {
+  background: var(--panel-inner);
+  border: 1px solid var(--panel-edge);
+  border-radius: 14px 14px 14px 4px;
+  padding: 10px 14px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--text);
+  max-width: 70%;
+  align-self: flex-start;
+}
+.bubble-mine {
+  background: linear-gradient(135deg, var(--accent), var(--accent-3));
+  color: var(--on-accent);
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 14px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  max-width: 70%;
+  align-self: flex-end;
+}
+
+/* ─── Search result row ─── */
+.search-row {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 16px;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background 150ms ease;
+  border-inline-start: 2px solid transparent;
+  position: relative;
+}
+.search-row:hover,
+.search-row.focused {
+  background: rgba(167,139,250,0.08);
+  border-inline-start-color: var(--accent);
+}
+
+/* ─── Constellation thumbnail (Profile) ─── */
+.const-thumb {
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-md) var(--radius-md) 0 0;
+  overflow: hidden;
+  position: relative;
+}
+
+/* ─── RTL utilities ─── */
+.rtl-flip { display: inline-block; }
+[dir="rtl"] .rtl-flip { transform: scaleX(-1); }
+
+/* Focus ring — global, accent-tinted (§A.13) */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 /* ─── Xylophone theme ─────────────────────────────────────── */
 
 /* Drumstick: rests at right edge, tracks cursor Y, straight. Strikes tilt 25° CW. */

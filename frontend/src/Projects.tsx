@@ -1,10 +1,11 @@
 import { useEffect, useState, useRef } from "react";
 import { createRoot } from "react-dom/client";
-import { AnimatedContent } from './ReactBits/ReactBits';
 import { authFetch, extractErrorMessage } from './api';
 import { Input, CloseButton } from './Reusables';
 import logger from './logger';
 import { t, useLanguage } from './i18n';
+import OverlayShell from './OverlayShell';
+import { ConstellationThumb, PillButton } from './OverlayParts';
 
 const SYNTH_URL = (import.meta.env.VITE_SYNTHESIZER_URL as string | undefined) ?? 'http://localhost:5174';
 
@@ -572,7 +573,10 @@ function Card(props: {
         onClick={handleClick}
         className="flex items-center gap-3 glass card-lift w-full rounded-xl font-lexend cursor-pointer px-3 py-2.5 border border-white/6"
       >
-        <img className="rounded-lg h-10 w-16 object-cover shrink-0" src={cardImage} alt={cardTitle} />
+        {cardImage === FALLBACK_IMAGE
+          ? <div className="rounded-lg h-10 w-16 overflow-hidden shrink-0"><ConstellationThumb projectId={props.card.id} width={64} height={40} accentIndex={props.index % 3} /></div>
+          : <img className="rounded-lg h-10 w-16 object-cover shrink-0" src={cardImage} alt={cardTitle} />
+        }
         <div className="min-w-0 flex-1">
           <span className="truncate text-sm text-indigo-100 font-medium block">{cardTitle}</span>
           {showAuthor && (
@@ -622,9 +626,12 @@ function Card(props: {
       rel="noreferrer"
       ref={cardRef}
       onClick={handleClick}
-      className="block glass card-lift w-full rounded-2xl font-lexend cursor-pointer overflow-hidden"
+      className="block glass-card w-full font-lexend cursor-pointer overflow-hidden"
     >
-      <img className="rounded-t-2xl h-36 w-full object-cover" src={cardImage} alt={cardTitle} />
+      {cardImage === FALLBACK_IMAGE
+        ? <div style={{ height: 140, width: '100%' }}><ConstellationThumb projectId={props.card.id} width={320} height={140} accentIndex={props.index % 3} /></div>
+        : <img className="rounded-t-2xl h-36 w-full object-cover" src={cardImage} alt={cardTitle} />
+      }
       <div className="flex flex-col border-t border-white/6">
         <div className="flex flex-row items-center py-2.5 px-3">
           <span className="truncate text-sm text-indigo-100 font-medium">{cardTitle}</span>
@@ -973,50 +980,67 @@ function Projects(props: {user?: string; currentUsername?: string; onUserClick?:
   )
 }
 
+type CommunityTab = 'trending' | 'new';
+
+// ─── Community overlay ────────────────────────────────────────────────────────
+
+function CommunityOverlay(props: { onClose: () => void; currentUsername?: string; onUserClick?: (username: string) => void }) {
+  useLanguage();
+  const [tab, setTab] = useState<CommunityTab>('trending');
+
+  const TABS: Array<{ id: CommunityTab; label: string }> = [
+    { id: 'trending', label: t('overlays.community.tab.trending') },
+    { id: 'new',      label: t('overlays.community.tab.new') },
+  ];
+
+  const orderingForTab: Record<CommunityTab, string> = {
+    trending: '-net_votes',
+    new:      '-created_at',
+  };
+
+  return (
+    <OverlayShell
+      kicker={t('overlays.community.kicker')}
+      title={t('nav.community')}
+      width={1100}
+      maxHeight="92vh"
+      onClose={props.onClose}
+    >
+      {/* Tab bar */}
+      <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--panel-edge)' }}>
+        <div className="tab-bar">
+          {TABS.map((tb) => (
+            <button key={tb.id} type="button" className={`tab-btn ${tab === tb.id ? 'active' : ''}`} onClick={() => setTab(tb.id)}>
+              {tb.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ padding: '8px 0' }}>
+        <Projects
+          key={tab}
+          currentUsername={props.currentUsername}
+          onUserClick={props.onUserClick}
+          initialOrdering={orderingForTab[tab]}
+        />
+      </div>
+    </OverlayShell>
+  );
+}
+
 // ─── Container ────────────────────────────────────────────────────────────────
 
 function ProjectsContainer(props: {func?: (value: boolean) => void; currentUsername?: string; onUserClick?: (username: string) => void; initialOrdering?: string}) {
-  const [visible, setVisible] = useState(true);
+  const handleClose = () => props.func?.(false);
 
   return (
-    <AnimatedContent
-      className="items-center mx-auto z-10"
-      distance={0}
-      direction="vertical"
-      reverse={false}
-      duration={1}
-      ease="power3.out"
-      initialOpacity={1}
-      animateOpacity
-      scale={1}
-      visible={visible}
-      threshold={0.1}
-      delay={0.1}
-      disappearDuration={0.5}
-      onDisappearanceComplete={() => props.func && props.func(false)}
-    >
-        <AnimatedContent
-          distance={50}
-          direction="vertical"
-          reverse={false}
-          duration={1}
-          ease="power3.out"
-          initialOpacity={1}
-          animateOpacity
-          scale={1}
-          visible={true}
-          threshold={0.1}
-          delay={.1}
-        >
-          <div className="font-lexend overlay-panel rounded-2xl z-50 w-full max-w-[60rem] mx-3 sm:mx-auto">
-            <div className="flex justify-end px-4 pt-4 pb-0">
-              <CloseButton onClick={() => setVisible(false)} />
-            </div>
-            <Projects currentUsername={props.currentUsername} onUserClick={props.onUserClick} initialOrdering={props.initialOrdering} />
-          </div>
-        </AnimatedContent>
-    </AnimatedContent>
-  )
+    <CommunityOverlay
+      onClose={handleClose}
+      currentUsername={props.currentUsername}
+      onUserClick={props.onUserClick}
+    />
+  );
 }
 
 export { ProjectsContainer, Projects }

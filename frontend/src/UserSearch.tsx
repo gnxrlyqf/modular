@@ -1,9 +1,12 @@
-import { useEffect, useState, useRef, useCallback } from "react";
-import { AnimatedContent } from './ReactBits/ReactBits';
-import { Input, CloseButton } from './Reusables';
+import { useEffect, useState, useRef, useCallback, type ReactNode, type CSSProperties } from "react";
 import { authFetch, extractErrorMessage } from './api';
 import logger from './logger';
 import { t, useLanguage } from './i18n';
+import { AvatarRing } from './OverlayParts';
+
+import defaultProfileImg from './assets/default_profile.png';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type ApiUser = {
   id: number;
@@ -13,12 +16,6 @@ type ApiUser = {
   is_online?: boolean;
 };
 
-function OnlineDot() {
-  return (
-    <span className="online-dot absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400" />
-  );
-}
-
 type PaginatedResponse = {
   count: number;
   next: string | null;
@@ -27,439 +24,469 @@ type PaginatedResponse = {
 };
 
 type FriendshipStatus = 'pending' | 'accepted' | 'blocked';
-
-type Friendship = {
-  id: number;
-  sender: number;
-  receiver: number;
-  status: FriendshipStatus;
-};
-
+type Friendship = { id: number; sender: number; receiver: number; status: FriendshipStatus };
 type RelationKind = 'none' | 'pending_out' | 'pending_in' | 'friends';
-type Relation = {
-  kind: RelationKind;
-  friendshipId?: number;
-};
+type Relation = { kind: RelationKind; friendshipId?: number };
 
-// ─── Search Input ─────────────────────────────────────────────────────────────
+type ApiProject = { id: string; name: string; username?: string; created_at: string; net_votes: number };
+type ProjectPaginatedResponse = { count: number; results: ApiProject[] };
 
-function Search(props: { value: string; onChange: (value: string) => void }) {
+const SUGGESTED = ['ambient patches', 'techno modules', 'filter design', 'beginner synth'];
+
+// ─── SearchInput row (replaces the shell header) ──────────────────────────────
+
+function SearchInputRow(props: {
+  value: string;
+  onChange: (v: string) => void;
+  onClose: () => void;
+}) {
   return (
-    <div className="relative flex-1">
-      <Input
-        placeholder={t('users.search_placeholder')}
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 12,
+      padding: '0 20px',
+      height: 56,
+      background: 'var(--panel)',
+      backdropFilter: 'blur(28px) saturate(140%)',
+      WebkitBackdropFilter: 'blur(28px) saturate(140%)',
+      borderRadius: 'var(--radius-lg) var(--radius-lg) 0 0',
+      borderBottom: '1px solid var(--panel-edge)',
+    }}>
+      {/* Magnifier */}
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+      </svg>
+
+      {/* Input */}
+      <input
         type="search"
         autoFocus
         value={props.value}
         onChange={(e) => props.onChange(e.target.value)}
-        className="w-full pr-8"
+        placeholder={t('overlays.search.placeholder')}
+        style={{
+          flex: 1,
+          background: 'none',
+          border: 'none',
+          outline: 'none',
+          fontFamily: 'var(--font-ui)',
+          fontSize: 18,
+          color: 'var(--text)',
+          caretColor: 'var(--accent)',
+        }}
+        aria-label={t('overlays.search.placeholder')}
       />
-      <svg
-        className="size-4 absolute top-1/2 -translate-y-1/2 right-2.5 text-indigo-300/30 pointer-events-none"
-        stroke="currentColor"
-        strokeWidth="2"
-        viewBox="0 0 24 24"
-        fill="none"
-      >
-        <path d="m21 21-5.197-5.197m0 0A7.5 7.5 0 1 0 5.196 5.196a7.5 7.5 0 0 0 10.607 10.607Z" />
-      </svg>
+
+      {/* Esc keycap */}
+      <span dir="ltr" onClick={props.onClose} style={{ cursor: 'pointer' }}>
+        <kbd style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 10,
+          color: 'var(--sub)',
+          background: 'var(--panel-inner)',
+          border: '1px solid var(--panel-edge)',
+          borderRadius: 4,
+          padding: '4px 8px',
+          letterSpacing: '0.05em',
+          cursor: 'pointer',
+        }}>Esc</kbd>
+      </span>
     </div>
   );
 }
 
-// ─── Action Button ────────────────────────────────────────────────────────────
+// ─── Search result row ────────────────────────────────────────────────────────
 
-function ActionButton(props: {
-  relation: Relation;
-  busy: boolean;
-  onAdd: () => void;
-  onAccept: () => void;
-  onCancel: () => void;
-  onRemove: () => void;
+function SearchRow(props: {
+  focused: boolean;
+  onClick: () => void;
+  icon: ReactNode;
+  primary: ReactNode;
+  secondary?: ReactNode;
+  trailing?: ReactNode;
 }) {
-  const base = "rounded-lg px-3 py-1 text-xs font-medium tracking-wide cursor-pointer transition-all duration-150 disabled:opacity-50";
-  if (props.busy) {
-    return <button disabled className={`${base} bg-indigo-500/10 text-indigo-300/50 border border-indigo-400/15`}>…</button>;
-  }
-  switch (props.relation.kind) {
-    case 'none':
-      return (
-        <button
-          type="button"
-          onClick={props.onAdd}
-          className={`${base} bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 text-indigo-200 hover:text-white`}
-        >
-          {t('users.add_friend')}
-        </button>
-      );
-    case 'pending_out':
-      return (
-        <button
-          type="button"
-          onClick={props.onCancel}
-          title="Click to cancel"
-          className={`${base} bg-yellow-500/10 hover:bg-yellow-500/20 border border-yellow-400/30 text-yellow-200`}
-        >
-          {t('users.pending')}
-        </button>
-      );
-    case 'pending_in':
-      return (
-        <button
-          type="button"
-          onClick={props.onAccept}
-          className={`${base} bg-green-500/15 hover:bg-green-500/25 border border-green-400/30 text-green-200 hover:text-white`}
-        >
-          {t('users.accept')}
-        </button>
-      );
-    case 'friends':
-      return (
-        <button
-          type="button"
-          onClick={props.onRemove}
-          className={`${base} bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-red-200`}
-        >
-          {t('users.remove')}
-        </button>
-      );
+  return (
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={props.onClick}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); props.onClick(); } }}
+      className={`search-row ${props.focused ? 'focused' : ''}`}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', width: 36, height: 36, flexShrink: 0 }}>
+        {props.icon}
+      </div>
+      <div style={{ minWidth: 0 }}>
+        <div style={{ fontFamily: 'var(--font-ui)', fontSize: 14, color: 'var(--text)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{props.primary}</div>
+        {props.secondary && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub)', marginBlockStart: 1 }}>{props.secondary}</div>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        {props.trailing}
+        {props.focused && (
+          <span dir="ltr"><kbd style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)', background: 'var(--panel-inner)', border: '1px solid var(--panel-edge)', borderRadius: 4, padding: '2px 6px' }}>↵</kbd></span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// ─── Section header ───────────────────────────────────────────────────────────
+
+function SearchSection({ label, count }: { label: string; count?: number }) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 20px 4px', fontFamily: 'var(--font-mono)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.18em', color: 'var(--sub-dim)' }}>
+      {label}
+      {count != null && <span style={{ color: 'var(--sub-dim)' }}>({count})</span>}
+    </div>
+  );
+}
+
+// ─── Friendship action ────────────────────────────────────────────────────────
+
+function FriendActionChip({ relation, busy, onAdd, onAccept, onCancel, onRemove }: {
+  relation: Relation; busy: boolean;
+  onAdd: () => void; onAccept: () => void; onCancel: () => void; onRemove: () => void;
+}) {
+  if (busy) return <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)' }}>…</span>;
+  const chipStyle = (bg: string, color: string, border: string): CSSProperties => ({
+    fontFamily: 'var(--font-mono)', fontSize: 10, padding: '3px 8px',
+    borderRadius: 'var(--radius-pill)', background: bg, color, border: `1px solid ${border}`, cursor: 'pointer', letterSpacing: '0.05em',
+  });
+  switch (relation.kind) {
+    case 'none':       return <button type="button" style={chipStyle('rgba(167,139,250,0.12)','var(--accent)','rgba(167,139,250,0.3)')} onClick={(e) => { e.stopPropagation(); onAdd(); }}>{t('users.add_friend')}</button>;
+    case 'pending_out':return <button type="button" style={chipStyle('rgba(251,191,36,0.1)','var(--warning)','rgba(251,191,36,0.25)')} onClick={(e) => { e.stopPropagation(); onCancel(); }}>{t('users.pending')}</button>;
+    case 'pending_in': return <button type="button" style={chipStyle('rgba(52,211,153,0.12)','var(--success)','rgba(52,211,153,0.3)')} onClick={(e) => { e.stopPropagation(); onAccept(); }}>{t('users.accept')}</button>;
+    case 'friends':    return <button type="button" style={chipStyle('rgba(248,113,113,0.08)','var(--danger)','rgba(248,113,113,0.2)')} onClick={(e) => { e.stopPropagation(); onRemove(); }}>{t('users.remove')}</button>;
   }
 }
 
-// ─── User Row ─────────────────────────────────────────────────────────────────
+// ─── Empty state ──────────────────────────────────────────────────────────────
 
-function UserRow(props: {
-  user: ApiUser;
-  relation: Relation;
-  busy: boolean;
-  onAdd: (user: ApiUser) => void;
-  onAccept: (relation: Relation) => void;
-  onCancel: (relation: Relation) => void;
-  onRemove: (relation: Relation) => void;
-  isSelf: boolean;
+function EmptyState({ onClose }: { onClose: () => void }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '48px 20px', gap: 12 }}>
+      {/* Mini constellation */}
+      <svg width="64" height="36" viewBox="0 0 64 36" aria-hidden="true">
+        {[[8,18],[20,8],[32,24],[44,10],[56,20],[24,28],[48,28]].map(([x,y], i, arr) => (
+          i < arr.length - 1 && <line key={i} x1={x} y1={y} x2={arr[i+1][0]} y2={arr[i+1][1]} stroke="var(--sub-dim)" strokeWidth="1" opacity="0.5" />
+        ))}
+        {[[8,18],[20,8],[32,24],[44,10],[56,20],[24,28],[48,28]].map(([x,y], i) => (
+          <circle key={i} cx={x} cy={y} r="2.5" fill="var(--sub)" opacity="0.6" />
+        ))}
+      </svg>
+      <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 22, color: 'var(--text-mute)' }}>
+        {t('overlays.search.empty.title')}
+      </div>
+      <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>
+        {t('overlays.search.empty.hint')}{' '}
+        <button type="button" style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-mono)', fontSize: 11 }} onClick={onClose}>
+          {t('overlays.search.empty.community')}
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main Search panel ────────────────────────────────────────────────────────
+
+function SearchPanel(props: {
+  onClose: () => void;
   onUserClick?: (username: string) => void;
   onMessage?: (profileId: number) => void;
 }) {
-  const initials = props.user.username.slice(0, 2).toUpperCase();
-  const canClick = !props.isSelf && props.user.profile_id != null && props.onUserClick;
-
-  return (
-    <div className="user-row flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5">
-      <div
-        className={`relative flex size-9 shrink-0 items-center justify-center rounded-full bg-indigo-500/20 border border-indigo-400/20 text-xs font-semibold text-indigo-200 tracking-wide ${canClick ? 'cursor-pointer hover:bg-indigo-500/35 transition-colors' : ''}`}
-        onClick={canClick ? () => props.onUserClick!(props.user.username) : undefined}
-      >
-        {initials}
-        {props.user.is_online && <OnlineDot />}
-      </div>
-      <div
-        className={`min-w-0 flex-1 ${canClick ? 'cursor-pointer' : ''}`}
-        onClick={canClick ? () => props.onUserClick!(props.user.username) : undefined}
-      >
-        <p className={`truncate text-sm font-medium text-indigo-100 ${canClick ? 'hover:text-white transition-colors' : ''}`}>{props.user.username}</p>
-        <p className="truncate text-xs text-indigo-300/40">{props.user.email}</p>
-      </div>
-      {props.isSelf ? (
-        <span className="text-xs text-indigo-300/40 italic">{t('users.you')}</span>
-      ) : props.user.profile_id == null ? (
-        <span className="text-xs text-indigo-300/30 italic">{t('users.no_profile')}</span>
-      ) : (
-        <div className="flex items-center gap-1.5">
-          {props.relation.kind === 'friends' && props.onMessage && props.user.profile_id != null && (
-            <button
-              type="button"
-              onClick={() => props.onMessage!(props.user.profile_id!)}
-              className="rounded-lg px-3 py-1 text-xs font-medium tracking-wide cursor-pointer transition-all duration-150 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 text-indigo-200 hover:text-white"
-            >
-              {t('users.message')}
-            </button>
-          )}
-          <ActionButton
-            relation={props.relation}
-            busy={props.busy}
-            onAdd={() => props.onAdd(props.user)}
-            onAccept={() => props.onAccept(props.relation)}
-            onCancel={() => props.onCancel(props.relation)}
-            onRemove={() => props.onRemove(props.relation)}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── UserSearch ───────────────────────────────────────────────────────────────
-
-function UserSearch(props: { onUserClick?: (username: string) => void; onMessage?: (profileId: number) => void }) {
   useLanguage();
+  const [query, setQuery] = useState('');
+  const [debounced, setDebounced] = useState('');
+  const [focusedIdx, setFocusedIdx] = useState(0);
+
   const [users, setUsers] = useState<ApiUser[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [debouncedSearch, setDebouncedSearch] = useState('');
-  const [page, setPage] = useState(1);
-  const [totalCount, setTotalCount] = useState(0);
+  const [projects, setProjects] = useState<ApiProject[]>([]);
+  const [loadingUsers, setLoadingUsers] = useState(false);
+  const [loadingProjects, setLoadingProjects] = useState(false);
 
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const [friendships, setFriendships] = useState<Friendship[]>([]);
   const [busyProfileId, setBusyProfileId] = useState<number | null>(null);
 
-  const searchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const PAGE_SIZE = 9;
-  const totalPages = Math.max(1, Math.ceil(totalCount / PAGE_SIZE));
+  const [recentSearches, setRecentSearches] = useState<string[]>(() => {
+    try { return JSON.parse(localStorage.getItem('search_recent') ?? '[]'); } catch { return []; }
+  });
 
-  const refreshFriendships = useCallback(async () => {
-    try {
-      const res = await authFetch('/api/users/social/friendships/');
-      if (!res.ok) return;
-      const data = await res.json();
-      const list: Friendship[] = Array.isArray(data) ? data : (data.results ?? []);
-      setFriendships(list);
-    } catch {
-      /* ignore */
-    }
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startTime = useRef(Date.now());
+
+  // Debounce query
+  useEffect(() => {
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    startTime.current = Date.now();
+    debounceRef.current = setTimeout(() => setDebounced(query), 300);
+  }, [query]);
+
+  // Load my profile ID + friendships
+  useEffect(() => {
+    authFetch('/api/users/me/').then(r => r.ok ? r.json() : null).then(data => {
+      if (data?.profile_id != null) setMyProfileId(data.profile_id);
+    }).catch(() => {});
+    authFetch('/api/users/social/friendships/').then(r => r.ok ? r.json() : null).then(data => {
+      if (Array.isArray(data)) setFriendships(data);
+      else if (data?.results) setFriendships(data.results);
+    }).catch(() => {});
   }, []);
 
+  // Search users
   useEffect(() => {
-    authFetch('/api/users/me/')
-      .then((r) => (r.ok ? r.json() : null))
-      .then((data) => {
-        if (data?.profile_id != null) setMyProfileId(data.profile_id);
-      })
-      .catch(() => {});
-    refreshFriendships();
-  }, [refreshFriendships]);
+    if (!debounced.trim()) { setUsers([]); return; }
+    setLoadingUsers(true);
+    authFetch(`/api/users/search/?search=${encodeURIComponent(debounced)}`).then(r => r.ok ? r.json() : null).then((data: PaginatedResponse | null) => {
+      setUsers(data?.results ?? []);
+    }).catch(() => setUsers([])).finally(() => setLoadingUsers(false));
+  }, [debounced]);
 
-  const handleSearchChange = (value: string) => {
-    setSearchQuery(value);
-    if (searchTimerRef.current) clearTimeout(searchTimerRef.current);
-    searchTimerRef.current = setTimeout(() => {
-      if (value.trim()) logger.action('users.search', { query: value.trim() });
-      setDebouncedSearch(value);
-      setPage(1);
-    }, 400);
+  // Search projects
+  useEffect(() => {
+    if (!debounced.trim()) { setProjects([]); return; }
+    setLoadingProjects(true);
+    authFetch(`/api/search/?search=${encodeURIComponent(debounced)}`).then(r => r.ok ? r.json() : null).then((data: ProjectPaginatedResponse | null) => {
+      setProjects((data?.results ?? []).slice(0, 8));
+    }).catch(() => setProjects([])).finally(() => setLoadingProjects(false));
+  }, [debounced]);
+
+  // Save to recent on enter
+  const saveRecent = (q: string) => {
+    if (!q.trim()) return;
+    const updated = [q, ...recentSearches.filter(r => r !== q)].slice(0, 5);
+    setRecentSearches(updated);
+    try { localStorage.setItem('search_recent', JSON.stringify(updated)); } catch { /* ignore */ }
   };
 
-  useEffect(() => {
-    if (!debouncedSearch.trim()) {
-      setUsers([]);
-      setTotalCount(0);
-      setLoading(false);
-      return;
-    }
-
-    const fetchUsers = async () => {
-      setLoading(true);
-      setError(null);
-      try {
-        const params = new URLSearchParams({ search: debouncedSearch, page: String(page) });
-        const response = await authFetch(`/api/users/search/?${params.toString()}`);
-        if (!response.ok) {
-          throw new Error(await extractErrorMessage(response, 'Could not fetch users.'));
-        }
-        const data: PaginatedResponse = await response.json();
-        setUsers(data.results);
-        setTotalCount(data.count);
-      } catch (err) {
-        logger.error('users.search_error', { query: debouncedSearch });
-        setUsers([]);
-        setError(err instanceof Error ? err.message : 'Failed to load users.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchUsers();
-  }, [debouncedSearch, page]);
+  const removeRecent = (q: string) => {
+    const updated = recentSearches.filter(r => r !== q);
+    setRecentSearches(updated);
+    try { localStorage.setItem('search_recent', JSON.stringify(updated)); } catch { /* ignore */ }
+  };
 
   const computeRelation = useCallback((profileId: number | null): Relation => {
     if (profileId == null || myProfileId == null) return { kind: 'none' };
-    const f = friendships.find(
-      (x) =>
-        (x.sender === myProfileId && x.receiver === profileId) ||
-        (x.sender === profileId && x.receiver === myProfileId)
-    );
+    const f = friendships.find(x => (x.sender === myProfileId && x.receiver === profileId) || (x.sender === profileId && x.receiver === myProfileId));
     if (!f) return { kind: 'none' };
     if (f.status === 'accepted') return { kind: 'friends', friendshipId: f.id };
-    if (f.status === 'pending') {
-      if (f.sender === myProfileId) return { kind: 'pending_out', friendshipId: f.id };
-      return { kind: 'pending_in', friendshipId: f.id };
-    }
-    return { kind: 'none', friendshipId: f.id };
+    if (f.status === 'pending') return f.sender === myProfileId ? { kind: 'pending_out', friendshipId: f.id } : { kind: 'pending_in', friendshipId: f.id };
+    return { kind: 'none' };
   }, [friendships, myProfileId]);
 
-  const handleAdd = async (user: ApiUser) => {
+  const refreshFriendships = async () => {
+    const r = await authFetch('/api/users/social/friendships/');
+    if (!r.ok) return;
+    const d = await r.json();
+    setFriendships(Array.isArray(d) ? d : (d.results ?? []));
+  };
+
+  const handleFriendshipAction = async (user: ApiUser, method: 'POST' | 'DELETE', path: string, log: string, body?: object) => {
     if (user.profile_id == null) return;
     setBusyProfileId(user.profile_id);
-    setError(null);
     try {
-      const res = await authFetch('/api/users/social/friendships/', {
-        method: 'POST',
-        body: JSON.stringify({ receiver: user.profile_id }),
-      });
-      if (!res.ok) {
-        throw new Error(await extractErrorMessage(res, 'Could not send request.'));
-      }
-      logger.action('friend.request_sent', { receiver: user.profile_id });
+      await authFetch(path, { method, body: body ? JSON.stringify(body) : undefined });
+      logger.action(log);
       await refreshFriendships();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not send request.');
-    } finally {
-      setBusyProfileId(null);
-    }
+    } catch { /* ignore */ } finally { setBusyProfileId(null); }
   };
 
-  const runFriendshipAction = async (
-    relation: Relation,
-    profileIdForBusy: number,
-    method: 'POST' | 'DELETE',
-    pathSuffix: string,
-    actionLog: string
-  ) => {
-    if (!relation.friendshipId) return;
-    setBusyProfileId(profileIdForBusy);
-    setError(null);
-    try {
-      const res = await authFetch(
-        `/api/users/social/friendships/${relation.friendshipId}/${pathSuffix}`,
-        { method }
-      );
-      if (!res.ok && res.status !== 204) {
-        throw new Error(await extractErrorMessage(res, 'Action failed.'));
-      }
-      logger.action(actionLog, { friendship: relation.friendshipId });
-      await refreshFriendships();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Action failed.');
-    } finally {
-      setBusyProfileId(null);
-    }
+  const handleAdd = (user: ApiUser) => {
+    if (user.profile_id == null) return;
+    handleFriendshipAction(user, 'POST', '/api/users/social/friendships/', 'friend.request_sent', { receiver: user.profile_id });
   };
 
-  const handleAccept = async (relation: Relation) => {
-    const u = users.find((x) => computeRelation(x.profile_id).friendshipId === relation.friendshipId);
-    const pid = u?.profile_id ?? -1;
-    await runFriendshipAction(relation, pid, 'POST', 'accept/', 'friend.accept');
+  const handleAcceptUser = (user: ApiUser, rel: Relation) => {
+    if (!rel.friendshipId) return;
+    handleFriendshipAction(user, 'POST', `/api/users/social/friendships/${rel.friendshipId}/accept/`, 'friend.accept');
   };
 
-  const handleCancel = async (relation: Relation) => {
-    const u = users.find((x) => computeRelation(x.profile_id).friendshipId === relation.friendshipId);
-    const pid = u?.profile_id ?? -1;
-    await runFriendshipAction(relation, pid, 'DELETE', '', 'friend.cancel');
+  const handleCancelUser = (user: ApiUser, rel: Relation) => {
+    if (!rel.friendshipId) return;
+    handleFriendshipAction(user, 'DELETE', `/api/users/social/friendships/${rel.friendshipId}/`, 'friend.cancel');
   };
 
-  const handleRemove = async (relation: Relation) => {
-    const u = users.find((x) => computeRelation(x.profile_id).friendshipId === relation.friendshipId);
-    const pid = u?.profile_id ?? -1;
-    await runFriendshipAction(relation, pid, 'DELETE', '', 'friend.remove');
+  const handleRemoveUser = (user: ApiUser, rel: Relation) => {
+    if (!rel.friendshipId) return;
+    handleFriendshipAction(user, 'DELETE', `/api/users/social/friendships/${rel.friendshipId}/`, 'friend.remove');
   };
+
+  const totalResults = users.length + projects.length;
+  const elapsed = Date.now() - startTime.current;
+  const hasResults = totalResults > 0;
+  const showEmpty = debounced.trim() && !loadingUsers && !loadingProjects && !hasResults;
+  const showRecent = !debounced.trim();
 
   return (
-    <div className="font-lexend flex flex-col gap-4 p-5">
-      <div className="flex items-center gap-3">
-        <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent tracking-wide whitespace-nowrap">{t('users.find_title')}</h2>
-        <Search value={searchQuery} onChange={handleSearchChange} />
-      </div>
+    <div
+      className="overlay-backdrop"
+      onClick={(e) => { if (e.target === e.currentTarget) props.onClose(); }}
+      role="dialog"
+      aria-modal="true"
+      aria-label={t('overlays.search.placeholder')}
+    >
+      <div
+        className="glass-shell overlay-shell overlay-enter"
+        style={{ width: '100%', maxWidth: 720, maxHeight: '80vh', display: 'flex', flexDirection: 'column', outline: 'none' }}
+        tabIndex={-1}
+      >
+        {/* Search input IS the header */}
+        <SearchInputRow value={query} onChange={setQuery} onClose={props.onClose} />
 
-      <div className="flex flex-col gap-1 min-h-20">
-        {!debouncedSearch.trim() && (
-          <p className="text-indigo-300/40 text-xs py-4 text-center font-light tracking-wide">
-            {t('users.type_to_search')}
-          </p>
-        )}
-        {loading && <p className="text-indigo-300/40 py-4 text-center text-xs">{t('users.searching')}</p>}
-        {!loading && error && <p className="text-red-300/80 py-4 text-center text-xs">{error}</p>}
-        {!loading && !error && debouncedSearch.trim() && users.length === 0 && (
-          <p className="text-indigo-300/40 py-4 text-center text-xs">{t('users.no_results')}</p>
-        )}
-        {!loading && !error && users.map((user) => (
-          <UserRow
-            key={user.id}
-            user={user}
-            relation={computeRelation(user.profile_id)}
-            busy={busyProfileId === user.profile_id}
-            isSelf={user.profile_id != null && user.profile_id === myProfileId}
-            onAdd={handleAdd}
-            onAccept={handleAccept}
-            onCancel={handleCancel}
-            onRemove={handleRemove}
-            onUserClick={props.onUserClick}
-            onMessage={props.onMessage}
-          />
-        ))}
-      </div>
+        {/* Body */}
+        <div className="overlay-content" style={{ flex: 1, overflowY: 'auto', minHeight: 0 }}>
 
-      {totalCount > 0 && (
-        <div className="flex items-center justify-between text-xs text-indigo-300/50">
-          <span>{totalCount} {totalCount === 1 ? t('users.count_singular') : t('users.count_plural')}</span>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                disabled={page <= 1}
-                onClick={() => setPage(p => p - 1)}
-                className="btn-page"
-              >
-                ←
-              </button>
-              <span className="text-indigo-300/40 tabular-nums">{page} / {totalPages}</span>
-              <button
-                disabled={page >= totalPages}
-                onClick={() => setPage(p => p + 1)}
-                className="btn-page"
-              >
-                →
-              </button>
+          {/* Recent + suggestions (empty state) */}
+          {showRecent && (
+            <div style={{ padding: '4px 0 8px' }}>
+              {recentSearches.length > 0 && (
+                <>
+                  <SearchSection label={t('overlays.search.section.recent')} />
+                  {recentSearches.map((r) => (
+                    <div key={r} className="search-row" style={{ display: 'grid', gridTemplateColumns: '36px 1fr auto' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" strokeWidth="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                      </div>
+                      <button type="button" style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text-mute)', background: 'none', border: 'none', textAlign: 'start', cursor: 'pointer', padding: 0 }} onClick={() => setQuery(r)}>{r}</button>
+                      <button type="button" onClick={() => removeRecent(r)} aria-label="Remove" style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--sub-dim)', fontSize: 14, lineHeight: 1, padding: '0 4px' }}>×</button>
+                    </div>
+                  ))}
+                </>
+              )}
+              <SearchSection label={t('overlays.search.section.try')} />
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', padding: '4px 20px 8px' }}>
+                {SUGGESTED.map((s) => (
+                  <button key={s} type="button" onClick={() => setQuery(s)}
+                    style={{ fontFamily: 'var(--font-mono)', fontSize: 11, padding: '4px 12px', borderRadius: 'var(--radius-pill)', background: 'var(--panel-inner)', border: '1px solid var(--panel-edge)', color: 'var(--sub)', cursor: 'pointer', letterSpacing: '0.05em' }}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Empty state */}
+          {showEmpty && <EmptyState onClose={props.onClose} />}
+
+          {/* Results */}
+          {debounced.trim() && (hasResults || loadingUsers || loadingProjects) && (
+            <div style={{ padding: '4px 0 8px' }}>
+              {/* Patches section */}
+              {(projects.length > 0 || loadingProjects) && (
+                <>
+                  <SearchSection label={t('overlays.search.section.patches')} count={projects.length || undefined} />
+                  {projects.map((p, i) => (
+                    <SearchRow
+                      key={p.id}
+                      focused={focusedIdx === i}
+                      onClick={() => { saveRecent(query); window.open(`/project/${p.id}`, '_blank'); }}
+                      icon={
+                        <div style={{ width: 36, height: 36, borderRadius: 8, background: 'var(--panel-inner)', border: '1px solid var(--panel-edge)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true">
+                            <circle cx="4" cy="10" r="1.5" fill="var(--accent)" opacity="0.7" />
+                            <circle cx="10" cy="5" r="1.5" fill="var(--accent-2)" opacity="0.7" />
+                            <circle cx="16" cy="12" r="1.5" fill="var(--accent-3)" opacity="0.7" />
+                            <line x1="4" y1="10" x2="10" y2="5" stroke="var(--sub)" strokeWidth="1" opacity="0.5" />
+                            <line x1="10" y1="5" x2="16" y2="12" stroke="var(--sub)" strokeWidth="1" opacity="0.5" />
+                          </svg>
+                        </div>
+                      }
+                      primary={p.name}
+                      secondary={p.username ? `@${p.username}` : ''}
+                      trailing={<span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)' }}>▲ {p.net_votes}</span>}
+                    />
+                  ))}
+                </>
+              )}
+
+              {/* Creators section */}
+              {(users.length > 0 || loadingUsers) && (
+                <>
+                  <SearchSection label={t('overlays.search.section.users')} count={users.length || undefined} />
+                  {users.map((u, i) => {
+                    const rel = computeRelation(u.profile_id);
+                    const isSelf = u.profile_id != null && u.profile_id === myProfileId;
+                    const idx = projects.length + i;
+                    return (
+                      <SearchRow
+                        key={u.id}
+                        focused={focusedIdx === idx}
+                        onClick={() => { saveRecent(query); if (!isSelf && u.profile_id != null && props.onUserClick) { props.onUserClick(u.username); props.onClose(); } }}
+                        icon={<AvatarRing src={null} alt={u.username} size={32} static />}
+                        primary={<span style={{ fontFamily: 'var(--font-mono)', fontSize: 13 }}>@{u.username}</span>}
+                        secondary={u.email}
+                        trailing={isSelf
+                          ? <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)', fontStyle: 'italic' }}>{t('users.you')}</span>
+                          : u.profile_id != null
+                            ? <FriendActionChip
+                                relation={rel}
+                                busy={busyProfileId === u.profile_id}
+                                onAdd={() => handleAdd(u)}
+                                onAccept={() => handleAcceptUser(u, rel)}
+                                onCancel={() => handleCancelUser(u, rel)}
+                                onRemove={() => handleRemoveUser(u, rel)}
+                              />
+                            : null
+                        }
+                      />
+                    );
+                  })}
+                </>
+              )}
+
+              {/* Modules — placeholder (no API) */}
+              <SearchSection label={t('overlays.search.section.modules')} />
+              <div style={{ padding: '8px 20px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)', letterSpacing: '0.1em' }}>
+                {t('overlays.search.modules.coming_soon')}
+              </div>
             </div>
           )}
         </div>
-      )}
+
+        {/* Footer */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 20px', borderTop: '1px solid var(--panel-edge)' }}>
+          <div style={{ display: 'flex', gap: 16 }}>
+            {[
+              { key: t('overlays.search.footer.navigate') },
+              { key: t('overlays.search.footer.open') },
+              { key: t('overlays.search.footer.close') },
+            ].map((hint) => (
+              <span key={hint.key} dir="ltr" style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)' }}>{hint.key}</span>
+            ))}
+          </div>
+          {debounced.trim() && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)' }}>
+              {totalResults} {totalResults === 1 ? t('overlays.search.footer.results_one') : t('overlays.search.footer.results_other')} · {elapsed}ms
+            </span>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
 
+// ─── UserSearch (legacy internal component, kept for compatibility) ────────────
+
+function UserSearch(props: { onUserClick?: (username: string) => void; onMessage?: (profileId: number) => void }) {
+  return <SearchPanel onClose={() => {}} onUserClick={props.onUserClick} onMessage={props.onMessage} />;
+}
+
 // ─── Container ────────────────────────────────────────────────────────────────
 
-function UserSearchContainer(props: { func?: (value: boolean) => void; onUserClick?: (username: string) => void; onMessage?: (profileId: number) => void }) {
-  const [visible, setVisible] = useState(true);
+function UserSearchContainer(props: {
+  func?: (value: boolean) => void;
+  onUserClick?: (username: string) => void;
+  onMessage?: (profileId: number) => void;
+}) {
+  const handleClose = () => props.func?.(false);
 
   return (
-    <AnimatedContent
-      className="items-center mx-auto z-10"
-      distance={0}
-      direction="vertical"
-      reverse={false}
-      duration={1}
-      ease="power3.out"
-      initialOpacity={1}
-      animateOpacity
-      scale={1}
-      visible={visible}
-      threshold={0.1}
-      delay={0.1}
-      disappearDuration={0.5}
-      onDisappearanceComplete={() => props.func && props.func(false)}
-    >
-      <AnimatedContent
-        distance={50}
-        direction="vertical"
-        reverse={false}
-        duration={1}
-        ease="power3.out"
-        initialOpacity={1}
-        animateOpacity
-        scale={1}
-        visible={true}
-        threshold={0.1}
-        delay={0.1}
-      >
-        <div className="overlay-panel rounded-2xl w-full max-w-[28rem] mx-3 sm:mx-auto">
-          <div className="flex justify-end px-4 pt-4 pb-0">
-            <CloseButton onClick={() => setVisible(false)} />
-          </div>
-          <UserSearch onUserClick={props.onUserClick} onMessage={props.onMessage} />
-        </div>
-      </AnimatedContent>
-    </AnimatedContent>
+    <SearchPanel
+      onClose={handleClose}
+      onUserClick={(username) => { props.onUserClick?.(username); handleClose(); }}
+      onMessage={props.onMessage}
+    />
   );
 }
 

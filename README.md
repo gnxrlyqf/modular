@@ -1,393 +1,360 @@
-# 🎧 PROJECT SUMMARY — Gamified Music Sequencer Platform
+*This project has been created as part of the 42 curriculum by iboutadg, mchetoui, aelsayed, wtoumi.*
 
 ---
 
-## 🧠 1. Core Concept
+# ft_transcendence — Modular Synth Platform
 
-A **web-based gamified music platform** where users create music using a **step sequencer**, participate in **challenges**, and earn points through:
+## Description
 
-* 📊 Community voting (upvotes/downvotes)
-* 🎯 Challenge performance (based on similarity to a target track — future ML)
+A full-stack web platform for learning, creating, and sharing modular synthesizer patches in the browser. Users register, log in, manage synth projects, interact with a community feed, and collaborate via a real-time messaging and friends system.
 
-The platform blends:
+**Key features:**
 
-* Music creation (like a simple DAW)
-* Social interaction (sharing, following)
-* Competition (leaderboards + challenges)
-
----
-
-## 🎮 2. Core Game Loop
-
-> **Create → Submit → Get votes → Earn points → Climb leaderboard → Try harder challenge → Repeat**
-
-This loop is the central engagement mechanic.
+- User authentication with JWT, email verification, and TOTP-based two-factor authentication
+- OAuth2 login via Google, Facebook, and 42 (intra)
+- Modular synthesizer editor — create/save/share/vote on synth patches
+- Community projects feed with voting and search
+- Friends system with friend requests, messaging, blocking, and notifications
+- User profiles with avatars, XP/level, bio, and public visibility
+- Admin panel for user and log management
+- Embedded analytics dashboard powered by Metabase (per-user usage stats)
+- Observability stack: ELK (Elasticsearch, Logstash, Kibana, Filebeat, Metricbeat) for log and metric shipping
+- Internationalization (i18n) support across EN, FR, AR, DE, ES
 
 ---
 
-## 🎯 3. Features (V1 Scope — Explicit)
+## Team Information
 
-### 🎵 Music Creation
-
-* Browser-based **step sequencer**
-* Users create loop-based tracks
-* Simple grid interface (time × sound)
-
----
-
-### 📤 Track Sharing
-
-* Users can:
-
-  * Publish tracks
-  * View tracks from others (feed)
+| Login | Role | Responsibilities |
+|---|---|---|
+| iboutadg | _TBD_ | _TBD_ |
+| mchetoui | _TBD_ | _TBD_ |
+| aelsayed | _TBD_ | _TBD_ |
+| wtoumi | _TBD_ | _TBD_ |
 
 ---
 
-### 👍 Voting System
+## Project Management
 
-* Each track supports:
-
-  * Upvote
-  * Downvote
-* Voting affects:
-
-  * Track visibility (feed later)
-  * User points (karma-like system)
+- **Task distribution:** Work was split into features and tracked via GitHub Issues. Each issue was assigned to a team member.
+- **Meetings:** Regular sync meetings held over Discord voice channels.
+- **Tools:** GitHub Issues (task tracking), GitHub Projects (board view), Discord (communication)
+- **Communication:** Discord — dedicated channels for general discussion, backend, frontend, and infra topics.
 
 ---
 
-### 🏆 Leaderboard
+## Technical Stack
 
-* Global ranking of users
-* Based on:
+### Frontend
+| Technology | Version | Purpose |
+|---|---|---|
+| React | 19 | UI framework |
+| TypeScript | — | Type safety |
+| Vite | 7 | Dev server + bundler |
+| Tailwind CSS | v4 | Utility-first styling |
+| GSAP | 3 | Animations |
+| OGL | — | WebGL (reserved for synth engine) |
+| qrcode.react | — | TOTP QR code rendering |
 
-  * Total points (votes + challenges)
+No router library — all views are overlays toggled with `useState` in `App.tsx`.
 
----
+### Backend
+| Technology | Version | Purpose |
+|---|---|---|
+| Python | 3.11 | Runtime |
+| Django | 5+ | Web framework |
+| Django REST Framework | — | REST API |
+| simplejwt | — | JWT auth with refresh rotation + blacklisting |
+| drf-spectacular | — | OpenAPI schema + Swagger UI |
+| django-prometheus | — | Metrics endpoint |
+| pyotp | — | TOTP for 2FA |
+| Pillow | — | Avatar image upload |
 
-### 🎯 Challenges System
+### Database
+- **PostgreSQL 17** — chosen for its robustness, full ACID compliance, and native JSON field support (project config + analytics stored as `JSONField`).
 
-#### 1. Predefined Challenges
+### Infrastructure
+- **Docker Compose** — orchestrates all services
+- **nginx** — reverse proxy with TLS termination; routes external traffic to frontend, synthesizer, and backend
+- **ELK Stack** — Elasticsearch, Logstash, Kibana, Filebeat, Metricbeat for log shipping and observability
+- **Metabase** — embedded analytics dashboards per user
 
-* Created manually (admin-controlled)
-* Fixed target tracks
-* Always available
+### Technical choices — justification
 
-#### 2. Daily Challenges
-
-* Same challenge for all users
-* Resets every 24 hours
-
-#### Goal:
-
-* Recreate a target track as closely as possible
-
-#### Scoring:
-
-* V1: placeholder/simple scoring
-* V2: ML-based audio similarity
-
----
-
-### 👥 Social Features
-
-* Users can:
-
-  * Follow other users
-* Following enables:
-
-  * Viewing their tracks (feed filtering later)
-
----
-
-### 🔐 Authentication
-
-* User accounts (signup/login)
-* Required for:
-
-  * Posting tracks
-  * Voting
-  * Participating in challenges
+| Choice | Reason |
+|---|---|
+| JWT over sessions | Stateless; works cleanly across frontend/synthesizer/backend without shared session store |
+| Overlay-based nav (no React Router) | SPA with deep URL awareness was not required; overlays are simpler and sufficient |
+| PostgreSQL JSONField for project config | Synth scenes are schema-less by design; avoids over-normalizing patch data |
+| ELK over Prometheus+Grafana | ELK gives full log pipeline (structured app logs + container metrics); Prometheus/Grafana remain configured but disabled |
+| Metabase for dashboards | Rapid native SQL dashboards without building a custom analytics UI; JWT-signed iframes keep it secure per user |
 
 ---
 
-## 🎛 4. Sequencer Design (V1)
+## Database Schema
 
-### Type:
+### Tables and relationships
 
-* **Step Sequencer** (chosen for simplicity)
+```
+User (AbstractUser)
+  ├── is_verified: bool
+  └── ── Profile (1:1)
+           ├── avatar, bio, display_name, xp, level
+           ├── two_factor_enabled, two_factor_secret
+           ├── def_settings (JSON)
+           └── friends (M2M self → through Friendship)
 
-### Likely Structure:
+Friendship
+  ├── sender → Profile (FK)
+  ├── receiver → Profile (FK)
+  ├── status: pending | accepted | blocked
+  └── unique_together: (sender, receiver)
 
-* Grid-based interface:
+Message
+  ├── sender → Profile (FK)
+  ├── receiver → Profile (FK)
+  ├── content (text, ≤2000 chars)
+  ├── created_at
+  └── read_at (nullable)
 
-  * X-axis: time steps (e.g. 16 steps)
-  * Y-axis: sound channels (kick, snare, etc.)
+Notification
+  ├── recipient → Profile (FK)
+  ├── actor → Profile (FK)
+  ├── type: message | friend_request
+  ├── related_id
+  ├── read_at (nullable)
+  └── created_at
 
-### Initial Constraints:
+SocialAccount
+  ├── provider: google | facebook | 42
+  ├── provider_id
+  └── user → User (FK)
 
-* Fixed sound kit (e.g. drums)
-* Loop-based playback
-* No advanced editing (keep simple)
+Project
+  ├── id (UUID PK)
+  ├── name
+  ├── user → User (FK)
+  ├── config (JSON): {camera, modules, cables}
+  ├── analytics (JSON): {session, modules, sharing}
+  ├── created_at, updated_at
+  └── ── ProjectVote (many per project)
+           ├── user → User (FK)
+           ├── vote: 1 | -1
+           └── unique_together: (user, project)
 
----
-
-## 🤖 5. ML Integration (Planned, Not Blocking)
-
-### Goal:
-
-* Compare user-created track with target track
-
-### Approach:
-
-* ML model for **audio similarity scoring**
-
-### Strategy:
-
-* V1:
-
-  * Use placeholder scoring (or simplified logic)
-* V2:
-
-  * Replace with ML microservice
-
----
-
-## 🏗️ 6. Architecture — Microservices (Your Choice)
-
-You explicitly chose **microservices**, so here is a clean breakdown:
-
----
-
-### 🔐 1. Auth Service
-
-**Responsibilities:**
-
-* User registration
-* Login
-* Token generation (JWT)
-
----
-
-### 👤 2. User Service
-
-**Responsibilities:**
-
-* User profiles
-* Follow/unfollow system
-* User metadata
+Log
+  ├── user → User (FK)
+  ├── level: info | warning | error | debug | action
+  ├── message
+  ├── context (JSON)
+  ├── source: frontend | backend
+  └── created_at
+```
 
 ---
 
-### 🎵 3. Track Service
+## Features List
 
-**Responsibilities:**
-
-* Store tracks (sequencer data)
-* Fetch tracks (feed, profile)
-* Track metadata (creator, timestamps)
-
----
-
-### 👍 4. Voting Service
-
-**Responsibilities:**
-
-* Handle upvotes/downvotes
-* Store vote records
-* Calculate vote counts
-
----
-
-### 🏆 5. Leaderboard Service
-
-**Responsibilities:**
-
-* Aggregate user scores
-* Rank users
-* Provide leaderboard data
+| Feature | Description | Team member(s) |
+|---|---|---|
+| Registration + email verification | Register with username/email/password; activation link sent via email | _TBD_ |
+| Login + 2FA (TOTP) | JWT login with optional TOTP second factor; QR setup flow | _TBD_ |
+| OAuth login | Google, Facebook, 42 via popup-based OAuth2 flow | _TBD_ |
+| Password reset | Email-based reset link → SPA confirm page | _TBD_ |
+| Profile management | Display name, bio, avatar upload (jpg/png/webp, 5MB cap) | _TBD_ |
+| Friends system | Send/accept/decline/cancel friend requests; +100 XP on accept | _TBD_ |
+| Blocking | Block/unblock users; blocks suppress profiles, messages, and public visibility | _TBD_ |
+| Messaging | Real-time polling chat between friends; thread list with unread counts | _TBD_ |
+| Notifications | In-app notifications for friend requests and messages; mark-read | _TBD_ |
+| Modular synth editor | Create/edit synth patches in browser; autosave via PATCH | _TBD_ |
+| Projects — community feed | Browse all users' projects sorted by net votes | _TBD_ |
+| Projects — voting | Upvote/downvote projects (+1/-1/0 change) | _TBD_ |
+| Projects — sharing | Share project URL; increments share count + tracks share days | _TBD_ |
+| User search | Search users by username/email; add friend / message / block per row | _TBD_ |
+| Public profiles | View another user's profile, projects, and friendship status | _TBD_ |
+| Admin panel | List users, delete accounts, view per-user and global logs | _TBD_ |
+| Analytics dashboard | Per-user Metabase dashboard (session time, module usage, streaks, etc.) | _TBD_ |
+| i18n | EN / FR / AR / DE / ES; plural + React node interpolation helpers | _TBD_ |
+| XP / leveling | Actions award XP (bio update +50, friendship accept +100, profile patch +25) | _TBD_ |
+| ELK observability | App logs + container metrics shipped to Elasticsearch; visualized in Kibana | _TBD_ |
 
 ---
 
-### 🎯 6. Challenge Service
+## Modules
 
-**Responsibilities:**
+> _Module list to be confirmed by team. Fill in below with Major (2 pts) or Minor (1 pt) per chosen module._
 
-* Store challenges (predefined + daily)
-* Serve target tracks
-* Manage submissions
+| Module | Type | Points | Description | Implemented by |
+|---|---|---|---|---|
+| _TBD_ | Major | 2 | _TBD_ | _TBD_ |
+| _TBD_ | Minor | 1 | _TBD_ | _TBD_ |
 
----
-
-### 🤖 7. ML Scoring Service (Later)
-
-**Responsibilities:**
-
-* Compare audio
-* Return similarity score
+**Total points: _TBD_**
 
 ---
 
-### 📈 8. Observability Stack
+## Individual Contributions
 
-**Included tools:**
+### iboutadg
+- _TBD_
 
-* ELK Stack (Elasticsearch + Logstash + Kibana) for centralized logging and log search
-* Prometheus for metrics collection and service health scraping
-* Grafana for dashboards and alert visualization
+### mchetoui
+- _TBD_
 
-**Responsibilities:**
+### aelsayed
+- _TBD_
 
-* Collect logs from all services and containers
-* Expose and scrape metrics from each microservice
-* Provide dashboards for API latency, error rate, and system health
-* Support alerting for failures and performance regressions
-
----
-
-## 🔗 Communication
-
-* Services communicate via:
-
-  * REST APIs (initially)
-* Optional later:
-
-  * Message queue (for scoring, async tasks)
-* Observability data flow:
-
-  * Logs → Logstash → Elasticsearch → Kibana
-  * Metrics → Prometheus → Grafana
+### wtoumi
+- _TBD_
 
 ---
 
-## 🧱 7. Frontend (React)
+## Instructions
 
-### Tech:
+### Prerequisites
 
-* React
-* Basic state management (React state)
+| Requirement | Notes |
+|---|---|
+| Docker + Docker Compose | v2+ recommended |
+| 42 / Google / Facebook OAuth apps | Client IDs + secrets needed for social login |
+| SMTP credentials | Optional — console backend used by default |
+| 8 GB RAM | ELK stack is memory-intensive |
 
----
+### Environment setup
 
-### Core Pages:
+Copy or create a `.env` file at the repo root. Required variables:
 
-#### 🎛 Sequencer Page
+```env
+# PostgreSQL
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+POSTGRES_DB=trandandan
 
-* Music creation interface
+# Django
+SECRET_KEY=your-secret-key-here
 
-#### 📰 Feed Page
+# OAuth (42 is required for code exchange; Google/Facebook are frontend-only)
+FORTYTWO_CLIENT_ID=
+FORTYTWO_CLIENT_SECRET=
+FORTYTWO_REDIRECT_URI=https://localhost:8443/auth-callback.html
+VITE_FORTYTWO_CLIENT_ID=
+VITE_GOOGLE_CLIENT_ID=
+VITE_FACEBOOK_CLIENT_ID=
 
-* Browse shared tracks
-* Vote on tracks
+# Synthesizer
+VITE_SYNTHESIZER_URL=https://localhost:8443/synthesizer
 
-#### 🏆 Leaderboard Page
+# Admin
+ADMIN_USERNAMES=your_admin_username
 
-* View rankings
+# Email (optional — defaults to console backend)
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+EMAIL_HOST=smtp.gmail.com
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+DEFAULT_FROM_EMAIL=
 
-#### 🎯 Challenge Page
+# ELK Stack
+STACK_VERSION=8.15.0
+ELASTIC_PASSWORD=changeme
+KIBANA_PASSWORD=changeme
+CLUSTER_NAME=my-cluster
+LICENSE=basic
+ES_PORT=9200
+KIBANA_PORT=5601
+ES_MEM_LIMIT=1073741824
+KB_MEM_LIMIT=1073741824
+ENCRYPTION_KEY=a-random-32-character-string-here
 
-* Participate in challenges
-* Submit attempts
+# Metabase
+MB_EMBEDDING_SECRET_KEY=your-metabase-embedding-key
+MB_PUBLIC_URL=https://localhost:3004
+MB_ADMIN_EMAIL=admin@example.com
+MB_ADMIN_PASS=adminpassword
+VITE_METABASE_URL=https://localhost:3004
+```
 
-#### 👤 Profile Page
+### Run
 
-* User info
-* Tracks
-* Followers
+```bash
+# 1. Clone the repository
+git clone <repo-url>
+cd <repo-dir>
 
-#### 🔐 Auth Pages
+# 2. Create .env (see above)
 
-* Login / Signup
+# 3. Start all services
+docker compose up --build
 
----
+# 4. Access the app
+#    Frontend:   https://localhost:8443
+#    API docs:   https://localhost:8443/api/docs/
+#    Kibana:     http://localhost:5601
+#    Metabase:   http://localhost:3004
+```
 
-## 🧮 8. Points System (Conceptual)
+> **TLS note:** nginx uses a self-signed cert by default. Accept the browser warning on first visit.
 
-Points come from:
+### Run backend tests
 
-### Voting:
+```bash
+docker compose exec backend pytest
+```
 
-* Upvote → +points
-* Downvote → -points
+### Run frontend tests
 
-### Challenges:
+```bash
+docker compose exec frontend npm run test
+```
 
-* Score based on similarity to target track
+### Seed test users
 
-👉 Exact values not defined yet (to be tuned later)
+```bash
+docker compose exec backend python create_test_users.py
+```
 
----
-
-## 🚫 9. Explicit Non-Goals (For Now)
-
-* No abuse prevention (temporary)
-* No advanced DAW features
-* No complex state management
-* No finalized music data format yet
-
----
-
-## 🚀 10. Deployment (Not Decided Yet)
-
-To be determined:
-
-* Local vs cloud
-* Likely future:
-
-  * Frontend: Vercel / Netlify
-  * Backend: cloud services (AWS / etc.)
-  * Observability:
-
-    * ELK stack deployed with backend services for centralized logging
-    * Prometheus for metrics scraping
-    * Grafana for monitoring dashboards and alert panels
-
----
-
-## 🛰️ 11. Monitoring & Logging Plan (V1)
-
-### Logging (ELK)
-
-* Each service writes structured logs (JSON preferred)
-* Container logs are shipped to Logstash
-* Logs are indexed in Elasticsearch and explored in Kibana
-
-### Metrics (Prometheus + Grafana)
-
-* Services expose `monitoring/metrics` endpoints
-* Prometheus scrapes key metrics (request count, latency, error rate)
-* Grafana visualizes service-level and platform-level dashboards
-
-### Initial Dashboards
-
-* API throughput and latency per service
-* Error rates (4xx/5xx)
-* Challenge submission success/failure trends
-* Infrastructure health (CPU, memory, container restarts)
-
----
-
-# 🧭 Final State
-
-You now have:
-
-✅ Clear product vision
-✅ Defined game loop
-✅ Feature-scoped MVP
-✅ Microservices architecture
-✅ Sequencer direction
-✅ ML plan (non-blocking)
-✅ Observability plan (ELK + Prometheus + Grafana)
+This creates 8 users with predefined friendships and randomized social links.
 
 ---
 
-# 🔥 Next Step (What You Should Do Now)
+## Resources
 
-The next logical step is:
+### Documentation
+- [Django REST Framework](https://www.django-rest-framework.org/)
+- [simplejwt docs](https://django-rest-framework-simplejwt.readthedocs.io/)
+- [React 19 docs](https://react.dev/)
+- [Vite docs](https://vite.dev/)
+- [Tailwind CSS v4](https://tailwindcss.com/docs)
+- [GSAP docs](https://gsap.com/docs/)
+- [pyotp — TOTP in Python](https://github.com/pyauth/pyotp)
+- [Elasticsearch docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
+- [Metabase embedding docs](https://www.metabase.com/docs/latest/embedding/introduction.html)
+- [OAuth 2.0 spec](https://oauth.net/2/)
 
-👉 Define:
+### AI usage
 
-1. **Data model (tracks, users, votes)**
-2. **API contracts between services**
-3. **Sequencer UI behavior**
+**Claude (Anthropic)** was used throughout this project for:
+
+- **Architecture decisions** — token refresh strategy, overlay navigation pattern, ELK pipeline wiring
+- **Backend code** — endpoint scaffolding, serializer logic, JWT + 2FA flows, friendship/blocking logic
+- **Frontend code** — overlay component structure, `authFetch` wrapper, polling logic for chat and notifications
+- **Debugging** — diagnosing nginx proxy misconfiguration, Docker networking issues, avatar URL absolutization bug
+- **Infrastructure** — Docker Compose service dependencies, ELK TLS cert provisioning, Metabase init script
+- **Tests** — backend pytest fixtures and test cases for auth, friendships, and throttling
+- **Documentation** — `summary.md` structure and this README
+
+AI was used as a pair programmer and architecture advisor. All code was reviewed, understood, and adapted by team members before being committed.
+
+---
+
+## Known Limitations
+
+- **2FA cannot be disabled** once enabled — no endpoint or UI path to turn off TOTP.
+- **Email backend defaults to console** — verification and reset emails print to stdout; configure SMTP for real delivery.
+- **`/api/token/` bypasses 2FA** — kept for compatibility, but the frontend uses `/api/users/login/` instead.
+- **Prometheus + Grafana are disabled** — services are configured but commented out in `docker-compose.yml`; ELK covers observability.
+- **Synthesizer audio engine is a placeholder** — the modular synth UI exists but audio/DSP is not implemented.
+- **`DEBUG=True` and `CORS_ALLOW_ALL_ORIGINS=True`** — not safe for production; for development only.
+- **`SECRET_KEY` is hardcoded** in `settings.py` — must be rotated before any production deployment.

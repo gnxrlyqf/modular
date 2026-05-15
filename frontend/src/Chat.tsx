@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AnimatedContent } from './ReactBits/ReactBits';
-import { CloseButton, Input, useConfirm } from './Reusables';
+import { useConfirm } from './Reusables';
 import { authFetch, extractErrorMessage } from './api';
 import logger from './logger';
 import { t, useLanguage } from './i18n';
+import OverlayShell from './OverlayShell';
+import { AvatarRing, PillButton, TimestampMono } from './OverlayParts';
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Thread = {
   profile_id: number;
@@ -24,12 +27,6 @@ type FriendRow = {
   is_online?: boolean;
 };
 
-function OnlineDot() {
-  return (
-    <span className="online-dot absolute bottom-0 right-0 w-2.5 h-2.5 rounded-full bg-green-400" />
-  );
-}
-
 type Message = {
   id: number;
   sender: number;
@@ -44,6 +41,10 @@ type Message = {
 import defaultProfileImg from './assets/default_profile.png';
 const FALLBACK_AVATAR = defaultProfileImg;
 
+// ─── Thread list ──────────────────────────────────────────────────────────────
+
+type ConvFilter = 'all' | 'unread';
+
 function ThreadList(props: {
   threads: Thread[];
   activeId: number | null;
@@ -51,59 +52,97 @@ function ThreadList(props: {
   onNew: () => void;
   loading: boolean;
 }) {
+  const [filter, setFilter] = useState<ConvFilter>('all');
+  const [searchQ, setSearchQ] = useState('');
+
+  const FILTERS: Array<{ id: ConvFilter; label: string }> = [
+    { id: 'all',    label: t('overlays.messaging.filter.all') },
+    { id: 'unread', label: t('overlays.messaging.filter.unread') },
+  ];
+
+  const visible = props.threads.filter((th) => {
+    if (filter === 'unread' && th.unread === 0) return false;
+    if (searchQ && !th.username.toLowerCase().includes(searchQ.toLowerCase()) && !th.display_name.toLowerCase().includes(searchQ.toLowerCase())) return false;
+    return true;
+  });
+
   return (
-    <div className="flex flex-col gap-2">
-      <button
-        type="button"
-        onClick={props.onNew}
-        className="rounded-lg px-3 py-2 text-xs font-medium tracking-wide cursor-pointer bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-400/30 text-indigo-100 flex items-center gap-2"
-      >
-        <span className="size-4 rounded-full bg-indigo-500/30 border border-indigo-400/40 flex items-center justify-center text-[11px]">+</span>
-        {t('chat.new_conversation')}
-      </button>
-      {props.loading && props.threads.length === 0 && (
-        <p className="text-indigo-300/40 py-4 text-center text-xs">{t('common.loading')}</p>
-      )}
-      {!props.loading && props.threads.length === 0 && (
-        <p className="text-indigo-300/40 py-4 text-center text-xs">
-          {t('common.coming_soon')}
-        </p>
-      )}
-      {props.threads.map((t) => (
-        <button
-          key={t.profile_id}
-          type="button"
-          onClick={() => props.onSelect(t)}
-          className={`user-row flex items-center gap-2 sm:gap-3 px-2 sm:px-3 py-2.5 text-left rounded-lg transition-colors ${
-            props.activeId === t.profile_id ? 'bg-indigo-500/15 border border-indigo-400/25' : 'hover:bg-white/5'
-          }`}
-        >
-          <div className="relative shrink-0">
-            <img
-              src={t.avatar ?? FALLBACK_AVATAR}
-              alt={t.username}
-              className="w-9 h-9 rounded-full object-cover"
-            />
-            {t.is_online && <OnlineDot />}
-          </div>
-          <div className="min-w-0 flex-1">
-            <div className="flex items-center justify-between gap-2">
-              <p className="truncate text-sm font-medium text-indigo-100">
-                {t.display_name || t.username}
-              </p>
-              {t.unread > 0 && (
-                <span className="rounded-full bg-indigo-500 text-white text-[10px] px-1.5 py-0.5 font-semibold">
-                  {t.unread}
-                </span>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {/* Filter tabs */}
+      <div style={{ padding: '10px 12px 8px', display: 'flex', alignItems: 'center', gap: 4 }}>
+        {FILTERS.map((f) => (
+          <button key={f.id} type="button" className={`tab-btn ${filter === f.id ? 'active' : ''}`} style={{ fontSize: 10, padding: '3px 10px' }} onClick={() => setFilter(f.id)}>
+            {f.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Search */}
+      <div style={{ padding: '0 12px 8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--panel-inner)', border: '1px solid var(--panel-edge)', borderRadius: 'var(--radius-sm)', padding: '6px 10px' }}>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--sub)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+          <input
+            type="search"
+            value={searchQ}
+            onChange={(e) => setSearchQ(e.target.value)}
+            placeholder={t('overlays.messaging.search_placeholder')}
+            style={{ flex: 1, background: 'none', border: 'none', outline: 'none', fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--text)' }}
+          />
+        </div>
+      </div>
+
+      {/* New conversation button */}
+      <div style={{ padding: '0 12px 8px' }}>
+        <button type="button" onClick={props.onNew}
+          style={{ width: '100%', padding: '7px 12px', borderRadius: 'var(--radius-sm)', background: 'rgba(167,139,250,0.08)', border: '1px solid rgba(167,139,250,0.2)', color: 'var(--accent)', fontFamily: 'var(--font-mono)', fontSize: 11, cursor: 'pointer', textAlign: 'start', letterSpacing: '0.05em' }}>
+          {t('overlays.messaging.new')}
+        </button>
+      </div>
+
+      {/* Thread list */}
+      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 2, padding: '0 8px' }}>
+        {props.loading && visible.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '24px 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>{t('common.loading')}</div>
+        )}
+        {!props.loading && visible.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '24px 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>{t('common.coming_soon')}</div>
+        )}
+        {visible.map((th) => (
+          <button
+            key={th.profile_id}
+            type="button"
+            onClick={() => props.onSelect(th)}
+            className={`conv-row ${props.activeId === th.profile_id ? 'active' : ''}`}
+          >
+            {/* Avatar — static ring (no rotation on list) */}
+            <div style={{ position: 'relative', flexShrink: 0 }}>
+              <AvatarRing src={th.avatar} alt={th.display_name || th.username} size={44} static />
+              {th.is_online && (
+                <span style={{ position: 'absolute', insetBlockEnd: 0, insetInlineEnd: 0, width: 10, height: 10, borderRadius: '50%', background: 'var(--success)', border: '2px solid var(--panel)' }} />
               )}
             </div>
-            <p className="truncate text-xs text-indigo-300/40">{t.last_message}</p>
-          </div>
-        </button>
-      ))}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, marginBlockEnd: 2 }}>
+                <span style={{ fontFamily: 'var(--font-ui)', fontSize: 14, color: 'var(--text)', fontWeight: th.unread > 0 ? 600 : 400, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {th.display_name || th.username}
+                </span>
+                <TimestampMono iso={th.last_at} />
+              </div>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span style={{ fontFamily: 'var(--font-ui)', fontSize: 12, color: 'var(--sub)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1 }}>{th.last_message}</span>
+                {th.unread > 0 && (
+                  <span style={{ background: 'var(--accent)', color: 'var(--on-accent)', fontFamily: 'var(--font-mono)', fontSize: 10, padding: '1px 6px', borderRadius: 'var(--radius-pill)', flexShrink: 0, marginInlineStart: 4 }}>{th.unread}</span>
+                )}
+              </div>
+            </div>
+          </button>
+        ))}
+      </div>
     </div>
   );
 }
+
+// ─── Message list ─────────────────────────────────────────────────────────────
 
 function MessageList(props: { messages: Message[]; myProfileId: number | null }) {
   const endRef = useRef<HTMLDivElement>(null);
@@ -113,24 +152,20 @@ function MessageList(props: { messages: Message[]; myProfileId: number | null })
 
   if (props.messages.length === 0) {
     return (
-      <div className="flex-1 flex items-center justify-center text-indigo-300/40 text-xs">
-        {t('common.coming_soon')}
+      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '32px 20px' }}>
+        <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 18, color: 'var(--text-mute)' }}>{t('overlays.messaging.empty_thread')}</div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)' }}>{t('overlays.messaging.empty_thread_hint')}</div>
       </div>
     );
   }
+
   return (
-    <div className="flex-1 overflow-y-auto flex flex-col gap-2 px-3 py-3">
+    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '16px 20px' }}>
       {props.messages.map((m) => {
         const mine = props.myProfileId != null && m.sender === props.myProfileId;
         return (
-          <div key={m.id} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-            <div className={`rounded-xl px-3 py-2 max-w-[75%] text-sm break-words ${
-              mine
-                ? 'bg-indigo-500/40 text-white border border-indigo-400/40'
-                : 'bg-white/8 text-indigo-100 border border-white/10'
-            }`}>
-              {m.content}
-            </div>
+          <div key={m.id} style={{ display: 'flex', justifyContent: mine ? 'flex-end' : 'flex-start' }}>
+            <div className={mine ? 'bubble-mine' : 'bubble-theirs'}>{m.content}</div>
           </div>
         );
       })}
@@ -138,6 +173,8 @@ function MessageList(props: { messages: Message[]; myProfileId: number | null })
     </div>
   );
 }
+
+// ─── New conversation picker ──────────────────────────────────────────────────
 
 function NewConversationPicker(props: {
   excludeIds: Set<number>;
@@ -166,46 +203,27 @@ function NewConversationPicker(props: {
   const eligible = friends.filter((f) => !props.excludeIds.has(f.profile_id));
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-white/5">
-        <button
-          type="button"
-          onClick={props.onCancel}
-          className="rounded-lg px-2 py-1 text-[11px] font-medium tracking-wide cursor-pointer bg-white/5 hover:bg-white/10 border border-white/10 text-indigo-200"
-        >
-          ←
-        </button>
-        <p className="text-sm font-medium text-indigo-100">{t('chat.new_conversation')}</p>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', borderBottom: '1px solid var(--panel-edge)' }}>
+        <button type="button" onClick={props.onCancel} className="pill-btn pill-btn--outline" style={{ padding: '4px 10px', fontSize: 12 }}>←</button>
+        <span style={{ fontFamily: 'var(--font-ui)', fontSize: 14, color: 'var(--text)' }}>{t('chat.new_conversation')}</span>
       </div>
-      <div className="flex-1 overflow-y-auto px-2 py-2">
+      <div style={{ flex: 1, overflowY: 'auto', padding: '8px' }}>
         {loading ? (
-          <p className="text-indigo-300/40 py-6 text-center text-xs">{t('common.loading')}</p>
+          <div style={{ textAlign: 'center', padding: '24px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>{t('common.loading')}</div>
         ) : eligible.length === 0 ? (
-          <p className="text-indigo-300/40 py-6 text-center text-xs">
-            {friends.length === 0
-              ? t('chat.no_friends')
-              : t('chat.all_conversations_open')}
-          </p>
+          <div style={{ textAlign: 'center', padding: '24px', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>
+            {friends.length === 0 ? t('chat.no_friends') : t('chat.all_conversations_open')}
+          </div>
         ) : (
-          <div className="flex flex-col gap-1">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
             {eligible.map((f) => (
-              <button
-                key={f.profile_id}
-                type="button"
-                onClick={() => props.onPick(f)}
-                className="user-row flex items-center gap-3 px-2 py-2 text-left rounded-lg hover:bg-white/5"
-              >
-                <div className="relative shrink-0">
-                  <img
-                    src={f.avatar ?? FALLBACK_AVATAR}
-                    alt={f.username}
-                    className="w-9 h-9 rounded-full object-cover"
-                  />
-                  {f.is_online && <OnlineDot />}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-sm font-medium text-indigo-100">{f.display_name || f.username}</p>
-                  <p className="truncate text-[11px] text-indigo-300/40">@{f.username}</p>
+              <button key={f.profile_id} type="button" onClick={() => props.onPick(f)}
+                className="conv-row" style={{ border: '1px solid transparent' }}>
+                <AvatarRing src={f.avatar} alt={f.display_name || f.username} size={40} static />
+                <div style={{ minWidth: 0 }}>
+                  <div style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--text)' }}>{f.display_name || f.username}</div>
+                  <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub)' }}>@{f.username}</div>
                 </div>
               </button>
             ))}
@@ -215,6 +233,8 @@ function NewConversationPicker(props: {
     </div>
   );
 }
+
+// ─── Chat pane ────────────────────────────────────────────────────────────────
 
 function ChatPane(props: {
   thread: Thread;
@@ -228,6 +248,7 @@ function ChatPane(props: {
   const [error, setError] = useState<string | null>(null);
   const [sending, setSending] = useState(false);
   const [accessError, setAccessError] = useState<string | null>(null);
+  const [composeFocused, setComposeFocused] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -237,9 +258,7 @@ function ChatPane(props: {
         setAccessError(data?.error ?? 'Conversation unavailable.');
         return;
       }
-      if (!res.ok) {
-        throw new Error(await extractErrorMessage(res, 'Failed to load messages.'));
-      }
+      if (!res.ok) throw new Error(await extractErrorMessage(res, 'Failed to load messages.'));
       const data = await res.json();
       const list: Message[] = Array.isArray(data) ? data : (data.results ?? []);
       setMessages(list);
@@ -251,8 +270,8 @@ function ChatPane(props: {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 3000);
-    return () => clearInterval(t);
+    const tick = setInterval(load, 3000);
+    return () => clearInterval(tick);
   }, [load]);
 
   const send = async () => {
@@ -265,9 +284,7 @@ function ChatPane(props: {
         method: 'POST',
         body: JSON.stringify({ receiver: props.thread.profile_id, content: v }),
       });
-      if (!res.ok) {
-        throw new Error(await extractErrorMessage(res, 'Could not send message.'));
-      }
+      if (!res.ok) throw new Error(await extractErrorMessage(res, 'Could not send message.'));
       logger.action('chat.message_sent', { receiver: props.thread.profile_id });
       setInput('');
       await load();
@@ -278,85 +295,79 @@ function ChatPane(props: {
     }
   };
 
+  const displayName = props.thread.display_name || props.thread.username;
+
   return (
-    <div className="flex flex-col h-full">
-      <div className="flex items-center gap-3 px-3 py-2 border-b border-white/5">
-        <div className="relative shrink-0">
-          <img
-            src={props.thread.avatar ?? FALLBACK_AVATAR}
-            alt={props.thread.username}
-            className="w-8 h-8 rounded-full object-cover"
-          />
-          {props.thread.is_online && <OnlineDot />}
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {/* Thread header */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 16px', borderBottom: '1px solid var(--panel-edge)', flexShrink: 0 }}>
+        <AvatarRing src={props.thread.avatar} alt={displayName} size={36} static />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ fontFamily: 'var(--font-ui)', fontSize: 14, color: 'var(--text)', fontWeight: 500 }}>{displayName}</div>
+          <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)' }}>
+            {props.thread.is_online ? <span style={{ color: 'var(--success)' }}>online</span> : `@${props.thread.username}`}
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-sm font-medium text-indigo-100">
-            {props.thread.display_name || props.thread.username}
-          </p>
-          <p className="truncate text-[10px] text-indigo-300/40">
-            {props.thread.is_online
-              ? <span className="text-green-400/80">online</span>
-              : `@${props.thread.username}`}
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => props.onViewProfile(props.thread.username)}
-          className="rounded-lg px-2 py-1 text-[11px] font-medium tracking-wide cursor-pointer bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-400/25 text-indigo-200"
-        >
-          {t('chat.view_profile')}
-        </button>
-        <button
-          type="button"
-          onClick={() => props.onBlock(props.thread.profile_id)}
-          className="rounded-lg px-2 py-1 text-[11px] font-medium tracking-wide cursor-pointer bg-red-500/10 hover:bg-red-500/20 border border-red-400/30 text-red-200"
-        >
-          {t('chat.block')}
-        </button>
+        <button type="button" onClick={() => props.onViewProfile(props.thread.username)} className="pill-btn pill-btn--outline" style={{ fontSize: 11, padding: '4px 10px' }}>{t('chat.view_profile')}</button>
+        <button type="button" onClick={() => props.onBlock(props.thread.profile_id)} className="pill-btn pill-btn--danger" style={{ fontSize: 11, padding: '4px 10px' }}>{t('chat.block')}</button>
       </div>
 
+      {/* Messages */}
       {accessError ? (
-        <div className="flex-1 flex items-center justify-center px-4 text-center text-sm text-red-300/80">
-          {accessError}
-        </div>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--danger)', fontSize: 13, padding: '20px' }}>{accessError}</div>
       ) : (
         <MessageList messages={messages} myProfileId={props.myProfileId} />
       )}
 
+      {/* Compose bar */}
       {!accessError && (
-        <div className="flex items-center gap-2 px-3 py-2 border-t border-white/5">
-          <Input
-            placeholder={t('chat.type_message')}
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                send();
-              }
-            }}
-          />
-          <button
-            type="button"
-            onClick={send}
-            disabled={sending || !input.trim()}
-            className="rounded-lg px-3 py-2 text-xs font-medium tracking-wide cursor-pointer bg-indigo-500/25 hover:bg-indigo-500/40 border border-indigo-400/40 text-white disabled:opacity-50"
-          >
-            {t('chat.send')}
-          </button>
+        <div style={{ padding: '10px 14px', borderTop: '1px solid var(--panel-edge)', flexShrink: 0 }}>
+          {composeFocused && (
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)', marginBlockEnd: 4, letterSpacing: '0.05em' }}>
+              {t('overlays.messaging.compose_hint')}
+            </div>
+          )}
+          <div style={{ display: 'flex', alignItems: 'flex-end', gap: 8, background: 'var(--panel-inner)', border: '1px solid var(--panel-edge)', borderRadius: 'var(--radius-md)', padding: '8px 12px' }}>
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onFocus={() => setComposeFocused(true)}
+              onBlur={() => setComposeFocused(false)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+              }}
+              placeholder={t('overlays.messaging.compose_placeholder')}
+              rows={1}
+              style={{
+                flex: 1, background: 'none', border: 'none', outline: 'none', resize: 'none', overflow: 'hidden',
+                fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--text)',
+                minHeight: '1.5em', maxHeight: '7em',
+              }}
+              onInput={(e) => {
+                const el = e.currentTarget;
+                el.style.height = 'auto';
+                el.style.height = `${el.scrollHeight}px`;
+              }}
+            />
+            <PillButton variant="solid" onClick={send} disabled={sending || !input.trim()}>
+              {t('overlays.messaging.send')} <span className="rtl-flip" aria-hidden="true">▸</span>
+            </PillButton>
+          </div>
+          {error && <p style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--danger)', marginBlockStart: 4 }}>{error}</p>}
         </div>
       )}
-
-      {error && <p className="px-3 py-1 text-[11px] text-red-300/80">{error}</p>}
     </div>
   );
 }
 
+// ─── Chat main component ──────────────────────────────────────────────────────
+
 function Chat(props: {
-  func: (value: boolean) => void;
+  onClose: () => void;
   initialThreadId?: number | null;
   onViewProfile: (username: string) => void;
 }) {
+  useLanguage();
   const [threads, setThreads] = useState<Thread[]>([]);
   const [active, setActive] = useState<Thread | null>(null);
   const [composing, setComposing] = useState(false);
@@ -365,11 +376,7 @@ function Chat(props: {
   const [myProfileId, setMyProfileId] = useState<number | null>(null);
   const { confirm, node: confirmNode } = useConfirm();
   const autoSelectedRef = useRef(false);
-  const initialThreadConsumedRef = useRef(false);
 
-  // Refresh tick: keep the threads list current. Does NOT change the user's
-  // current selection — only updates the unread/last_message of the active
-  // thread in place. Selection logic lives in the seed effect below.
   const refreshThreads = useCallback(async () => {
     try {
       const res = await authFetch('/api/users/social/messages/threads/');
@@ -385,22 +392,12 @@ function Chat(props: {
     }
   }, []);
 
-  // One-shot seed on mount. Decides the initial active thread:
-  //  1. If initialThreadId is provided AND a thread with that id exists →
-  //     open that thread directly.
-  //  2. If initialThreadId is provided but no thread exists yet (the user
-  //     hit "Message" from search/profile and has never messaged this
-  //     friend) → synthesize a placeholder Thread from the friends list so
-  //     the conversation pane opens immediately.
-  //  3. Otherwise → auto-select the most recent thread.
-  //  4. If there are no threads at all → drop into compose-new picker.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      authFetch('/api/users/me/')
-        .then((r) => (r.ok ? r.json() : null))
-        .then((d) => { if (!cancelled && d?.profile_id != null) setMyProfileId(d.profile_id); })
-        .catch(() => {});
+      authFetch('/api/users/me/').then(r => r.ok ? r.json() : null).then(d => {
+        if (!cancelled && d?.profile_id != null) setMyProfileId(d.profile_id);
+      }).catch(() => {});
 
       let threadList: Thread[] = [];
       try {
@@ -416,8 +413,6 @@ function Chat(props: {
         if (found) {
           setActive(found);
         } else {
-          // No prior conversation — pull the friend's data so we can render
-          // ChatPane straight away with an empty message list.
           try {
             const fres = await authFetch('/api/users/social/friendships/friends-list/');
             if (fres.ok) {
@@ -447,16 +442,14 @@ function Chat(props: {
       setLoading(false);
       setSeeded(true);
     })();
-
     return () => { cancelled = true; };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Keep threads + active thread metadata fresh after the initial seed.
   useEffect(() => {
     if (!seeded) return;
-    const t = setInterval(refreshThreads, 4000);
-    return () => clearInterval(t);
+    const tick = setInterval(refreshThreads, 4000);
+    return () => clearInterval(tick);
   }, [seeded, refreshThreads]);
 
   const startConversationWith = (friend: FriendRow) => {
@@ -472,7 +465,6 @@ function Chat(props: {
     setActive(threads.find((t) => t.profile_id === friend.profile_id) ?? placeholder);
     setComposing(false);
     autoSelectedRef.current = true;
-    initialThreadConsumedRef.current = true;
   };
 
   const handleBlock = async (profileId: number) => {
@@ -495,24 +487,28 @@ function Chat(props: {
   };
 
   return (
-    <div className="font-lexend overlay-panel rounded-2xl z-50 w-full max-w-[60rem] mx-3 sm:mx-auto">
-      <div className="flex items-center justify-between px-4 pt-4 pb-2">
-        <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">
-          {t('chat.title')}
-        </h2>
-        <CloseButton onClick={() => props.func(false)} />
-      </div>
-      <div className="grid grid-cols-1 sm:grid-cols-[260px_1fr] gap-0 sm:gap-4 px-3 sm:px-4 pb-4 h-[28rem]">
-        <div className="overflow-y-auto border-b sm:border-b-0 sm:border-r border-white/5 pb-2 sm:pb-0 sm:pr-2">
+    <OverlayShell
+      kicker={t('overlays.messaging.kicker')}
+      title={t('chat.title')}
+      headerRight={<PillButton variant="outline" onClick={() => { setActive(null); setComposing(true); }}>{t('overlays.messaging.new')}</PillButton>}
+      width={1120}
+      maxHeight="92vh"
+      onClose={props.onClose}
+    >
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', height: 600, minHeight: 0 }}>
+        {/* Thread list */}
+        <div style={{ borderInlineEnd: '1px solid var(--panel-edge)', minHeight: 0, overflowY: 'auto' }}>
           <ThreadList
             threads={threads}
             activeId={active?.profile_id ?? null}
-            onSelect={(t) => { setActive(t); setComposing(false); }}
+            onSelect={(th) => { setActive(th); setComposing(false); }}
             onNew={() => { setActive(null); setComposing(true); }}
             loading={loading}
           />
         </div>
-        <div className="min-h-0">
+
+        {/* Thread view */}
+        <div style={{ minHeight: 0, display: 'flex', flexDirection: 'column' }}>
           {composing ? (
             <NewConversationPicker
               excludeIds={new Set(threads.map((t) => t.profile_id))}
@@ -528,16 +524,18 @@ function Chat(props: {
               onViewProfile={props.onViewProfile}
             />
           ) : (
-            <div className="flex h-full items-center justify-center text-indigo-300/40 text-xs">
+            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 18, color: 'var(--text-mute)' }}>
               {t('chat.select_or_start')}
             </div>
           )}
         </div>
       </div>
       {confirmNode}
-    </div>
+    </OverlayShell>
   );
 }
+
+// ─── Container ────────────────────────────────────────────────────────────────
 
 function ChatContainer(props: {
   func: (value: boolean) => void;
@@ -545,44 +543,14 @@ function ChatContainer(props: {
   onViewProfile: (username: string) => void;
 }) {
   useLanguage();
-  const [visible, setVisible] = useState(true);
+  const handleClose = () => props.func(false);
+
   return (
-    <AnimatedContent
-      className="items-center mx-auto z-10"
-      distance={0}
-      direction="vertical"
-      reverse={false}
-      duration={1}
-      ease="power3.out"
-      initialOpacity={1}
-      animateOpacity
-      scale={1}
-      visible={visible}
-      threshold={0.1}
-      delay={0.1}
-      disappearDuration={0.25}
-      onDisappearanceComplete={() => props.func(false)}
-    >
-      <AnimatedContent
-        distance={50}
-        direction="vertical"
-        reverse={false}
-        duration={1}
-        ease="power3.out"
-        initialOpacity={1}
-        animateOpacity
-        scale={1}
-        visible={true}
-        threshold={0.1}
-        delay={0.1}
-      >
-        <Chat
-          func={() => setVisible(false)}
-          initialThreadId={props.initialThreadId}
-          onViewProfile={props.onViewProfile}
-        />
-      </AnimatedContent>
-    </AnimatedContent>
+    <Chat
+      onClose={handleClose}
+      initialThreadId={props.initialThreadId}
+      onViewProfile={props.onViewProfile}
+    />
   );
 }
 

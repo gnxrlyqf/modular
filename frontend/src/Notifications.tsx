@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useState } from "react";
-import { AnimatedContent } from './ReactBits/ReactBits';
-import { CloseButton } from './Reusables';
 import { authFetch } from './api';
 import logger from './logger';
-import { t, useLanguage } from './i18n';
+import { t, useLanguage, richT } from './i18n';
+import OverlayShell from './OverlayShell';
+import { StatusPill, PillButton, TimestampMono } from './OverlayParts';
 
 export type NotifType = 'message' | 'friend_request';
 
@@ -19,27 +19,30 @@ export type Notification = {
   created_at: string;
 };
 
-import defaultProfileImg from './assets/default_profile.png';
-const FALLBACK_AVATAR = defaultProfileImg;
 
-function relTime(iso: string): string {
-  const d = new Date(iso).getTime();
-  const diff = Math.max(0, Date.now() - d);
-  const s = Math.floor(diff / 1000);
-  if (s < 60) return `${s}s`;
-  const m = Math.floor(s / 60);
-  if (m < 60) return `${m}m`;
-  const h = Math.floor(m / 60);
-  if (h < 24) return `${h}h`;
-  const dd = Math.floor(h / 24);
-  return `${dd}d`;
+// ─── Notification type icon ───────────────────────────────────────────────────
+
+function NotifIcon({ type }: { type: NotifType }) {
+  if (type === 'message') {
+    return (
+      <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(125,211,252,0.12)', border: '1px solid rgba(125,211,252,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent-2)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      </div>
+    );
+  }
+  return (
+    <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(167,139,250,0.12)', border: '1px solid rgba(167,139,250,0.25)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    </div>
+  );
 }
 
-function notifText(n: Notification): string {
-  const who = n.actor_display_name || n.actor_username;
-  if (n.type === 'message') return `${who} ${t('notif.action.message')}`;
-  return `${who} ${t('notif.action.friend_request')}`;
-}
+// ─── Friend request inline actions ───────────────────────────────────────────
 
 function FriendRequestActions(props: {
   notif: Notification;
@@ -49,103 +52,54 @@ function FriendRequestActions(props: {
   resolved: 'accepted' | 'declined' | null;
 }) {
   if (props.resolved === 'accepted') {
-    return <span className="text-[10px] text-green-300/80 italic">{t('notif.accepted')}</span>;
+    return <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--success)', fontStyle: 'italic' }}>{t('notif.accepted')}</span>;
   }
   if (props.resolved === 'declined') {
-    return <span className="text-[10px] text-zinc-400 italic">{t('notif.declined')}</span>;
+    return <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)', fontStyle: 'italic' }}>{t('notif.declined')}</span>;
   }
-  if (props.notif.read_at !== null) {
-    // Acted upon in a previous session — don't re-show buttons.
-    return null;
-  }
-  if (props.notif.related_id == null) {
-    return <span className="text-[10px] text-indigo-300/30 italic">{t('notif.expired')}</span>;
-  }
+  if (props.notif.read_at !== null) return null;
+  if (props.notif.related_id == null) return <span style={{ fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)', fontStyle: 'italic' }}>{t('notif.expired')}</span>;
+
   return (
-    <div className="flex items-center gap-1.5" onClick={(e) => e.stopPropagation()}>
-      <button
-        type="button"
-        disabled={props.busy}
-        onClick={() => props.onAccept(props.notif)}
-        className="rounded-md px-2 py-0.5 text-[11px] font-medium tracking-wide cursor-pointer bg-green-500/15 hover:bg-green-500/30 border border-green-400/30 text-green-100 disabled:opacity-50"
-      >
+    <div style={{ display: 'flex', gap: 6 }} onClick={(e) => e.stopPropagation()}>
+      <button type="button" disabled={props.busy} onClick={() => props.onAccept(props.notif)}
+        style={{ borderRadius: 6, padding: '3px 10px', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 500, cursor: 'pointer', background: 'rgba(52,211,153,0.15)', border: '1px solid rgba(52,211,153,0.3)', color: 'var(--success)', opacity: props.busy ? 0.5 : 1 }}>
         {t('notif.accept')}
       </button>
-      <button
-        type="button"
-        disabled={props.busy}
-        onClick={() => props.onDecline(props.notif)}
-        className="rounded-md px-2 py-0.5 text-[11px] font-medium tracking-wide cursor-pointer bg-white/5 hover:bg-white/10 border border-white/15 text-indigo-200 disabled:opacity-50"
-      >
+      <button type="button" disabled={props.busy} onClick={() => props.onDecline(props.notif)}
+        style={{ borderRadius: 6, padding: '3px 10px', fontSize: 11, fontFamily: 'var(--font-mono)', fontWeight: 500, cursor: 'pointer', background: 'var(--panel-inner)', border: '1px solid var(--panel-edge)', color: 'var(--sub)', opacity: props.busy ? 0.5 : 1 }}>
         {t('notif.decline')}
       </button>
     </div>
   );
 }
 
-function NotificationsList(props: {
-  items: Notification[];
-  busyId: number | null;
-  resolved: Record<number, 'accepted' | 'declined'>;
-  onItemClick: (n: Notification) => void;
-  onAccept: (n: Notification) => void;
-  onDecline: (n: Notification) => void;
-}) {
-  if (props.items.length === 0) {
-    return <p className="text-indigo-300/40 py-8 text-center text-xs">{t('common.coming_soon')}</p>;
-  }
+// ─── Notification body text with rich markup ──────────────────────────────────
+
+function NotifBody({ notif }: { notif: Notification }) {
+  const actor = notif.actor_display_name || notif.actor_username;
+  const keyMap: Record<NotifType, string> = {
+    message: 'overlays.notifications.action.message',
+    friend_request: 'overlays.notifications.action.friend_request',
+  };
+  const key = keyMap[notif.type] as Parameters<typeof richT>[0];
+  const nodes = richT(key, {
+    actor: <strong style={{ color: 'var(--text)', fontWeight: 600 }}>{actor}</strong>,
+  });
   return (
-    <div className="flex flex-col gap-1">
-      {props.items.map((n) => {
-        const isFR = n.type === 'friend_request';
-        const resolved = props.resolved[n.id] ?? null;
-        return (
-          <div
-            key={n.id}
-            role="button"
-            tabIndex={0}
-            onClick={() => props.onItemClick(n)}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                props.onItemClick(n);
-              }
-            }}
-            className={`flex items-center gap-3 px-3 py-2.5 text-left rounded-lg transition-colors hover:bg-white/5 cursor-pointer ${
-              n.read_at ? '' : 'bg-indigo-500/8 border border-indigo-400/15'
-            }`}
-          >
-            <img
-              src={n.actor_avatar ?? FALLBACK_AVATAR}
-              alt={n.actor_username}
-              className="size-8 shrink-0 rounded-full object-cover border border-white/10"
-            />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-sm text-indigo-100">{notifText(n)}</p>
-              <p className="truncate text-[11px] text-indigo-300/40">{relTime(n.created_at)} {t('common.ago')}</p>
-            </div>
-            {isFR ? (
-              <FriendRequestActions
-                notif={n}
-                busy={props.busyId === n.id}
-                onAccept={props.onAccept}
-                onDecline={props.onDecline}
-                resolved={resolved}
-              />
-            ) : !n.read_at ? (
-              <span className="size-2 rounded-full bg-indigo-400" />
-            ) : null}
-          </div>
-        );
-      })}
-    </div>
+    <p style={{ fontFamily: 'var(--font-ui)', fontSize: 13, color: 'var(--text-mute)', lineHeight: 1.4, margin: 0 }}>
+      {nodes}
+    </p>
   );
 }
 
+// ─── Main panel ──────────────────────────────────────────────────────────────
+
 function NotificationsCenter(props: {
-  func: (value: boolean) => void;
+  onClose: () => void;
   onOpenMessage: (actorProfileId: number) => void;
   onFriendsChanged?: () => void;
+  onOpenCommunity?: () => void;
 }) {
   useLanguage();
   const [items, setItems] = useState<Notification[]>([]);
@@ -167,8 +121,8 @@ function NotificationsCenter(props: {
 
   useEffect(() => {
     load();
-    const t = setInterval(load, 10000);
-    return () => clearInterval(t);
+    const tick = setInterval(load, 10000);
+    return () => clearInterval(tick);
   }, [load]);
 
   const markAllRead = async () => {
@@ -183,22 +137,18 @@ function NotificationsCenter(props: {
     }
     if (n.type === 'message') {
       props.onOpenMessage(n.actor);
-      props.func(false);
+      props.onClose();
     }
-    // friend_request: do nothing on row click — actions are inline.
   };
 
   const handleAccept = async (n: Notification) => {
     if (n.related_id == null || busyId != null) return;
     setBusyId(n.id);
     try {
-      const res = await authFetch(`/api/users/social/friendships/${n.related_id}/accept/`, {
-        method: 'POST',
-      });
+      const res = await authFetch(`/api/users/social/friendships/${n.related_id}/accept/`, { method: 'POST' });
       if (res.ok) {
         logger.action('friend.accept_from_notif', { friendship: n.related_id });
         setResolved((r) => ({ ...r, [n.id]: 'accepted' }));
-        // Mark this notification read so the badge clears.
         authFetch(`/api/notifications/${n.id}/mark-read/`, { method: 'POST' }).catch(() => {});
         props.onFriendsChanged?.();
       }
@@ -211,11 +161,7 @@ function NotificationsCenter(props: {
     if (n.related_id == null || busyId != null) return;
     setBusyId(n.id);
     try {
-      // Use the explicit decline action so the FE intent is recorded; it
-      // deletes the underlying Friendship row server-side.
-      const res = await authFetch(`/api/users/social/friendships/${n.related_id}/decline/`, {
-        method: 'POST',
-      });
+      const res = await authFetch(`/api/users/social/friendships/${n.related_id}/decline/`, { method: 'POST' });
       if (res.ok) {
         logger.action('friend.decline_from_notif', { friendship: n.related_id });
         setResolved((r) => ({ ...r, [n.id]: 'declined' }));
@@ -227,84 +173,100 @@ function NotificationsCenter(props: {
     }
   };
 
-  return (
-    <div className="font-lexend overlay-panel rounded-2xl z-50 w-full max-w-[28rem] mx-3 sm:mx-auto">
-      <div className="flex items-center justify-between px-4 pt-4 pb-1">
-        <h2 className="text-lg font-semibold bg-gradient-to-r from-indigo-200 to-indigo-400 bg-clip-text text-transparent tracking-wide">
-          {t('nav.notifications')}
-        </h2>
-        <div className="flex items-center gap-2">
-          <button
-            type="button"
-            onClick={markAllRead}
-            className="rounded-lg px-2 py-1 text-[11px] font-medium tracking-wide cursor-pointer bg-white/5 hover:bg-white/10 border border-white/10 text-indigo-200"
-          >
-            {t('notif.mark_all_read')}
-          </button>
-          <CloseButton onClick={() => props.func(false)} />
-        </div>
-      </div>
-      <div className="px-3 sm:px-4 pb-4 max-h-[28rem] overflow-y-auto">
-        {loading && items.length === 0 ? (
-          <p className="text-indigo-300/40 py-6 text-center text-xs">{t('common.loading')}</p>
-        ) : (
-          <NotificationsList
-            items={items}
-            busyId={busyId}
-            resolved={resolved}
-            onItemClick={handleClick}
-            onAccept={handleAccept}
-            onDecline={handleDecline}
-          />
-        )}
-      </div>
+  const headerRight = (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+      <PillButton variant="outline" onClick={markAllRead}>
+        {t('overlays.notifications.mark_all_read')}
+      </PillButton>
     </div>
   );
+
+  return (
+    <OverlayShell
+      kicker={t('overlays.notifications.kicker')}
+      title={t('nav.notifications')}
+      headerRight={headerRight}
+      width={720}
+      maxHeight="90vh"
+      onClose={props.onClose}
+    >
+      {/* Notification list */}
+      <div style={{ padding: '8px 12px', minHeight: 300 }}>
+        {loading && items.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '32px 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>{t('common.loading')}</div>
+        )}
+
+        {!loading && items.length === 0 && (
+          <div style={{ textAlign: 'center', padding: '48px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8 }}>
+            <div style={{ fontFamily: 'var(--font-display)', fontStyle: 'italic', fontSize: 20, color: 'var(--text-mute)' }}>{t('overlays.notifications.empty')}</div>
+            <div style={{ fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>
+              {t('overlays.notifications.empty_hint')}{' '}
+              <button type="button" style={{ color: 'var(--accent)', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', fontFamily: 'var(--font-mono)', fontSize: 11 }}
+                onClick={() => { props.onOpenCommunity?.(); props.onClose(); }}>
+                Community
+              </button>
+            </div>
+          </div>
+        )}
+
+        {items.map((n) => {
+          const isFR = n.type === 'friend_request';
+          const res = resolved[n.id] ?? null;
+          const isUnread = !n.read_at && !res;
+
+          return (
+            <div
+              key={n.id}
+              role="button"
+              tabIndex={0}
+              onClick={() => handleClick(n)}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleClick(n); } }}
+              className={`notif-row ${isUnread ? 'unread' : ''}`}
+            >
+              {/* Left: icon */}
+              <NotifIcon type={n.type} />
+
+              {/* Body */}
+              <div style={{ minWidth: 0 }}>
+                <NotifBody notif={n} />
+                {isFR && (
+                  <div style={{ marginBlockStart: 6 }}>
+                    <FriendRequestActions notif={n} busy={busyId === n.id} onAccept={handleAccept} onDecline={handleDecline} resolved={res} />
+                  </div>
+                )}
+              </div>
+
+              {/* Trailing: timestamp + unread dot */}
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 4, flexShrink: 0 }}>
+                {isUnread && <span style={{ width: 6, height: 6, borderRadius: '50%', background: 'var(--accent)', display: 'block' }} aria-label="Unread" />}
+                <TimestampMono iso={n.created_at} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+    </OverlayShell>
+  );
 }
+
+// ─── Container ────────────────────────────────────────────────────────────────
 
 function NotificationsContainer(props: {
   func: (value: boolean) => void;
   onOpenMessage: (actorProfileId: number) => void;
   onFriendsChanged?: () => void;
+  onOpenCommunity?: () => void;
 }) {
-  const [visible, setVisible] = useState(true);
+  const handleClose = () => props.func(false);
+
   return (
-    <AnimatedContent
-      className="items-center mx-auto z-10"
-      distance={0}
-      direction="vertical"
-      reverse={false}
-      duration={1}
-      ease="power3.out"
-      initialOpacity={1}
-      animateOpacity
-      scale={1}
-      visible={visible}
-      threshold={0.1}
-      delay={0.1}
-      disappearDuration={0.25}
-      onDisappearanceComplete={() => props.func(false)}
-    >
-      <AnimatedContent
-        distance={50}
-        direction="vertical"
-        reverse={false}
-        duration={1}
-        ease="power3.out"
-        initialOpacity={1}
-        animateOpacity
-        scale={1}
-        visible={true}
-        threshold={0.1}
-        delay={0.1}
-      >
-        <NotificationsCenter
-          func={() => setVisible(false)}
-          onOpenMessage={props.onOpenMessage}
-          onFriendsChanged={props.onFriendsChanged}
-        />
-      </AnimatedContent>
-    </AnimatedContent>
+    <NotificationsCenter
+      onClose={handleClose}
+      onOpenMessage={props.onOpenMessage}
+      onFriendsChanged={props.onFriendsChanged}
+      onOpenCommunity={props.onOpenCommunity}
+    />
   );
 }
 
