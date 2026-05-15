@@ -12,4 +12,4 @@
 
 # Amine
 - [ ] reset module functionality
-
+- [ ] keyboard ranges are too high
