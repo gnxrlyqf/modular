@@ -130,7 +130,7 @@ export const DEFAULT_VALUES: Record<string, any> = {
   distortion: { d: 50, t: "soft" },
   modulator: { m: "AM", d: 50 },
   keyboard: {},
-  sequencer: {s: [0, 0, 0, 0], l: 4},
+  sequencer: {},
 };
 
 export const createDefaultParams = (type: ModuleType) => {

@@ -533,7 +533,7 @@ function Scene() {
                   if (n < 0) setTempo(0);
                   else if (n > 500) setTempo(500);
                   else setTempo(n);
-                  audioContext.tempo = n;
+                  audioContext.setTempo(n);
                 }}
               />
             </div>

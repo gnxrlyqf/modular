@@ -48,6 +48,16 @@ const PORT_OFFSETS = {
   sequencer: {
     trigger: { x: moduleObjects.sequencer.w - 4, y: moduleObjects.sequencer.h - 56 },
   },
+  mixer: {
+    "input 1": { x: 4, y: moduleObjects.mixer.h - 120 },
+    "input 2": { x: 4, y: moduleObjects.mixer.h - 120 },
+	output: { x: moduleObjects.modulator.w - 4, y: moduleObjects.modulator.h - 56 }
+  },
+  splitter: {
+    input: { x: 4, y: moduleObjects.mixer.h - 120 },
+	"output 1": { x: moduleObjects.modulator.w - 4, y: moduleObjects.modulator.h - 56 },
+	"output 2": { x: moduleObjects.modulator.w - 4, y: moduleObjects.modulator.h - 56 }
+  },
   keyboard: {
     freq: { x: moduleObjects.keyboard.w - 4, y: moduleObjects.keyboard.h - 90 },
     trigger: { x: moduleObjects.keyboard.w - 4, y: moduleObjects.keyboard.h - 40 },

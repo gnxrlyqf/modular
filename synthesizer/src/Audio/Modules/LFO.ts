@@ -36,6 +36,14 @@ class LFOscillator extends Module {
 		this.signal.start();
 	}
 
+	setTempo(newTempo: number): void {
+		this.tempo = newTempo;
+		if (this.mode) {
+			this.mode.tempo = newTempo;
+			this.setFrequency(this.mode.getFrequency());
+		}
+	}
+
 	setSync(div: 0 | false | 1 | 2 | 4 | 8 | 16 | 32): void {
 		if (!div) {
 			this.mode = null;

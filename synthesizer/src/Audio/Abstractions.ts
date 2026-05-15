@@ -14,6 +14,9 @@ abstract class Module {
 	abstract setMod(key: string, patch: Patch | null): void;
 
 	abstract setParam(key: string, value: number | string | number[]): void;
+
+	// Optional tempo update hook for modules that care about tempo (LFO, Sequencer)
+	setTempo?(newTempo: number): void;
 }
 
 export { Module };
