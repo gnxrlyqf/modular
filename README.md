@@ -1,4 +1,4 @@
-*This project has been created as part of the 42 curriculum by iboutadg, mchetoui, aelsayed, wtoumi.*
+*This project has been created as part of the 42 curriculum by aelsayed, iboutadg, mchetoui, wtoumi.*
 
 ---
 
@@ -11,11 +11,11 @@ A full-stack web platform for learning, creating, and sharing modular synthesize
 **Key features:**
 
 - User authentication with JWT, email verification, and TOTP-based two-factor authentication
-- OAuth2 login via Google, Facebook, and 42 (intra)
+- OAuth2 login via Google, and 42 (intra)
 - Modular synthesizer editor — create/save/share/vote on synth patches
 - Community projects feed with voting and search
 - Friends system with friend requests, messaging, blocking, and notifications
-- User profiles with avatars, XP/level, bio, and public visibility
+- User profiles with avatars
 - Admin panel for user and log management
 - Embedded analytics dashboard powered by Metabase (per-user usage stats)
 - Observability stack: ELK (Elasticsearch, Logstash, Kibana, Filebeat, Metricbeat) for log and metric shipping
