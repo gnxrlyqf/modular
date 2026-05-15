@@ -7,7 +7,7 @@
 - [ ] the cables circles are on top of the context menu
 
 # Yousef
-- [ ] implement mixer and splitter modules
+- [x] implement mixer and splitter modules
 - [ ] implement module delete and disconnect
 
 # Amine

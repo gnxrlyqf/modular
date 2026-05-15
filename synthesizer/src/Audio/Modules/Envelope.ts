@@ -114,6 +114,7 @@ class Envelope extends Module {
 		if (typeof source?.addStepListener === "function") {
 			this.triggerUnsubscribe = source.addStepListener((_index, value, time) => {
 				if (value === 1) this.triggerAtTime(time);
+				else this.stop();
 			});
 		}
 	}
