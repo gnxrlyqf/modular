@@ -159,7 +159,7 @@ Log
 |---|---|---|
 | Registration + email verification | Register with username/email/password; activation link sent via email | _TBD_ |
 | Login + 2FA (TOTP) | JWT login with optional TOTP second factor; QR setup flow | _TBD_ |
-| OAuth login | Google, Facebook, 42 via popup-based OAuth2 flow | _TBD_ |
+| OAuth login | Google and 42 via popup-based OAuth2 flow | _TBD_ |
 | Password reset | Email-based reset link → SPA confirm page | _TBD_ |
 | Profile management | Display name, bio, avatar upload (jpg/png/webp, 5MB cap) | _TBD_ |
 | Friends system | Send/accept/decline/cancel friend requests; +100 XP on accept | _TBD_ |
@@ -182,14 +182,94 @@ Log
 
 ## Modules
 
-> _Module list to be confirmed by team. Fill in below with Major (2 pts) or Minor (1 pt) per chosen module._
+### IV.1 — Web
 
 | Module | Type | Points | Description | Implemented by |
 |---|---|---|---|---|
-| _TBD_ | Major | 2 | _TBD_ | _TBD_ |
-| _TBD_ | Minor | 1 | _TBD_ | _TBD_ |
+| Framework — Frontend + Backend | Major | 2 | React 19 (frontend) + Django 5 + DRF (backend). Both are production-grade frameworks handling routing, auth, serialization, and state. | _TBD_ |
+| User Interaction | Major | 2 | Chat (real-time polling), profile pages, and friends system (add/accept/decline/remove/block). Meets the minimum chat + profile + friends requirement. | _TBD_ |
+| Custom design system | Minor | 1 | 12+ reusable components with a shared token-based design language: `StatusPill`, `Toggle`, `AvatarRing`, `PillButton`, `GlassCard`, `Kicker`, `ConstellationThumb`, `TimestampMono`, `SectionKicker`, `OverlayShell`, `Button`, `Anchor`, `ConfirmModal`. Consistent color palette (`--panel`, `--accent`, `--text`, `--sub`), typography, and glass-morphism recipe in `index.css`. | _TBD_ |
+| Advanced search | Minor | 1 | Project search with 400ms debounce, sort by date/name, pagination (9 per page). User search with per-row context-aware action buttons. Both backed by dedicated API endpoints. | _TBD_ |
 
-**Total points: _TBD_**
+### IV.2 — Accessibility and Internationalization
+
+| Module | Type | Points | Description | Implemented by |
+|---|---|---|---|---|
+| Multiple languages (i18n) | Minor | 1 | 5 complete translations: EN, FR, AR, DE, ES. Custom `t()`, `tn()` (plural), and `richT()` (React node interpolation) helpers in `i18n.ts`. Language switcher in the UI. All user-facing text runs through the i18n system. | _TBD_ |
+| RTL language support | Minor | 1 | Full Arabic (AR) RTL support. Layout mirrors on language switch via `.rtl-flip` utilities and `dir` attribute propagation. Overlay and grid layouts tested in RTL mode. | _TBD_ |
+| Additional browser support | Minor | 1 | Verified on Brave and Chrome. All features function identically across both browsers. Known limitation: self-signed TLS certificate requires manual acceptance on first visit in both browsers. | _TBD_ |
+
+### IV.3 — User Management
+
+| Module | Type | Points | Description | Implemented by |
+|---|---|---|---|---|
+| Standard user management + authentication | Major | 2 | Profile update (display name, bio, avatar), avatar upload with defaults, friends with online-adjacent status, public profile pages. JWT auth with email verification. | _TBD_ |
+| Remote authentication — OAuth 2.0 | Minor | 1 | Google (implicit flow) and 42 (authorization code flow) OAuth2. Popup-based flow, token exchange on the backend, JWT pair returned to the SPA. | _TBD_ |
+| Advanced permissions system | Major | 2 | Admin role granted via `ADMIN_USERNAMES` env var. Admin-only endpoints: list all users, delete any user, view per-user and global logs. `IsAdminUserCustom` permission class gates all `/api/users/admin/` routes. Regular users cannot access admin views. | _TBD_ |
+| Two-Factor Authentication (2FA) | Minor | 1 | TOTP-based 2FA via `pyotp`. Setup flow: generate secret + QR code, verify code → enable. Login flow: password auth returns `{requires_2fa, user_id}` if enabled; client posts TOTP code to `/api/users/login/2fa-verify/` for tokens. QR rendered in-browser with `qrcode.react`. | _TBD_ |
+
+### IV.7 — DevOps
+
+| Module | Type | Points | Description | Implemented by |
+|---|---|---|---|---|
+| ELK log management | Major | 2 | Elasticsearch (single-node, xpack+TLS) stores all logs. Logstash receives Beats input on port 5044. Filebeat ships Django app logs (`app.log`) and Docker container logs to Elasticsearch. Metricbeat ships system + container metrics (CPU, mem, net, disk). Kibana visualizes at `:5601`. TLS certs provisioned by one-shot `elk-setup` service. | _TBD_ |
+| Prometheus + Grafana monitoring | Major | 2 | Prometheus scrapes `backend:8000/monitoring/metrics` (via `django-prometheus`) every 15s. Grafana connects to Prometheus via proxy datasource and auto-provisions a dashboard from `config/grafana/`. Config files in `config/prometheus/prometheus-config.yml` and `config/grafana/`. | _TBD_ |
+
+### IV.8 — Data and Analytics
+
+| Module | Type | Points | Description | Implemented by |
+|---|---|---|---|---|
+| Advanced analytics dashboard | Major | 2 | Metabase embedded via JWT-signed iframes, one dashboard per user. 13 native-SQL cards: Total Projects, Total Session Time, Avg Session, Streak (scalar + sparkline), Active Days heatmap (pivot dow×week, conditional formatting), Hour-of-Day, Module Usage, Projects Over Time, Upvote Velocity, Top Patches table, Total Shares, Net Votes. All cards parameterized by `user_id` (locked server-side) plus an optional `date_range` filter. Backend signs 1h JWT at `GET /api/users/dashboard-token/`; rendered in an iframe overlay in the SPA. | _TBD_ |
+
+### IV.10 — Module of choice
+
+| Module | Type | Points | Description | Implemented by |
+|---|---|---|---|---|
+| Modular Synthesizer | Major | 2 | See justification below. | _TBD_ |
+
+#### Synthesizer — justification for Major module status
+
+**Why we chose this module:**
+The modular synthesizer is the core creative artifact of the platform — it is what users are creating, sharing, and voting on. Every other feature (projects, community feed, analytics, sharing) exists to support it.
+
+**What technical challenges it addresses:**
+- Separate Vite/React application (`synthesizer` service) with its own Docker container, served at `/synthesizer` via nginx
+- Patch data (modules, cables, camera) stored as a schema-less `config` JSONField in the `Project` model — flexible enough to evolve without migrations
+- Autosave: 1.5s debounce on any canvas change, PATCH to `/api/projects/<uuid>/` with both `config` and `analytics` payloads
+- Session analytics tracking via `sessionStorage` to survive tab refreshes; session finalized on `pagehide`/`beforeunload` via `fetch keepalive`
+- Module usage analytics: per-category counts (oscillators, filters, effects, envelopes, gains, LFOs, modulators, outputs, keyboards) recomputed on every modules change
+- Sharing: `POST /api/projects/<uuid>/share/` increments share count and tracks unique share days; share URL copied to clipboard from the right-click context menu
+- Guest/try-it-out mode when no `?project=` param is present — full editor access without login, nothing persisted
+- Auth shared with the main SPA via the same `accessToken` cookie; `synthesizer/src/api.ts` mirrors the token-refresh logic
+
+**How it adds value:**
+Without the synthesizer, the platform is a generic user/projects scaffold. The synth editor is the reason the platform exists — it contextualizes every module (auth, friends, sharing, analytics, community) around a real creative tool.
+
+**Why it deserves Major status:**
+It is a standalone full-stack feature: its own frontend app, its own API surface, its own analytics pipeline, its own Docker service, and its own routing via nginx. The scope is comparable to building a second product within the same infrastructure.
+
+---
+
+### Points summary
+
+| Category | Module | Type | Points |
+|---|---|---|---|
+| IV.1 Web | Framework (React + Django) | Major | 2 |
+| IV.1 Web | User interaction (chat + profiles + friends) | Major | 2 |
+| IV.1 Web | Custom design system | Minor | 1 |
+| IV.1 Web | Advanced search | Minor | 1 |
+| IV.2 Accessibility | Multiple languages (5) | Minor | 1 |
+| IV.2 Accessibility | RTL support (Arabic) | Minor | 1 |
+| IV.2 Accessibility | Additional browser support (Brave, Chrome) | Minor | 1 |
+| IV.3 User Management | Standard user management + auth | Major | 2 |
+| IV.3 User Management | OAuth 2.0 (Google, 42) | Minor | 1 |
+| IV.3 User Management | Advanced permissions (admin CRUD + roles) | Major | 2 |
+| IV.3 User Management | 2FA (TOTP) | Minor | 1 |
+| IV.7 DevOps | ELK log management | Major | 2 |
+| IV.7 DevOps | Prometheus + Grafana monitoring | Major | 2 |
+| IV.8 Analytics | Advanced analytics dashboard (Metabase) | Major | 2 |
+| IV.10 Module of choice | Modular synthesizer | Major | 2 |
+| **Total** | | | **23** |
 
 ---
 
