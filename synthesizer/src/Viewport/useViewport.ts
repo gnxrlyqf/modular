@@ -46,11 +46,17 @@ export function useViewport(
     Math.round(initialCamera.scale * 100)
   );
 
+  // Track last-synced camera values to skip setCamera when nothing changed.
+  // Without this, setCamera fires every ~100ms even when settled, which
+  // continuously resets the autosave timer in Scene.tsx via the saveNow dep.
+  const lastCameraSync = useRef<Camera>({ ...initialCamera });
+
   // Load persisted camera (called after project fetch)
   const loadCamera = useCallback((cam: { x: number; y: number; scale?: number }) => {
     const full: Camera = { x: cam.x ?? 0, y: cam.y ?? 0, scale: cam.scale ?? 1 };
     live.current = { ...full };
     target.current = { ...full };
+    lastCameraSync.current = { ...full };
     setCamera({ ...full });
     setDisplayScale(Math.round(full.scale * 100));
   }, []);
@@ -187,13 +193,19 @@ export function useViewport(
         applyDOM(live.current);
       }
 
-      // Throttle React state sync to every ~6 frames (~100ms) — debounce would
-      // never fire because the RAF loop resets it every 16ms
+      // Throttle React state sync to every ~6 frames (~100ms), and only when
+      // values actually changed — debounce would never fire because the RAF
+      // loop resets it every 16ms; unconditional setCamera would reset the
+      // autosave timer in Scene.tsx on every frame even when settled.
       frame++;
       if (frame % 6 === 0) {
         const c = live.current;
-        setCamera({ x: c.x, y: c.y, scale: c.scale });
-        setDisplayScale(Math.round(c.scale * 100));
+        const ls = lastCameraSync.current;
+        if (c.x !== ls.x || c.y !== ls.y || c.scale !== ls.scale) {
+          lastCameraSync.current = { x: c.x, y: c.y, scale: c.scale };
+          setCamera({ x: c.x, y: c.y, scale: c.scale });
+          setDisplayScale(Math.round(c.scale * 100));
+        }
       }
 
       rafId = requestAnimationFrame(tick);
