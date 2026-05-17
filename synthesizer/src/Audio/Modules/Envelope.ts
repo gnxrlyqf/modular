@@ -26,6 +26,7 @@ class Envelope extends Module {
 	releaseInput: Patch | null = null;
 	triggerInput: Patch | null = null;
 	triggerUnsubscribe: (() => void) | null = null;
+	isTriggeredBySequencer: boolean = false;
 
     constructor(audioContext: AudioContext) {
         super(audioContext);
@@ -84,10 +85,12 @@ class Envelope extends Module {
 	stop(): void {
 		const env = this.signal.offset;
 		const now = this.audioContext.currentTime;
-		const releaseVal = this.releaseControl.gain.value;
+		const stopTime = this.isTriggeredBySequencer 
+			? this.decayControl.gain.value 
+			: this.releaseControl.gain.value;
 
 		env.cancelScheduledValues(now);
-		env.linearRampToValueAtTime(0, now + releaseVal);
+		env.linearRampToValueAtTime(0, now + stopTime);
 	}
 
 	private disconnectSafely(node: AudioNode, destination?: AudioNode | AudioParam) {
@@ -112,10 +115,12 @@ class Envelope extends Module {
 
 		const source = modulator?.input as { addStepListener?: (cb: (index: number, value: number, time: number) => void) => () => void } | undefined;
 		if (typeof source?.addStepListener === "function") {
+			this.isTriggeredBySequencer = true;
 			this.triggerUnsubscribe = source.addStepListener((_index, value, time) => {
 				if (value === 1) this.triggerAtTime(time);
-				else this.stop();
 			});
+		} else {
+			this.isTriggeredBySequencer = false;
 		}
 	}
 
@@ -203,5 +208,4 @@ class Envelope extends Module {
 		return (this.signal);
 	}
 }
-
 export default Envelope;

@@ -35,12 +35,20 @@ class Sequencer extends Module {
 			clearTimeout(this.timer);
 
 		const stepDuration = 60 / this.tempo / this.length;
+		const pulseSeconds = Math.min(0.01, stepDuration * 0.4);
+		const edgeSeconds = Math.min(0.004, pulseSeconds * 0.5);
 		let index = 0;
 		let nextStepTime = this.audioContext.currentTime;
 
 		const scheduleStep = () => {
 			const val = this.sequence[index] ?? 0;
-			this.signal.offset.setValueAtTime(val, nextStepTime);
+			if (val === 1) {
+				this.signal.offset.setValueAtTime(0, nextStepTime);
+				this.signal.offset.linearRampToValueAtTime(1, nextStepTime + edgeSeconds);
+				this.signal.offset.linearRampToValueAtTime(0, nextStepTime + pulseSeconds + edgeSeconds);
+			} else {
+				this.signal.offset.setValueAtTime(0, nextStepTime);
+			}
 			this.stepListeners.forEach((cb) => cb(index, val, nextStepTime));
 			
 			index = (index + 1) % this.length;

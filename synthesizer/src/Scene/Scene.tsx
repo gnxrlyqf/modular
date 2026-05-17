@@ -291,6 +291,7 @@ function Scene() {
             removed.forEach((c) => audioContext.delCable(c));
             return prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id));
           });
+          audioContext.delModule(id);
           setModules((prev) => prev.filter((m) => m.id !== id));
           logger.action('module.deleted', { module_id: id, project_id: projectIdRef.current });
           break;

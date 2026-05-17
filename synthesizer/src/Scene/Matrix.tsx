@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect, useCallback, type ReactNode, type M
 import { motion, useInView } from 'motion/react';
 import {audioContext, type Cable} from './Scene';
 import type {Module} from '../Modules/Modules'
-import { OscIcon, GainIcon, EnvelopeIcon, OutputIcon, LfoIcon, FilterIcon, DistIcon, ModIcon, KeyIcon, SeqIcon } from './DockItems';
+import { OscIcon, GainIcon, EnvelopeIcon, OutputIcon, LfoIcon, FilterIcon, DistIcon, ModIcon, KeyIcon, SeqIcon, MixIcon, SplitIcon } from './DockItems';
 import { ModuleMenu } from '../Interactions/ContextMenu';
 
 const modules: {
@@ -20,7 +20,9 @@ const modules: {
   lfo: { color: "#8F0177", icon: <LfoIcon size={35} />},
   modulator: { color: "#456882", icon: <ModIcon size={40} />},
   keyboard: { color: "#a0a0a0ff", icon: <KeyIcon size={50} />},
-  sequencer: { color: "#a0a0a0ff", icon: <SeqIcon size={50} />}
+  sequencer: { color: "#2FA084", icon: <SeqIcon size={50} />},
+  mixer: { color: "#FD8A6B", icon: <MixIcon size={45} />},
+  splitter: { color: "#BBE0EF", icon: <SplitIcon size={45} />}
 }
 
 function Arrow() {

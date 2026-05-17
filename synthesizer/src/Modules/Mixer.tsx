@@ -1,6 +1,5 @@
 import { useEffect, useRef, useState } from "react";
 import {useDrag} from "../Interactions/useDrag";
-import { useConnection } from "../ConnectionContext";
 import { Param } from "../Interactions/Params";
 import type { ModuleProps } from "./Modules";
 import { useContextMenu } from "../Utils/useContextMenu";
