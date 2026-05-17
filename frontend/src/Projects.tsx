@@ -47,6 +47,7 @@ function formatDate(iso: string): string {
 const VALID_MODULE_TYPES = new Set([
   'oscillator', 'gain', 'envelope', 'output', 'lfo',
   'filter', 'distortion', 'modulator', 'keyboard', 'sequencer',
+  'mixer', 'splitter',
 ]);
 
 function validateProjectJson(raw: unknown): string | null {
