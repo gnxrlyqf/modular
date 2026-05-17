@@ -20,6 +20,11 @@ class Sequencer extends Module {
 		this.start();
 	}
 
+	setTempo(newTempo: number): void {
+		this.tempo = newTempo;
+		this.start();
+	}
+
 	private start() {
 		if (!this.started) {
 			this.signal.start();
@@ -29,7 +34,7 @@ class Sequencer extends Module {
 		if (this.timer !== null)
 			clearTimeout(this.timer);
 
-		const stepDuration = (this.tempo / 60) / this.length;
+		const stepDuration = 60 / this.tempo / this.length;
 		let index = 0;
 		let nextStepTime = this.audioContext.currentTime;
 

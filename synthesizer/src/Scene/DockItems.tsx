@@ -12,6 +12,8 @@ import Distortion, { DIST_W, DIST_H } from '../Modules/Distortion';
 import Modulator, { MOD_W, MOD_H } from '../Modules/Modulator';
 import Keyboard, { KYBD_W, KYBD_H } from "../Modules/Keyboard";
 import Sequencer, { SEQ_W, SEQ_H } from "../Modules/Sequencer";
+import Mixer, { MIX_W, MIX_H } from "../Modules/Mixer";
+import Splitter, { SPLIT_W, SPLIT_H } from "../Modules/Splitter";
 
 function OscIcon(props: {size: number}) {
   return (
@@ -146,24 +148,51 @@ function KeyIcon(props: { size: number }) {
 }
 
 function SeqIcon(props: { size: number }) {
+  return (
+    <svg
+    fill="#FFFFFF" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg"
+    width={props.size}
+    height={props.size}
+    viewBox="0 0 972 972"
+    >
+      <g>
+        <path d="M90,576h0.5c49.7,0,90-40.3,90-90s-40.3-90-90-90H90c-49.7,0-90,40.3-90,90S40.3,576,90,576z"/>
+        <path d="M617.5,576h1.1c49.7,0,90-40.3,90-90s-40.3-90-90-90h-1.1c-49.7,0-90,40.3-90,90S567.8,576,617.5,576z"/>
+        <path d="M354.5,576c49.7,0,90-40.3,90-90s-40.3-90-90-90h-1.1c-49.7,0-90,40.3-90,90s40.3,90,90,90H354.5z"/>
+        <path d="M881.5,576h0.5c49.7,0,90-40.3,90-90s-40.3-90-90-90h-0.5c-49.7,0-90,40.3-90,90S831.8,576,881.5,576z"/>
+      </g>
+    </svg>  
+  );
+}
+
+function MixIcon(props: { size: number }) {
   void(props.size)
   return (
-    <span>placeholder</span>
+    <span>mixer</span>
+  );
+}
+
+function SplitIcon(props: { size: number }) {
+  void(props.size)
+  return (
+    <span>splitter</span>
   );
 }
 
 const objects: Record<ModuleType, { component: unknown; w: number; h: number }> = {
   // here is the issue of the ghost not taking the true dimensions
-  "oscillator": { component: Oscillator, w: OSC_W, h: OSC_H },
-  "gain":       { component: Gain,       w: GAIN_W, h: GAIN_H },
+  "oscillator": { component: Oscillator, w: OSC_W,  h: OSC_H },
+  "gain":       { component: Gain,       w: GAIN_W, h: GAIN_H},
   "envelope":   { component: Envelope,   w: ENV_W,  h: ENV_H },
   "output":     { component: Output,     w: OUT_W,  h: OUT_H },
   "lfo":        { component: LFO,        w: LFO_W,  h: LFO_H },
   "filter":     { component: Filter,     w: FLT_W,  h: FLT_H },
-  "distortion": { component: Distortion, w: DIST_W, h: DIST_H },
+  "distortion": { component: Distortion, w: DIST_W, h: DIST_H},
   "modulator":  { component: Modulator,  w: MOD_W,  h: MOD_H },
   "keyboard":   { component: Keyboard,   w: KYBD_W, h: KYBD_H},
-  "sequencer":   { component: Sequencer,   w: SEQ_W, h: SEQ_H}
+  "sequencer":  { component: Sequencer,  w: SEQ_W,  h: SEQ_H },
+  "mixer":      { component: Mixer,      w: MIX_W,  h: MIX_H },
+  "splitter":   { component: Splitter,   w: SPLIT_W,h: SPLIT_H }
 };
 
 function GhostModule(props: { type: ModuleType; x: number; y: number; className?: string }) {
@@ -201,6 +230,10 @@ function instantiateModule(type: ModuleType, x: number, y: number): Module {
       return { id, type: "keyboard", x, y, params: createDefaultParams(type)};
     case "sequencer":
       return { id, type: "sequencer", x, y, params: createDefaultParams(type)};
+    case "mixer":
+      return { id, type: "mixer", x, y, params: createDefaultParams(type)};
+    case "splitter":
+      return { id, type: "splitter", x, y, params: createDefaultParams(type)};
     default:
       return { id, type: "gain", x, y, params: { g: 0 } };
   }
@@ -254,13 +287,23 @@ function createDockItems(onInstantiate: (type: ModuleType, e:React.MouseEvent) =
       onClick: (e: React.MouseEvent) => onInstantiate("keyboard", e)
     },
     {
-      icon: <SeqIcon size={50} />,
-      label: 'sequencer',
+      icon: <SeqIcon size={40} />,
+      label: 'Sequencer',
       onClick: (e: React.MouseEvent) => onInstantiate("sequencer", e)
+    },
+    {
+      icon: <MixIcon size={40} />,
+      label: 'Mixer',
+      onClick: (e: React.MouseEvent) => onInstantiate("mixer", e)
+    },
+    {
+      icon: <SplitIcon size={40} />,
+      label: 'Splitter',
+      onClick: (e: React.MouseEvent) => onInstantiate("splitter", e)
     },
   ];
 }
 
 export type { ModuleType };
 export { GhostModule, createDockItems, instantiateModule, objects as moduleObjects };
-export { OscIcon, GainIcon, EnvelopeIcon, OutputIcon, LfoIcon, FilterIcon, DistIcon, ModIcon, KeyIcon, SeqIcon };
+export { OscIcon, GainIcon, EnvelopeIcon, OutputIcon, LfoIcon, FilterIcon, DistIcon, ModIcon, KeyIcon, SeqIcon, MixIcon, SplitIcon };

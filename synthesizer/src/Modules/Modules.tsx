@@ -3,11 +3,13 @@ import Gain from "../Modules/Gain";
 import Envelope from "../Modules/Envelope";
 import Output from "../Modules/Output";
 import LFO from "../Modules/LFO";
-import Filter from "./Filter";
+import Filter from "../Modules/Filter";
 import Distortion from "../Modules/Distortion";
 import Modulator from "../Modules/Modulator";
 import Keyboard from "../Modules/Keyboard";
 import Sequencer from "../Modules/Sequencer";
+import Mixer from "../Modules/Mixer";
+import Splitter from "../Modules/Splitter";
 import type { RefObject, Dispatch, SetStateAction } from "react";
 import { ConnectionProvider } from "../ConnectionContext";
 import { CameraProvider } from "../Viewport/CameraContext";
@@ -17,7 +19,7 @@ import type { Cable } from "../Patch/Cable";
 type BaseModule = {
   id: string;
   title?: string;
-  type: 'oscillator' | 'gain' | 'envelope' | 'output' | 'lfo' | 'filter' | 'distortion' | 'modulator' | 'keyboard' | 'sequencer';
+  type: 'oscillator' | 'gain' | 'envelope' | 'output' | 'lfo' | 'filter' | 'distortion' | 'modulator' | 'keyboard' | 'sequencer' | 'mixer' | 'splitter';
   x: number;
   y: number;
   params?: any;
@@ -85,7 +87,17 @@ type SequencerModule = BaseModule & {
   params: { s: number[]; l: number };
 }
 
-type Module = OscModule | EnvModule | GainModule | OutModule | LfoModule | FilterModule | DistortModule | ModulateModule | KeyboardModule | SequencerModule;
+type MixerModule = BaseModule & {
+  type: "mixer";
+  params: { };
+}
+
+type SplitterModule = BaseModule & {
+  type: "splitter";
+  params: { };
+}
+
+type Module = OscModule | EnvModule | GainModule | OutModule | LfoModule | FilterModule | DistortModule | ModulateModule | KeyboardModule | SequencerModule | MixerModule | SplitterModule;
 
 type ModuleType =
 	| "oscillator"
@@ -97,7 +109,9 @@ type ModuleType =
 	| "distortion"
 	| "modulator"
   | "keyboard"
-  | "sequencer";
+  | "sequencer"
+  | "mixer"
+  | "splitter";
 
 export interface ModuleProps {
   title?: string; 
@@ -131,6 +145,8 @@ export const createDefaultParams = (type: ModuleType) => {
     case "modulator": return { m: "AM", d: 50 };
     case "keyboard": return {};
     case "sequencer": return { s: [0, 0, 0, 0], l: 4 };
+    case "mixer": return {};
+    case "splitter": return {};
     default: return {};
   }
 };
@@ -166,6 +182,10 @@ function RenderModules(props: {
               return <Keyboard key={m.id} id={m.id} x={m.x} y={m.y} />;
             case "sequencer":
               return <Sequencer key={m.id} id={m.id} x={m.x} y={m.y} s={m.params.s} l={m.params.l}/>;
+            case "mixer":
+              return <Mixer key={m.id} id={m.id} x={m.x} y={m.y} />;
+            case "splitter":
+              return <Splitter key={m.id} id={m.id} x={m.x} y={m.y} />;
             default: return null;
           }
         })}

@@ -8,6 +8,8 @@ import Distortion from "./Modules/Distortion";
 import Modulator from "./Modules/Modulator";
 import Sequencer from "./Modules/Sequencer";
 import Keyboard from "./Modules/Keyboard";
+import Mixer from "./Modules/Mixer";
+import Splitter from "./Modules/Splitter";
 import { type Module } from "../Modules/Modules";
 import { type Cable } from "../Scene/Scene";
 import type { Module as AudioModule } from "./Abstractions";
@@ -90,6 +92,14 @@ class Context {
 				mod.setParam("length", module.params.l);
 				return mod;
 			}
+			case "mixer": {
+				const m = new Mixer(this.audioContext);
+				return m;
+			}
+			case "splitter": {
+				const s = new Splitter(this.audioContext);
+				return s;
+			}
 			case "keyboard": {
 				const kb = new Keyboard(this.audioContext);
 				return kb;
@@ -135,7 +145,14 @@ class Context {
 	}
 
 	setTempo(newTempo: number): void {
-		this.tempo = newTempo
+		this.tempo = newTempo;
+
+		// propagate tempo change to existing modules that implement setTempo
+		this.modules.forEach((m) => {
+			if (typeof (m as any).setTempo === 'function') {
+				(m as any).setTempo(newTempo);
+			}
+		});
 	}
 }
 

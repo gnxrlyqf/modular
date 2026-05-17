@@ -12,11 +12,13 @@ class Patch {
 	getSignal() {
 		if (!this.input) return undefined;
 
+		// Prefer specialized signals but fall back to the module's generic
+		// `getSignal()` if the specialized accessor isn't implemented.
 		if (this.port == "freq")
-			return (this.input as any).getFrequencySignal?.();
+			return (this.input as any).getFrequencySignal?.() ?? (this.input as any).getSignal?.();
 		if (this.port == "trigger")
-			return (this.input as any).getTriggerSignal?.();
-		return (this.input?.getSignal());
+			return (this.input as any).getTriggerSignal?.() ?? (this.input as any).getSignal?.();
+		return (this.input as any).getSignal?.();
 	}
 }
 

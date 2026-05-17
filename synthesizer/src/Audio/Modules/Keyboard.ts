@@ -6,6 +6,8 @@ class Keyboard extends Module {
   private trigOut: ConstantSourceNode;
   private dummyOutput: GainNode;
   private activeNotes: Set<string> = new Set();
+  // listeners notified whenever the keyboard trigger changes: (index, value, time)
+  private stepListeners: Array<(index: number, value: number, time: number) => void> = [];
 
   constructor(audioContext: AudioContext) {
     super(audioContext);
@@ -22,6 +24,7 @@ class Keyboard extends Module {
 
   private setTrigger(v: number): void {
     this.trigOut.offset.setValueAtTime(v, this.audioContext.currentTime);
+    this.stepListeners.forEach((cb) => cb(0, v, this.audioContext.currentTime));
   }
 
   setParam(key: string, value: any): void {
@@ -54,6 +57,14 @@ class Keyboard extends Module {
 
   getTriggerSignal(): AudioNode {
     return this.trigOut;
+  }
+
+  addStepListener(cb: (index: number, value: number, time: number) => void) {
+    this.stepListeners.push(cb);
+    return () => {
+      const i = this.stepListeners.indexOf(cb);
+      if (i >= 0) this.stepListeners.splice(i, 1);
+    };
   }
 
   setMod(key: string, patch: Patch | null): void {

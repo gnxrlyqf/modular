@@ -286,7 +286,11 @@ function Scene() {
       const { type, id, name } = e.detail;
       switch (type) {
         case 'DELETE':
-          setCables((prev) => prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id)));
+          setCables((prev) => {
+            const removed = prev.filter((c) => c.from.startsWith(id) || c.to.startsWith(id));
+            removed.forEach((c) => audioContext.delCable(c));
+            return prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id));
+          });
           setModules((prev) => prev.filter((m) => m.id !== id));
           logger.action('module.deleted', { module_id: id, project_id: projectIdRef.current });
           break;
@@ -295,7 +299,11 @@ function Scene() {
           logger.action('module.renamed', { module_id: id, name, project_id: projectIdRef.current });
           break;
         case 'DISCONNECT':
-          setCables((prev) => prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id)));
+          setCables((prev) => {
+            const removed = prev.filter((c) => c.from.startsWith(id) || c.to.startsWith(id));
+            removed.forEach((c) => audioContext.delCable(c));
+            return prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id));
+          });
           logger.action('module.disconnected', { module_id: id, project_id: projectIdRef.current });
           break;
         case 'RESET':
@@ -533,7 +541,7 @@ function Scene() {
                   if (n < 0) setTempo(0);
                   else if (n > 500) setTempo(500);
                   else setTempo(n);
-                  audioContext.tempo = n;
+                  audioContext.setTempo(n);
                 }}
               />
             </div>
