@@ -177,29 +177,13 @@ function MixIcon(props: { size: number }) {
       width={props.size}
       height={props.size}
       viewBox="0 0 300 300"
-      version="1.1"
-      inkscape:export-filename="mixer.svg"
-      inkscape:export-xdpi="96"
-      inkscape:export-ydpi="96">
-      <defs
-        id="defs1" />
-      <g
-        id="layer1">
-        <path
-          d="M 250.26022,152.73234 227.74587,130.218"
-          id="path3-2" />
-        <path
-          d="M 250.26022,152.73234 227.34705,175.6455"
-          id="path4-1" />
-        <path
-          d="M 186.37917,152.73234 128.8104,95.16357 H 50.788104"
-          id="path5" />
-        <path
-          d="m 186.37917,152.73234 -54.83643,54.83643 H 51.524164"
-          id="path6" />
-        <path
-          d="m 186.37917,152.73234 h 63.88105"
-          id="path7" />
+      version="1.1">
+      <g>
+        <path d="M 250.26022,152.73234 227.74587,130.218" />
+        <path d="M 250.26022,152.73234 227.34705,175.6455" />
+        <path d="M 186.37917,152.73234 128.8104,95.16357 H 50.788104" />
+        <path d="m 186.37917,152.73234 -54.83643,54.83643 H 51.524164" />
+        <path d="m 186.37917,152.73234 h 63.88105" />
       </g>
     </svg>
   );
@@ -219,29 +203,14 @@ function SplitIcon(props: { size: number }) {
       height={props.size}
       viewBox="0 0 300 300"
       version="1.1">
-      <g
-        id="layer1">
-        <path
-          d="M 249.52416,95.16357 227.00981,72.649227"
-          id="path3" />
-        <path
-          d="M 250.26022,207.56877 227.74587,185.05443"
-          id="path3-2" />
-        <path
-          d="m 249.52416,95.16357 -22.91317,22.91317"
-          id="path4" />
-        <path
-          d="m 250.26022,207.56877 -22.91317,22.91316"
-          id="path4-1" />
-        <path
-          d="m 114.66915,150 57.56877,57.56877 h 78.0223"
-          id="path5" />
-        <path
-          d="m 114.66915,150 54.83643,-54.83643 h 80.01858"
-          id="path6" />
-        <path
-          d="M 114.66915,150 H 50.788104"
-          id="path7" />
+      <g>
+        <path d="M 249.52416,95.16357 227.00981,72.649227"/>
+        <path d="M 250.26022,207.56877 227.74587,185.05443"/>
+        <path d="m 249.52416,95.16357 -22.91317,22.91317"/>
+        <path d="m 250.26022,207.56877 -22.91317,22.91316"/>
+        <path d="m 114.66915,150 57.56877,57.56877 h 78.0223"/>
+        <path d="m 114.66915,150 54.83643,-54.83643 h 80.01858"/>
+        <path d="M 114.66915,150 H 50.788104"/>
       </g>
     </svg>
   );
@@ -313,58 +282,47 @@ function createDockItems(onInstantiate: (type: ModuleType, e:React.MouseEvent) =
       icon: <OscIcon size={50} />,
       label: 'Oscillator',
       onClick: (e: React.MouseEvent) => onInstantiate("oscillator", e)
-    },
-    {
+    }, {
       icon: <GainIcon size={30} />,
       label: 'Gain',
       onClick: (e: React.MouseEvent) => onInstantiate("gain", e)
-    },
-    {
+    }, {
       icon: <EnvelopeIcon size={40} />,
       label: 'Envelope',
       onClick: (e: React.MouseEvent) => onInstantiate("envelope", e)
-    },
-    {
+    }, {
       icon: <OutputIcon size={40} />,
       label: 'Output',
       onClick: (e: React.MouseEvent) => onInstantiate("output", e)
-    },
-    {
+    }, {
       icon: <LfoIcon size={50} />,
       label: 'LFO',
       onClick: (e: React.MouseEvent) => onInstantiate("lfo", e)
-    },
-    {
+    }, {
       icon: <FilterIcon size={50} />,
       label: 'Filter',
       onClick: (e: React.MouseEvent) => onInstantiate("filter", e)
-    },
-    {
+    }, {
       icon: <DistIcon size={45} />,
       label: 'Distortion',
       onClick: (e: React.MouseEvent) => onInstantiate("distortion", e)
-    },
-    {
+    }, {
       icon: <ModIcon size={40} />,
       label: 'Modulator',
       onClick: (e: React.MouseEvent) => onInstantiate("modulator", e)
-    },
-    {
+    }, {
       icon: <KeyIcon size={50} />,
       label: 'Keyboard',
       onClick: (e: React.MouseEvent) => onInstantiate("keyboard", e)
-    },
-    {
+    }, {
       icon: <SeqIcon size={40} />,
       label: 'Sequencer',
       onClick: (e: React.MouseEvent) => onInstantiate("sequencer", e)
-    },
-    {
+    }, {
       icon: <MixIcon size={45} />,
       label: 'Mixer',
       onClick: (e: React.MouseEvent) => onInstantiate("mixer", e)
-    },
-    {
+    }, {
       icon: <SplitIcon size={45} />,
       label: 'Splitter',
       onClick: (e: React.MouseEvent) => onInstantiate("splitter", e)
