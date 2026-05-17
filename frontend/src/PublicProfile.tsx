@@ -200,7 +200,7 @@ function PublicProfile(props: {
               {t('profile.projects')}
             </h3>
             {data.projects.length === 0 ? (
-              <p className="text-indigo-300/40 text-xs">{t('common.coming_soon')}</p>
+              <p className="text-indigo-300/40 text-xs">{t('profile.no_projects')}</p>
             ) : (
               <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {data.projects.map((p) => (

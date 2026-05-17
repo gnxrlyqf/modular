@@ -679,7 +679,7 @@ canvas {
   background: rgba(5, 7, 20, 0.4);
   backdrop-filter: blur(4px);
   -webkit-backdrop-filter: blur(4px);
-  padding: 1rem;
+  padding: 2.5rem 1rem 1rem;
 }
 
 /* ─── Overlay entry animation (§A.8) ─── */

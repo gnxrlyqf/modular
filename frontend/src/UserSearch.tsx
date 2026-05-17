@@ -435,11 +435,6 @@ function SearchPanel(props: {
                 </>
               )}
 
-              {/* Modules — placeholder (no API) */}
-              <SearchSection label={t('overlays.search.section.modules')} />
-              <div style={{ padding: '8px 20px', fontFamily: 'var(--font-mono)', fontSize: 10, color: 'var(--sub-dim)', letterSpacing: '0.1em' }}>
-                {t('overlays.search.modules.coming_soon')}
-              </div>
             </div>
           )}
         </div>

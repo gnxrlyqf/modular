@@ -105,7 +105,7 @@ function ThreadList(props: {
           <div style={{ textAlign: 'center', padding: '24px 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>{t('common.loading')}</div>
         )}
         {!props.loading && visible.length === 0 && (
-          <div style={{ textAlign: 'center', padding: '24px 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>{t('common.coming_soon')}</div>
+          <div style={{ textAlign: 'center', padding: '24px 0', fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)' }}>{t('overlays.messaging.no_conversations')}</div>
         )}
         {visible.map((th) => (
           <button
@@ -495,7 +495,7 @@ function Chat(props: {
       maxHeight="92vh"
       onClose={props.onClose}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', height: 600, minHeight: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '320px 1fr', height: 'clamp(400px, 68vh, 600px)', minHeight: 0 }}>
         {/* Thread list */}
         <div style={{ borderInlineEnd: '1px solid var(--panel-edge)', minHeight: 0, overflowY: 'auto' }}>
           <ThreadList

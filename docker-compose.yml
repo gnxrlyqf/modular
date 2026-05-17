@@ -49,10 +49,6 @@ services:
       context: ./backend
     networks:
       - internals
-    # ports:
-    #   # TODO : backend should not be exposed to the outside world
-    #   - 3001:8000
-      # for now so you guys can test it using postman, later should be closed
     volumes:
       - ./logstash_ingest_data:/app/log_output
       - metabase-config:/shared:ro

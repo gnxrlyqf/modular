@@ -709,10 +709,31 @@ function PrivacyPane(props: { setLoggedIn?: (value: boolean) => void }) {
 
 // ─── Coming soon pane ─────────────────────────────────────────────────────────
 
-function ComingSoonPane({ label }: { label: string }) {
+function AboutPane() {
+  const rows: [string, string][] = [
+    [t('overlays.settings.about.row.stack'),   'React 19 · Django 5 · PostgreSQL · Docker'],
+    [t('overlays.settings.about.row.auth'),    'JWT · refresh rotation · 2FA (TOTP)'],
+    [t('overlays.settings.about.row.version'), import.meta.env.VITE_APP_VERSION ?? '—'],
+  ];
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 200, fontFamily: 'var(--font-mono)', fontSize: 11, color: 'var(--sub-dim)', letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-      · {label} · {t('overlays.settings.coming_soon')}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 20, maxWidth: 480 }}>
+      <div>
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 13, color: 'var(--text)', letterSpacing: '0.08em', marginBlockEnd: 6 }}>
+          lhrba
+        </div>
+        <div style={{ fontSize: 13, color: 'var(--sub)', lineHeight: 1.6 }}>
+          {t('overlays.settings.about.description')}
+        </div>
+      </div>
+      <div style={{ height: 1, background: 'var(--panel-edge)' }} />
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        {rows.map(([label, value]) => (
+          <div key={label} style={{ display: 'flex', gap: 16, fontSize: 12, fontFamily: 'var(--font-mono)' }}>
+            <span style={{ color: 'var(--sub-dim)', minWidth: 64, letterSpacing: '0.1em', textTransform: 'uppercase' }}>{label}</span>
+            <span style={{ color: 'var(--sub)' }}>{value}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -777,7 +798,7 @@ function Settings(props: { onClose: () => void; setLoggedIn?: (value: boolean) =
           {section === 'audio'      && <AudioPane />}
           {section === 'appearance' && <AppearancePane />}
           {section === 'privacy'    && <PrivacyPane setLoggedIn={props.setLoggedIn} />}
-          {section === 'about'      && <ComingSoonPane label={t('overlays.settings.sidebar.about')} />}
+          {section === 'about'      && <AboutPane />}
         </div>
       </div>
     </OverlayShell>
