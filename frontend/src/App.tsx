@@ -17,6 +17,7 @@ import logger from './logger';
 import { authFetch, clearAuthCookies } from './api';
 import ChatContainer from './Chat';
 import NotificationsContainer from './Notifications';
+import DocsContainer from './Docs';
 import { PrefsProvider } from './Prefs'
 import logoImg from './assets/logo.png'
 import { t, useLanguage } from './i18n';
@@ -46,6 +47,7 @@ function TopBar(props: {
   onAdminOpen?: () => void;
   onChatOpen?: () => void;
   onNotificationsOpen?: () => void;
+  onDocsOpen?: () => void;
   unreadNotifications?: number;
   unreadMessages?: number;
 }) {
@@ -108,8 +110,7 @@ function TopBar(props: {
               >
                 {t('nav.community')}
               </button>
-              <button type="button" data-xylo-note="G4" className="xylo-note xylo-note--g4" onClick={() => { if (!props.isLoggedIn) props.func?.(); }}>{t('nav.blog')}</button>
-              <button type="button" data-xylo-note="B4" className="xylo-note xylo-note--b4" onClick={() => { if (!props.isLoggedIn) props.func?.(); }}>{t('nav.docs')}</button>
+              <button type="button" data-xylo-note="B4" className="xylo-note xylo-note--b4" onClick={() => props.onDocsOpen?.()}>{t('nav.docs')}</button>
             </div>
             {/* Hidden on mobile for clean minimal view */}
 
@@ -233,6 +234,7 @@ function MainApp() {
   const [showChat, setShowChat] = useState(false);
   const [chatInitialThreadId, setChatInitialThreadId] = useState<number | null>(null);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showDocs, setShowDocs] = useState(false);
   const [unreadNotifications, setUnreadNotifications] = useState(0);
   const [unreadMessages, setUnreadMessages] = useState(0);
   const [publicProfileUser, setPublicProfileUser] = useState<string | null>(null);
@@ -363,8 +365,16 @@ function MainApp() {
     setShowProjects(true);
   };
 
+  const handleDocsOpen = () => {
+    logger.action('nav.docs_open');
+    setShowLogin(false); setShowProjects(false); setShowProfile(false); setShowSettings(false);
+    setShowUserSearch(false); setShowAdmin(false); setShowDashboard(false); setPublicProfileUser(null);
+    setShowChat(false); setShowNotifications(false);
+    setShowDocs(true);
+  };
+
   const anyOverlayOpen =
-    showProjects || showUserSearch || showAdmin || showProfile || showSettings || showDashboard || publicProfileUser !== null || showChat || showNotifications;
+    showProjects || showUserSearch || showAdmin || showProfile || showSettings || showDashboard || publicProfileUser !== null || showChat || showNotifications || showDocs;
 
   const pendingLeaderboardScroll = useRef(false);
 
@@ -457,10 +467,11 @@ function MainApp() {
       if (showProjects) { setShowProjects(false); return; }
       if (showChat) { setShowChat(false); return; }
       if (showNotifications) { setShowNotifications(false); return; }
+      if (showDocs) { setShowDocs(false); return; }
     };
     document.addEventListener('keydown', onKeyDown);
     return () => document.removeEventListener('keydown', onKeyDown);
-  }, [showLogin, showProjects, showProfile, showSettings, showDashboard, showUserSearch, showAdmin, publicProfileUser, showChat, showNotifications]);
+  }, [showLogin, showProjects, showProfile, showSettings, showDashboard, showUserSearch, showAdmin, publicProfileUser, showChat, showNotifications, showDocs]);
 
   return (
     <XyloProvider>
@@ -484,6 +495,7 @@ function MainApp() {
             onAdminOpen={handleAdminOpen}
             onChatOpen={handleChatOpen}
             onNotificationsOpen={handleNotificationsOpen}
+            onDocsOpen={handleDocsOpen}
             unreadNotifications={unreadNotifications}
             unreadMessages={unreadMessages}
           />
@@ -494,6 +506,7 @@ function MainApp() {
           {showUserSearch && <UserSearchContainer func={setShowUserSearch} onUserClick={handlePublicProfileOpen} onMessage={(profileId) => { setShowUserSearch(false); handleChatOpenWithThread(profileId); }} />}
           {showChat && <ChatContainer func={setShowChat} initialThreadId={chatInitialThreadId} onViewProfile={handlePublicProfileOpen} />}
           {showNotifications && <NotificationsContainer func={setShowNotifications} onOpenMessage={(profileId) => { setShowNotifications(false); handleChatOpenWithThread(profileId); }} onFriendsChanged={pollUnread} onOpenCommunity={() => { setShowNotifications(false); setShowProjects(true); }} />}
+          {showDocs && <DocsContainer func={setShowDocs} />}
           {showAdmin && isAdmin && <AdminContainer func={setShowAdmin} />}
           {showProfile && (
             <ProfileContainer func={setShowProfile} set={setShowSettings} setLoggedIn={setIsLoggedIn} onOpenDashboard={handleDashboardOpen} />
