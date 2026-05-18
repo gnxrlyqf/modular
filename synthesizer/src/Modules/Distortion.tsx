@@ -108,11 +108,17 @@ function Distortion(props: DistortionProps) {
 
   useEffect(() => {
     audioContext.setParam(props.id, "drive", drive);
-  }, [drive]);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "d", value: drive }
+    }));
+  }, [drive, props.id]);
 
   useEffect(() => {
     audioContext.setParam(props.id, "type", type);
-  }, [type]);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "t", value: type }
+    }));
+  }, [type, props.id]);
 
   return (
     <ModuleFrame

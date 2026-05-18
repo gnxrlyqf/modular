@@ -32,10 +32,33 @@ function Envelope(props: EnvelopeProps) {
   useEffect(() => {setSustain(props.s)}, [props.s]);
   useEffect(() => {setRelease(props.r)}, [props.r]);
 
-  useEffect(() => audioContext.setParam(props.id, "attack", attack), [attack]);
-  useEffect(() => audioContext.setParam(props.id, "decay", decay), [decay]);
-  useEffect(() => audioContext.setParam(props.id, "sustain", sustain), [sustain]);
-  useEffect(() => audioContext.setParam(props.id, "release", release), [release]);
+  useEffect(() => {
+    audioContext.setParam(props.id, "attack", attack);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "a", value: attack }
+    }));
+  }, [attack, props.id]);
+
+  useEffect(() => {
+    audioContext.setParam(props.id, "decay", decay);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "d", value: decay }
+    }));
+  }, [decay, props.id]);
+
+  useEffect(() => {
+    audioContext.setParam(props.id, "sustain", sustain);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "s", value: sustain }
+    }));
+  }, [sustain, props.id]);
+
+  useEffect(() => {
+    audioContext.setParam(props.id, "release", release);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "r", value: release }
+    }));
+  }, [release, props.id]);
 
   useEffect(() => {
     if (!moduleRef.current || position) {

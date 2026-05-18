@@ -314,6 +314,27 @@ function parseModules(modules: any[]): Module[] {
           type: "sequencer",
           x: m.x,
           y: m.y,
+          params: {
+            s: m.params?.s ?? [0, 0, 0, 0],
+            l: m.params?.l ?? 4
+          }
+        };
+      case "mixer":
+        return {
+          id: m.id,
+          title: m.title,
+          type: "mixer",
+          x: m.x,
+          y: m.y,
+          params: {}
+        };
+      case "splitter":
+        return {
+          id: m.id,
+          title: m.title,
+          type: "splitter",
+          x: m.x,
+          y: m.y,
           params: {}
         };
       case "mixer":

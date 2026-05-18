@@ -32,7 +32,10 @@ function Output(props: OutputProps) {
 
   useEffect(() => {
     audioContext.setParam(props.id, "master", master);
-  }, [master]);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "m", value: master }
+    }));
+  }, [master, props.id]);
 
   return (
     <ModuleFrame

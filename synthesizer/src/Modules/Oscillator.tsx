@@ -82,11 +82,17 @@ function Oscillator(props: OscillatorProps) {
 
   useEffect(() => {
     audioContext.setParam(props.id, "frequency", frequency);
-  }, [frequency])
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "f", value: frequency }
+    }));
+  }, [frequency, props.id])
 
   useEffect(() => {
     audioContext.setParam(props.id, "wave", waveshape);
-  }, [waveshape])
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "w", value: waveshape }
+    }));
+  }, [waveshape, props.id])
 
 	return (
 		<ModuleFrame

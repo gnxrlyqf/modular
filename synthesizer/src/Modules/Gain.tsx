@@ -27,7 +27,10 @@ function Gain(props: GainProps) {
 
   useEffect(() => {
     audioContext.setParam(props.id, "gain", gain);
-  }, [gain]);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "g", value: gain }
+    }));
+  }, [gain, props.id]);
 
   useEffect(() => {
     if (!moduleRef.current || position)

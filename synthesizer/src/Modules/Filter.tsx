@@ -70,15 +70,24 @@ function Filter(props: ModuleProps & {
 
   useEffect(() => {
     audioContext.setParam(props.id, "frequency", frequency);
-  }, [frequency]);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "f", value: frequency }
+    }));
+  }, [frequency, props.id]);
 
   useEffect(() => {
     audioContext.setParam(props.id, "Q", q);
-  }, [q]);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "q", value: q }
+    }));
+  }, [q, props.id]);
 
   useEffect(() => {
     audioContext.setParam(props.id, "type", filterType);
-  }, [filterType]);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "t", value: filterType }
+    }));
+  }, [filterType, props.id]);
 
   return (
     <ModuleFrame
