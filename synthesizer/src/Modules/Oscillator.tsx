@@ -9,7 +9,7 @@ import { useContextMenu } from "../Utils/useContextMenu";
 import ModuleFrame from "./ModuleFrame";
 import { audioContext } from "../Scene/Scene";
 
-const MODULE_WIDTH = 224;
+const MODULE_WIDTH = 260;
 const MODULE_HEIGHT = 416;
 
 function SineIcon() {
@@ -46,16 +46,24 @@ function SawIcon() {
   )
 }
 
+function NoiseIcon() {
+  return (
+    <svg viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg" className="h-8 w-8">
+      <path d="M32 210L78 128L126 278L176 120L228 286L278 140L330 266L368 188" fill="none" stroke="currentColor" strokeWidth="22" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  )
+}
+
 interface OscillatorProps extends ModuleProps {
   f: number;
-  w: 'sine' | 'square' | 'triangle' | 'sawtooth';
+  w: 'sine' | 'square' | 'triangle' | 'sawtooth' | 'noise';
 }
 
 function Oscillator(props: OscillatorProps) {
   const moduleRef = useRef<HTMLDivElement | null>(null);
   const [position, setPosition] = useState<{ x: number; y: number }>({x: props.x, y: props.y});
   const [frequency, setFrequency] = useState(props.f);
-  const [waveshape, setWaveshape] = useState<'sine' | 'square' | 'triangle' | 'sawtooth'>(props.w);
+  const [waveshape, setWaveshape] = useState<'sine' | 'square' | 'triangle' | 'sawtooth' | 'noise'>(props.w);
   const {mode} = useConnection();
   const { menu, handleContextMenu } = useContextMenu();
   const color = "#C44A3A"
@@ -105,6 +113,7 @@ function Oscillator(props: OscillatorProps) {
           <RadioSelectOption value="triangle" label="triangle"><TriangleIcon /></RadioSelectOption>
           <RadioSelectOption value="square" label="square"><SquareIcon/></RadioSelectOption>
           <RadioSelectOption value="sawtooth" label="sawtooth"><SawIcon /></RadioSelectOption>
+          <RadioSelectOption value="noise" label="noise"><NoiseIcon /></RadioSelectOption>
         </RadioSelect>
       </div>
       <Param name="output" id={props.id} polarity="source" color={color}/>

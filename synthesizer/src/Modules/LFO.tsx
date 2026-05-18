@@ -59,6 +59,7 @@ interface LFOProps extends ModuleProps {
   f: number;
   w: "sine" | "square" | "triangle" | "sawtooth";
   s: boolean;
+  flip: boolean;
 }
 
 const SYNC_DIVISIONS = [1, 2, 4, 8, 16, 32] as const;
@@ -77,7 +78,7 @@ function LFO(props: LFOProps) {
   const [position, setPosition] = useState({ x: props.x, y: props.y });
   const [frequency, setFrequency] = useState(props.f);
   const [waveshape, setWaveshape] = useState<"sine" | "square" | "triangle" | "sawtooth">(props.w);
-  const [time, setTime] = useState<"" | "t" | ".">("");
+  const [flip, setFlip] = useState(props.flip);
   const [sync, setSync] = useState(props.s);
   const [syncStep, setSyncStep] = useState(1);
   const { menu, handleContextMenu } = useContextMenu();
@@ -87,6 +88,7 @@ function LFO(props: LFOProps) {
   useEffect(() => {setFrequency(props.f)}, [props.f]);
   useEffect(() => {setWaveshape(props.w)}, [props.w]);
   useEffect(() => {setSync(props.s)}, [props.s]);
+  useEffect(() => {setFlip(props.flip)}, [props.flip]);
 
   useEffect(() => {
     audioContext.setParam(props.id, "frequency", frequency);
@@ -95,6 +97,10 @@ function LFO(props: LFOProps) {
   useEffect(() => {
     audioContext.setParam(props.id, "wave", waveshape);
   }, [waveshape]);
+
+  useEffect(() => {
+    audioContext.setParam(props.id, "flip", flip);
+  }, [flip]);
 
   useEffect(() => {
     const selectedDivision = SYNC_DIVISIONS[syncStep];
@@ -131,7 +137,7 @@ function LFO(props: LFOProps) {
               >
           RATE
           <div className="my-3 text-center text-2xl text-zinc-200">
-            {SYNC_DIVISION_LABELS[SYNC_DIVISIONS[syncStep]] + time}
+            {SYNC_DIVISION_LABELS[SYNC_DIVISIONS[syncStep]]}
           </div>
           <input
             type="range"
@@ -143,12 +149,14 @@ function LFO(props: LFOProps) {
             className="w-[90%] h-2 rounded-lg appearance-none cursor-pointer bg-zinc-700 accent-[#8F0177]"
           />
           <div className="mt-6 mb-2">
-            <RadioSelect name={`${props.id}-time-radio`} value={time} onChange={setTime} >
-              <RadioSelectOption value={""}>S</RadioSelectOption>
-              <RadioSelectOption value={"t"}>trip</RadioSelectOption>
-              <RadioSelectOption value={"."}>dot</RadioSelectOption>
-            </RadioSelect>
-          </div> 
+            <button
+              type="button"
+              onClick={() => setFlip((prev) => !prev)}
+              className={`cursor-pointer px-3 py-1 pb-2 rounded-md text-xl ${flip ? "bg-[#8F0177]" : "bg-zinc-600"}`}
+            >
+              FLIP WAVE
+            </button>
+          </div>
         </div>
          :
         <KnobParam id={props.id} name={"freq"} side="left" color={color}>
