@@ -1,4 +1,5 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModuleMenuProps {
   id: string;
@@ -88,14 +89,16 @@ export function ModuleMenu({ id, x, y, color, currentName }: ModuleMenuProps)
   };
 
   const menuStyle: React.CSSProperties = {
-    position: 'absolute',
+    position: 'fixed',
     top: y,
     left: x,
     zIndex: 9999,
     border: `5px solid ${color}55`,
   };
 
-  return (
+  if (typeof document === 'undefined') return null;
+
+  return createPortal(
     <div
       style={menuStyle}
       className="w-56 bg-[#161616ee] backdrop-blur-xl rounded-2xl shadow-[0_12px_50px_rgba(0,0,0,0.45)] overflow-hidden flex flex-col p-2 gap-1"
@@ -114,6 +117,7 @@ export function ModuleMenu({ id, x, y, color, currentName }: ModuleMenuProps)
       <ResetOption id={id} color={color} onDispatch={dispatch} />
       <RenameOption id={id} color={color} onDispatch={dispatch} currentName={currentName} />
       <DeleteOption id={id} color={color} onDispatch={dispatch} />
-    </div>
+    </div>,
+    document.body
   );
 }

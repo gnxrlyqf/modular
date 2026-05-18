@@ -287,13 +287,13 @@ function createDockItems(onInstantiate: (type: ModuleType, e:React.MouseEvent) =
       label: 'Gain',
       onClick: (e: React.MouseEvent) => onInstantiate("gain", e)
     }, {
-      icon: <EnvelopeIcon size={40} />,
-      label: 'Envelope',
-      onClick: (e: React.MouseEvent) => onInstantiate("envelope", e)
-    }, {
       icon: <OutputIcon size={40} />,
       label: 'Output',
       onClick: (e: React.MouseEvent) => onInstantiate("output", e)
+    }, {
+      icon: <EnvelopeIcon size={40} />,
+      label: 'Envelope',
+      onClick: (e: React.MouseEvent) => onInstantiate("envelope", e)
     }, {
       icon: <LfoIcon size={50} />,
       label: 'LFO',
