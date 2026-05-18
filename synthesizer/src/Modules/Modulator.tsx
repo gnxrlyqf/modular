@@ -46,11 +46,17 @@ function Modulator(props: ModuleProps & {
   // audio sync (consistent naming style)
   useEffect(() => {
     audioContext.setParam(props.id, "depth", depth);
-  }, [depth]);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "d", value: depth }
+    }));
+  }, [depth, props.id]);
 
   useEffect(() => {
     audioContext.setParam(props.id, "mode", mode);
-  }, [mode]);
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "m", value: mode }
+    }));
+  }, [mode, props.id]);
 
   return (
     <ModuleFrame

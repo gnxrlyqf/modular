@@ -43,6 +43,8 @@ function Scene() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
 
+  const paramsRef = useRef<Record<string, Record<string, any>>>({});
+
   const projectIdRef = useRef<string | null>(null);
   const hasFetched = useRef(false);
   const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -112,6 +114,9 @@ function Scene() {
           const parsedModules = parseModules(scene.modules ?? []);
           const parsedCables = (scene.cables ?? []) as Cable[];
           const parsedCamera = scene.camera ?? { x: 0, y: 0, scale: 1 };
+            paramsRef.current = Object.fromEntries(
+              parsedModules.map((m) => [m.id, { ...m.params }])
+            );
           audioContext.initContext(parsedModules, parsedCables);
           setModules(parsedModules);
           setCables(parsedCables);
@@ -144,6 +149,9 @@ function Scene() {
         const parsedModules = parseModules(scene.modules ?? []);
         const parsedCables = (scene.cables ?? []) as Cable[];
         const parsedCamera = scene.camera ?? { x: 0, y: 0, scale: 1 };
+        paramsRef.current = Object.fromEntries(
+          parsedModules.map((m) => [m.id, { ...m.params }])
+        );
 
         // Restore sharing analytics from the backend; session starts fresh each open
         const savedSharing = data.analytics?.sharing ?? DEFAULT_ANALYTICS.sharing;
@@ -182,9 +190,13 @@ function Scene() {
     try {
       const sessionSnapshot = sessionTrackerRef.current?.getSnapshot() ?? analyticsRef.current.session;
       const analyticsPayload: ProjectAnalytics = { ...analyticsRef.current, session: sessionSnapshot };
+      const exportModules = modules.map((m) => ({
+        ...m,
+        params: { ...m.params, ...(paramsRef.current[m.id] ?? {}) },
+      }));
       const resp = await authFetch(`/api/projects/${projectIdRef.current}/`, {
         method: 'PATCH',
-        body: JSON.stringify({ config: { camera, modules, cables }, analytics: analyticsPayload }),
+        body: JSON.stringify({ config: { camera, modules: exportModules, cables }, analytics: analyticsPayload }),
       });
       if (!resp.ok) throw new Error(`PATCH ${resp.status}`);
       logger.action('project.saved', { project_id: projectIdRef.current, modules: modules.length, cables: cables.length });
@@ -228,6 +240,18 @@ function Scene() {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [saveNow]);
+
+  // Persist module param updates into a non-reactive cache (used by Download/export)
+  useEffect(() => {
+    const onParamChange = (e: Event) => {
+      const detail = (e as CustomEvent).detail as { id: string; param: string; value: unknown } | undefined;
+      if (!detail?.id || !detail.param) return;
+      const current = paramsRef.current[detail.id] ?? {};
+      paramsRef.current[detail.id] = { ...current, [detail.param]: detail.value };
+    };
+    window.addEventListener("moduleParamChange", onParamChange as EventListener);
+    return () => window.removeEventListener("moduleParamChange", onParamChange as EventListener);
+  }, []);
 
   // Recompute module counts whenever the modules array changes
   useEffect(() => {
@@ -292,6 +316,7 @@ function Scene() {
             return prev.filter((c) => !c.from.startsWith(id) && !c.to.startsWith(id));
           });
           audioContext.delModule(id);
+          delete paramsRef.current[id];
           setModules((prev) => prev.filter((m) => m.id !== id));
           logger.action('module.deleted', { module_id: id, project_id: projectIdRef.current });
           break;
@@ -314,6 +339,7 @@ function Scene() {
               console.log('BEFORE', structuredClone(m.params));
               const newParams = createDefaultParams(m.type);
               console.log('RESET', m.id, 'old:', m.params, 'new:', newParams);
+              paramsRef.current[id] = { ...newParams };
               return { ...m, params: newParams };
             })
           );
@@ -391,6 +417,7 @@ function Scene() {
       if (!canPlaceGhost) return;
       const module = instantiateModule(ghost.type, ghost.x, ghost.y);
       audioContext.addModule(module);
+      paramsRef.current[module.id] = { ...module.params };
       setModules((prev) => [...prev, module]);
       logger.action('module.created', { module_id: module.id, type: ghost.type, x: ghost.x, y: ghost.y, project_id: projectIdRef.current });
       setGhost(null);
@@ -581,7 +608,11 @@ function Scene() {
             {/* Download project JSON */}
             <button
               onClick={() => {
-                const payload = JSON.stringify({ camera, modules, cables }, null, 2);
+                const exportModules = modules.map((m) => ({
+                  ...m,
+                  params: { ...m.params, ...(paramsRef.current[m.id] ?? {}) },
+                }));
+                const payload = JSON.stringify({ camera, modules: exportModules, cables }, null, 2);
                 const blob = new Blob([payload], { type: 'application/json' });
                 const url = URL.createObjectURL(blob);
                 const a = document.createElement('a');

@@ -66,11 +66,17 @@ function Sequencer(props: SequencerProps) {
 
   useEffect(() => {
     audioContext.setParam(props.id, "sequence", sequence);
-  }, [sequence])
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "s", value: sequence }
+    }));
+  }, [sequence, props.id])
 
   useEffect(() => {
     audioContext.setParam(props.id, "length", seqLen);
-  }, [seqLen])
+    window.dispatchEvent(new CustomEvent("moduleParamChange", {
+      detail: { id: props.id, param: "l", value: seqLen }
+    }));
+  }, [seqLen, props.id])
 
   return (
     <ModuleFrame
