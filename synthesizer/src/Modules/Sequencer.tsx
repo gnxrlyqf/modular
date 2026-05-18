@@ -81,7 +81,7 @@ function Sequencer(props: SequencerProps) {
   return (
     <ModuleFrame
       id={props.id}
-      title="Sequencer"
+      title={props.title || "Sequencer"}
       width={MODULE_WIDTH}
       height={MODULE_HEIGHT}
       position={position}

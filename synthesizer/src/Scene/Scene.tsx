@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Dock from "../Dock";
 import type {Module} from '../Modules/Modules'
-import {createDefaultParams} from '../Modules/Modules'
 import { AnimatePresence } from "motion/react";
 import { wouldGhostOverlap } from "../Utils/wouldGhostOverlap";
 import { snapToGrid } from "../Utils/snapToGrid";

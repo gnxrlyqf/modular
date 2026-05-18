@@ -1,4 +1,6 @@
 import React from 'react';
+import { createPortal } from 'react-dom';
+import { useState, useRef, useEffect } from "react";
 
 interface ModuleMenuProps {
   id: string;
@@ -29,12 +31,11 @@ const DisconnectOption = ({ onDispatch, color }: { id: string, color: string, on
   </button>
 );
 
-
-const RenameOption = ({ currentName, onDispatch, color }: {
-    id: string; 
-    currentName: string; 
-    color: string; 
-    onDispatch: (action: string, detail?: any) => void; 
+const RenameOption = ({ currentName, onDispatch, color }: { 
+  id: string; 
+  currentName: string; 
+  color: string; 
+  onDispatch: (action: string, detail?: any) => void; 
 }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [value, setValue] = useState(currentName);
@@ -69,7 +70,12 @@ const RenameOption = ({ currentName, onDispatch, color }: {
   // --- Styled UI Prompt Mode ---
   if (isEditing) {
     return (
-      <div className={`${optionClass} bg-zinc-900/95 border border-zinc-800/60`} style={{boxShadow: `0 0 14px ${color}44`}} >
+      <div
+        className={`${optionClass} bg-zinc-900/95 border border-zinc-800/60`}
+        style={{ 
+          boxShadow: `0 0 14px ${color}44`,
+        }}
+      >
         <input
           ref={inputRef}
           type="text"
@@ -97,12 +103,8 @@ const RenameOption = ({ currentName, onDispatch, color }: {
     <button
       className={`${optionClass} text-zinc-300 hover:bg-zinc-800/80`}
       style={{ boxShadow: `0 0 0px ${color}` }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = `0 0 18px ${color}55`;
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = `0 0 0px ${color}`;
-      }}
+      onMouseEnter={(e) => { e.currentTarget.style.boxShadow = `0 0 18px ${color}55`; }}
+      onMouseLeave={(e) => { e.currentTarget.style.boxShadow = `0 0 0px ${color}`; }}
       onClick={() => setIsEditing(true)}
     >
       <span>Rename</span>
