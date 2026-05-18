@@ -27,10 +27,10 @@ A full-stack web platform for learning, creating, and sharing modular synthesize
 
 | Login | Role | Responsibilities |
 |---|---|---|
-| iboutadg | _TBD_ | _TBD_ |
-| mchetoui | _TBD_ | _TBD_ |
-| aelsayed | _TBD_ | _TBD_ |
-| wtoumi | _TBD_ | _TBD_ |
+| aelsayed | Technical Lead | Defines the technical architecture, chooses the technology stack, ensures code quality and best practices, and reviews critical code changes. |
+| iboutadg | Product Owner | Manages the product backlog, prioritizes features, validates completed work, and communicates with stakeholders. |
+| mchetoui | Project Manager | Coordinates team planning, tracks progress and deadlines, ensures communication, and resolves risks and blockers. |
+| wtoumi | Developer | Develops assigned features, participates in code reviews, tests implementations, and documents completed work. |
 
 ---
 
@@ -157,27 +157,27 @@ Log
 
 | Feature | Description | Team member(s) |
 |---|---|---|
-| Registration + email verification | Register with username/email/password; activation link sent via email | _TBD_ |
-| Login + 2FA (TOTP) | JWT login with optional TOTP second factor; QR setup flow | _TBD_ |
-| OAuth login | Google and 42 via popup-based OAuth2 flow | _TBD_ |
-| Password reset | Email-based reset link → SPA confirm page | _TBD_ |
-| Profile management | Display name, bio, avatar upload (jpg/png/webp, 5MB cap) | _TBD_ |
-| Friends system | Send/accept/decline/cancel friend requests; +100 XP on accept | _TBD_ |
-| Blocking | Block/unblock users; blocks suppress profiles, messages, and public visibility | _TBD_ |
-| Messaging | Real-time polling chat between friends; thread list with unread counts | _TBD_ |
-| Notifications | In-app notifications for friend requests and messages; mark-read | _TBD_ |
-| Modular synth editor | Create/edit synth patches in browser; autosave via PATCH | _TBD_ |
-| Projects — community feed | Browse all users' projects sorted by net votes | _TBD_ |
-| Projects — voting | Upvote/downvote projects (+1/-1/0 change) | _TBD_ |
-| Projects — sharing | Share project URL; increments share count + tracks share days | _TBD_ |
-| User search | Search users by username/email; add friend / message / block per row | _TBD_ |
-| Public profiles | View another user's profile, projects, and friendship status | _TBD_ |
-| Admin panel | List users, delete accounts, view per-user and global logs | _TBD_ |
-| Analytics dashboard | Per-user Metabase dashboard (session time, module usage, streaks, etc.) | _TBD_ |
-| i18n | EN / FR / AR / DE / ES; plural + React node interpolation helpers | _TBD_ |
-| XP / leveling | Actions award XP (bio update +50, friendship accept +100, profile patch +25) | _TBD_ |
-| ELK observability | App logs + container metrics shipped to Elasticsearch; visualized in Kibana | _TBD_ |
-
+| Registration + email verification | Register with username/email/password; activation link sent via email | Aelsayed |
+| Login + 2FA (TOTP) | JWT login with optional TOTP second factor; QR setup flow | Aelsayed |
+| OAuth login | Google and 42 via popup-based OAuth2 flow | Aelsayed |
+| Password reset | Email-based reset link → SPA confirm page | Aelsayed |
+| Profile management | Display name, bio, avatar upload (jpg/png/webp, 5MB cap) | wtoumi |
+| Friends system | Send/accept/decline/cancel friend requests; +100 XP on accept | wtoumi |
+| Blocking | Block/unblock users; blocks suppress profiles, messages, and public visibility | wtoumi |
+| Messaging | Real-time polling chat between friends; thread list with unread counts | wtoumi |
+| Notifications | In-app notifications for friend requests and messages; mark-read | wtoumi |
+| Modular synth editor | Create/edit synth patches in browser; autosave via PATCH | mchetoui |
+| Projects — community feed | Browse all users' projects sorted by net votes | aelsayed |
+| Projects — voting | Upvote/downvote projects (+1/-1/0 change) | aelsayed |
+| Projects — sharing | Share project JSON; increments share count + tracks share days | aelsayed |
+| User search | Search users by username/email; add friend / message / block per row | wtoumi |
+| Public profiles | View another user's profile, projects, and friendship status | aelsayed |
+| Admin panel | List users, delete accounts, view per-user and global logs | iboutadg |
+| Analytics dashboard | Per-user Metabase dashboard (session time, module usage, streaks, etc.) | iboutadg |
+| i18n | EN / FR / AR / DE / ES; plural + React node interpolation helpers | mchetoui |
+| ELK observability | App logs + container metrics shipped to Elasticsearch; visualized in Kibana | iboutadg |
+| Prometheus monitoring | Collects and stores container and application metrics for performance monitoring | iboutadg |
+| Grafana dashboards | Visualizes metrics and observability data through interactive dashboards and alerts | iboutadg |
 ---
 
 ## Modules
