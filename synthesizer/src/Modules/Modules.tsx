@@ -315,6 +315,24 @@ function parseModules(modules: any[]): Module[] {
           y: m.y,
           params: {}
         };
+      case "mixer":
+        return {
+          id: m.id,
+          title: m.title,
+          type: "mixer",
+          x: m.x,
+          y: m.y,
+          params: {},
+        };
+      case "splitter":
+        return {
+          id: m.id,
+          title: m.title,
+          type: "splitter",
+          x: m.x,
+          y: m.y,
+          params: {},
+        };
       default:
         throw new Error(`Unknown module type: ${m.type}`);
     }

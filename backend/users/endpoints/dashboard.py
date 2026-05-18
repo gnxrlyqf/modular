@@ -55,6 +55,6 @@ class DashboardTokenView(APIView):
         # own overlay panel (frontend renders this in an iframe inside `Dashboard.tsx`).
         url = (
             f"{PUBLIC_URL}/embed/dashboard/{token}"
-            "#theme=night&bordered=false&titled=false&background=false"
+            "#theme=night&bordered=false&titled=false&background=false&downloads=true"
         )
         return Response({"url": url})

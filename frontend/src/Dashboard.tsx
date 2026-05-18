@@ -72,6 +72,7 @@ function Dashboard(props: { close: () => void }) {
               src={url}
               title="Analytics dashboard"
               scrolling="no"
+              allow="downloads"
               className="w-full block"
               style={{ height: 2400, border: 0, background: 'transparent' }}
             />
