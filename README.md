@@ -6,7 +6,7 @@
 
 ## Description
 
-A full-stack web platform for learning, creating, and sharing modular synthesizer patches in the browser. Users register, log in, manage synth projects, interact with a community feed, and collaborate via a real-time messaging and friends system.
+A full-stack web platform for learning, creating, and sharing modular synthesizer patches in the browser. Users register, log in, manage synth projects, interact with a community projects, and collaborate via a real-time messaging and friends system.
 
 **Key features:**
 
@@ -36,9 +36,9 @@ A full-stack web platform for learning, creating, and sharing modular synthesize
 
 ## Project Management
 
-- **Task distribution:** Work was split into features and tracked via GitHub Issues. Each issue was assigned to a team member.
+- **Task distribution:** Tasks were assigned and deadlines were tracked via Trello boards.
 - **Meetings:** Regular sync meetings held over Discord voice channels.
-- **Tools:** GitHub Issues (task tracking), GitHub Projects (board view), Discord (communication)
+- **Tools:** Trello (task tracking), GitHub Projects (board view), Discord (communication)
 - **Communication:** Discord — dedicated channels for general discussion, backend, frontend, and infra topics.
 
 ---
