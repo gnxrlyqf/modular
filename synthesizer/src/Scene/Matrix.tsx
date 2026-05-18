@@ -176,11 +176,11 @@ const AnimatedList: React.FC<AnimatedListProps> = ({
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
       transition={{ duration: 0.2 }}
-      className={`mx-3 relative w-100 h-[calc(100%-1rem)] bg-zinc-950/70 rounded-2xl overflow-visible ${className}`}
+      className={`mx-3 relative w-100 h-[calc(100%-1rem)] bg-zinc-950/70 rounded-2xl overflow-hidden flex flex-col ${className}`}
     >
       <div
         ref={listRef}
-        className={`overflow-y-auto p-2 pb-8 ${
+        className={`flex-1 min-h-0 overflow-y-auto p-2 pb-8 ${
           displayScrollbar
             ? '[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-zinc-900/70 [&::-webkit-scrollbar-thumb]:bg-[#222] [&::-webkit-scrollbar-thumb]:rounded-1'
             : 'scrollbar-hide'

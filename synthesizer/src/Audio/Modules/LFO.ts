@@ -18,22 +18,27 @@ class Sync {
 
 class LFOscillator extends Module {
 	freqModulator: Patch | null = null;
-	signal: OscillatorNode;
+	oscillator: OscillatorNode;
+	output: GainNode;
 	freqModDepth: GainNode;
 	mode: Sync | null;
 	protected tempo: number;
+	flip: boolean;
 
 	constructor(audioContext: AudioContext, tempo: number = 120) {
 		super(audioContext);
 		this.tempo = tempo;
 		this.mode = new Sync(4, this.tempo);
-		this.signal = new OscillatorNode(this.audioContext, {
+		this.output = new GainNode(this.audioContext, { gain: 1 });
+		this.oscillator = new OscillatorNode(this.audioContext, {
 			frequency: this.mode ? this.mode.getFrequency() : this.tempo,
 			type: "sine"
 		});
 		this.freqModDepth = new GainNode(this.audioContext, { gain: 80 });
-		this.freqModDepth.connect(this.signal.frequency);
-		this.signal.start();
+		this.freqModDepth.connect(this.oscillator.frequency);
+		this.oscillator.connect(this.output);
+		this.oscillator.start();
+		this.flip = false;
 	}
 
 	setTempo(newTempo: number): void {
@@ -56,11 +61,16 @@ class LFOscillator extends Module {
 	}
 
 	setFrequency(newFrequency: number): void {
-		this.signal.frequency.setValueAtTime(newFrequency, this.audioContext.currentTime);
+		this.oscillator.frequency.setValueAtTime(newFrequency, this.audioContext.currentTime);
 	}
 
 	setShape(newShape: OscillatorType): void {
-		this.signal.type = newShape;
+		this.oscillator.type = newShape;
+	}
+
+	setFlip(isFlipped: boolean): void {
+		this.flip = isFlipped;
+		this.output.gain.setValueAtTime(isFlipped ? -1 : 1, this.audioContext.currentTime);
 	}
 
 	setFreqModulator(modulator: Patch | null) {
@@ -88,11 +98,14 @@ class LFOscillator extends Module {
 			case "sync":
 				this.setSync(value as any);
 				break;
+			case "flip":
+				this.setFlip(Boolean(value));
+				break;
 		}
 	}
 
-	getSignal(): OscillatorNode {
-		return (this.signal);
+	getSignal(): AudioNode {
+		return this.output;
 	}
 }
 

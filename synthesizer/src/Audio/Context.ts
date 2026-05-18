@@ -66,6 +66,7 @@ class Context {
 				lfo.setFrequency(module.params.f);
 				lfo.setShape(module.params.w);
 				lfo.setSync(module.params.s as any);
+				lfo.setFlip(module.params.flip ?? false);
 				return lfo;
 			}
 			case "filter": {

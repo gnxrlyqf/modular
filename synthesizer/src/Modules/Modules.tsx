@@ -29,7 +29,7 @@ type OscModule = BaseModule & {
 	type: "oscillator";
 	params: {
 		f: number;
-		w: "sine" | "square" | "triangle" | "sawtooth";
+    w: "sine" | "square" | "triangle" | "sawtooth" | "noise";
 	};
 }
 
@@ -59,7 +59,7 @@ type OutModule = BaseModule & {
 
 type LfoModule = BaseModule & {
     type: "lfo";
-    params: { f: number; w: "sine" | "square" | "triangle" | "sawtooth"; s: boolean };
+  params: { f: number; w: "sine" | "square" | "triangle" | "sawtooth"; s: boolean; flip: boolean };
 }
 
 type FilterModule = BaseModule & {
@@ -125,7 +125,7 @@ export const DEFAULT_VALUES: Record<string, any> = {
   gain: { g: 0 },
   envelope: { a: 100, d: 200, s: 0, r: 300 },
   output: { m: -6 },
-  lfo: { f: 1, w: "sine", s: false },
+  lfo: { f: 1, w: "sine", s: false, flip: false },
   filter: { f: 1000, q: 1, t: "lowpass" },
   distortion: { d: 50, t: "soft" },
   modulator: { m: "AM", d: 50 },
@@ -139,7 +139,7 @@ export const createDefaultParams = (type: ModuleType) => {
     case "gain": return { g: 0 };
     case "envelope": return { a: 100, d: 200, s: 0, r: 300 };
     case "output": return { m: -6 };
-    case "lfo": return { f: 1, w: "sine", s: false };
+    case "lfo": return { f: 1, w: "sine", s: false, flip: false };
     case "filter": return { f: 1000, q: 1, t: "lowpass" };
     case "distortion": return { d: 50, t: "soft" };
     case "modulator": return { m: "AM", d: 50 };
@@ -171,7 +171,7 @@ function RenderModules(props: {
             case "output":
               return <Output key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} m={m.params.m} />;
             case "lfo":
-              return <LFO key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} s={m.params.s} />;
+              return <LFO key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} f={m.params.f} w={m.params.w} s={m.params.s} flip={m.params.flip} />;
             case "filter":
               return <Filter key={m.id} title={m.title} id={m.id} x={m.x} y={m.y} f={m.params.f} q={m.params.q} t={m.params.t} />;
             case "distortion":
@@ -206,7 +206,7 @@ function parseModules(modules: any[]): Module[] {
           y: m.y,
           params: {
             f: m.params.f ?? 440,
-            w: (m.params.w ?? "sine") as "sine" | "square" | "triangle" | "sawtooth",
+            w: (m.params.w ?? "sine") as "sine" | "square" | "triangle" | "sawtooth" | "noise",
           },
         };
       case "gain":
@@ -245,6 +245,7 @@ function parseModules(modules: any[]): Module[] {
             f: m.params.frequency ?? 1,
             w: (m.params.wave ?? "sine") as "sine" | "square" | "triangle" | "sawtooth",
             s: m.params.sync ?? false,
+            flip: m.params.flip ?? false,
           },
         };
       case "filter":

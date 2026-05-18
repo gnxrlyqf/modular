@@ -9,6 +9,9 @@ interface RadioSelectProps<T> {
   value: T;
   onChange: (value: T) => void;
   name?: string;
+  className?: string;
+  optionsClassName?: string;
+  optionClassName?: string;
   children: React.ReactElement<RadioSelectOptionProps<T>>[];
 }
 
@@ -16,11 +19,11 @@ function RadioSelectOption<T>({ children }: RadioSelectOptionProps<T>) {
   return <>{children}</>;
 }
 
-function RadioSelect<T>({ value, onChange, name = 'radio-select', children }: RadioSelectProps<T>) {
+function RadioSelect<T>({ value, onChange, name = 'radio-select', className, optionsClassName, optionClassName, children }: RadioSelectProps<T>) {
   const options = React.Children.toArray(children) as React.ReactElement<RadioSelectOptionProps<T>>[];
   return (
-    <div className="flex justify-center">
-      <div className="inline-flex">
+    <div className={`flex justify-center ${className ?? ""}`.trim()}>
+      <div className={`inline-flex ${optionsClassName ?? ""}`.trim()}>
         {options.map((child, index) => {
           const optionValue = child.props.value;
           const optionLabel =
@@ -40,7 +43,7 @@ function RadioSelect<T>({ value, onChange, name = 'radio-select', children }: Ra
                 className="peer absolute h-px w-px overflow-hidden whitespace-nowrap [clip:rect(0_0_0_0)] [clip-path:inset(100%)]"
               />
               <span
-                className={`relative -ml-px flex h-10 w-12 cursor-pointer items-center justify-center border-2 first:ml-0 peer-focus-visible:z-10 duration-150 ease-in-out peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-checked:z-1 peer-checked:border-white peer-checked:bg-white peer-checked:text-black ${
+                className={`relative -ml-px flex h-10 w-12 cursor-pointer items-center justify-center border-2 first:ml-0 peer-focus-visible:z-10 duration-150 ease-in-out peer-focus-visible:outline-none peer-focus-visible:ring-2 peer-focus-visible:ring-white peer-checked:z-1 peer-checked:border-white peer-checked:bg-white peer-checked:text-black ${optionClassName ?? ""} ${
                   isFirst ? 'ml-0 rounded-l-md' : ''
                 } ${isLast ? 'rounded-r-md' : ''}`}
               >
