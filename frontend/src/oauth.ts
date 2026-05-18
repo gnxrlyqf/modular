@@ -51,7 +51,8 @@ type CallbackMessage = {
 
 export type OAuthResult =
   | { ok: true; access: string; refresh: string }
-  | { ok: false; error: string };
+  | { ok: false; error: string }
+  | { ok: '2fa'; userId: number };
 
 function randomState(): string {
   const bytes = new Uint8Array(16);
@@ -152,16 +153,17 @@ export async function startOAuth(provider: OAuthProvider): Promise<OAuthResult> 
     return { ok: false, error: detail };
   }
   const data: unknown = await resp.json();
-  if (
-    !data || typeof data !== 'object' ||
-    typeof (data as { access?: unknown }).access !== 'string' ||
-    typeof (data as { refresh?: unknown }).refresh !== 'string'
-  ) {
-    return { ok: false, error: 'Unexpected response from backend.' };
+  if (data && typeof data === 'object') {
+    const d = data as Record<string, unknown>;
+    if (d.requires_2fa === true && typeof d.user_id === 'number') {
+      logger.info('oauth.2fa_required', { provider });
+      return { ok: '2fa', userId: d.user_id };
+    }
+    if (typeof d.access === 'string' && typeof d.refresh === 'string') {
+      setAuthCookies(d.access, d.refresh);
+      logger.info('oauth.success', { provider });
+      return { ok: true, access: d.access, refresh: d.refresh };
+    }
   }
-  const { access, refresh } = data as { access: string; refresh: string };
-
-  setAuthCookies(access, refresh);
-  logger.info('oauth.success', { provider });
-  return { ok: true, access, refresh };
+  return { ok: false, error: 'Unexpected response from backend.' };
 }
