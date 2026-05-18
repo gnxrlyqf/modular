@@ -21,6 +21,6 @@
 - [X] Do I layout mirror on RtL languages?
 - [X] online status for friends
 - [X] when a message is there the layout of messages overlays is screwed
-- [ ] light theme qr , 2fa inverted
-- [ ] 2fa cant be diabled
+- [X] light theme qr , 2fa inverted
+- [X] 2fa cant be diabled
 - [ ] 
