@@ -145,9 +145,10 @@ function ThreadList(props: {
 // ─── Message list ─────────────────────────────────────────────────────────────
 
 function MessageList(props: { messages: Message[]; myProfileId: number | null }) {
-  const endRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    endRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const el = containerRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
   }, [props.messages.length]);
 
   if (props.messages.length === 0) {
@@ -160,7 +161,7 @@ function MessageList(props: { messages: Message[]; myProfileId: number | null })
   }
 
   return (
-    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '16px 20px' }}>
+    <div ref={containerRef} style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: 8, padding: '16px 20px' }}>
       {props.messages.map((m) => {
         const mine = props.myProfileId != null && m.sender === props.myProfileId;
         return (
@@ -169,7 +170,6 @@ function MessageList(props: { messages: Message[]; myProfileId: number | null })
           </div>
         );
       })}
-      <div ref={endRef} />
     </div>
   );
 }

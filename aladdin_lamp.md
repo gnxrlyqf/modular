@@ -20,7 +20,7 @@
 - [ ] use websockets for something (major)
 - [X] Do I layout mirror on RtL languages?
 - [X] online status for friends
-- [ ] 
+- [X] when a message is there the layout of messages overlays is screwed
 - [ ] 
 - [ ] 
 - [ ] 

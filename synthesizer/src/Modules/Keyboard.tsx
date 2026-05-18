@@ -173,6 +173,28 @@ function Keyboard(props: KeyboardProps) {
   };
 
   const handleNoteDown = (noteId: string) => {
+    if (sync) {
+      setActiveNotes((p) => {
+        const isActive = !!p[noteId];
+        if (isActive) {
+          // repress: toggle off
+          audioContext.setParam(props.id, "noteOff", noteId);
+          const updated = { ...p, [noteId]: false };
+          const anyStillActive = Object.values(updated).some(Boolean);
+          if (!anyStillActive) audioContext.setParam(props.id, "trigger", 0);
+          return updated;
+        } else {
+          // new note: release all active, start new
+          Object.keys(p).forEach((n) => {
+            if (p[n]) audioContext.setParam(props.id, "noteOff", n);
+          });
+          const freq = getFrequency(noteId);
+          audioContext.setParam(props.id, "noteOn", { note: noteId, freq });
+          return { [noteId]: true };
+        }
+      });
+      return;
+    }
     setActiveNotes((p) => ({ ...p, [noteId]: true }));
     const freq = getFrequency(noteId);
     audioContext.setParam(props.id, "freq", freq);
@@ -184,6 +206,7 @@ function Keyboard(props: KeyboardProps) {
   };
 
   const handleNoteUp = (noteId: string) => {
+    if (sync) return;
     setActiveNotes((p) => {
       const updated = { ...p, [noteId]: false };
       const anyStillPressed = Object.values(updated).some(Boolean);

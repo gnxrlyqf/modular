@@ -492,6 +492,10 @@ function Login(props: {
     setOauthPending(provider);
     try {
       const result = await startOAuth(provider);
+      if (result.ok === '2fa') {
+        props.onTwoFactorRequired(result.userId);
+        return;
+      }
       if (!result.ok) {
         setError(result.error);
         return;

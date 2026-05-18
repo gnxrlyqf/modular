@@ -6,6 +6,8 @@ from django.contrib.auth.tokens import default_token_generator
 from django.shortcuts import redirect
 from django.utils.http import urlsafe_base64_decode
 
+from django.db import transaction
+
 from rest_framework import status, permissions, serializers
 from rest_framework.views import APIView
 from rest_framework.response import Response
@@ -15,11 +17,11 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from rest_framework_simplejwt.tokens import RefreshToken
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, inline_serializer
 
-# Local imports from your services
+from ..models import Profile
 from ..services import (
-    generate_totp_secret, 
-    get_totp_uri, 
-    verify_totp_code, 
+    generate_totp_secret,
+    get_totp_uri,
+    verify_totp_code,
     send_activation_email
 )
 
@@ -72,11 +74,12 @@ class Enable2FAView(APIView):
         description="Returns a secret and a provisioning URI for a QR code."
     )
     def post(self, request):
-        profile = request.user.profile
-        if not profile.two_factor_secret:
-            profile.two_factor_secret = generate_totp_secret()
-            profile.save()
-        
+        with transaction.atomic():
+            profile = Profile.objects.select_for_update().get(user=request.user)
+            if not profile.two_factor_secret:
+                profile.two_factor_secret = generate_totp_secret()
+                profile.save()
+
         uri = get_totp_uri(request.user.email, profile.two_factor_secret)
         return Response({
             "secret": profile.two_factor_secret,

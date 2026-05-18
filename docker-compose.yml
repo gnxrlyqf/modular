@@ -61,7 +61,7 @@ services:
       - POSTGRES_PORT=5432
       - FORTYTWO_CLIENT_ID=${VITE_FORTYTWO_CLIENT_ID}
       - FORTYTWO_CLIENT_SECRET=${FORTYTWO_CLIENT_SECRET}
-      - FORTYTWO_REDIRECT_URI=${FORTYTWO_REDIRECT_URI:-http://localhost:8443/auth-callback.html}
+      - FORTYTWO_REDIRECT_URI=${FORTYTWO_REDIRECT_URI:-https://localhost:8443/auth-callback.html}
       - ADMIN_USERNAMES=${ADMIN_USERNAMES:-}
       - EMAIL_BACKEND=${EMAIL_BACKEND:-django.core.mail.backends.console.EmailBackend}
       - EMAIL_HOST=${EMAIL_HOST:-smtp.gmail.com}

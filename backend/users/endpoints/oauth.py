@@ -36,8 +36,15 @@ def social_auth_callback(request):
         return Response({"error": f"Failed to fetch data from {provider}"}, status=400)
 
     user = OAuthService.get_or_create_social_user(provider, user_data)
-    
-    tokens = get_tokens_for_user(user) 
+
+    if user.profile.two_factor_enabled:
+        return Response({
+            "requires_2fa": True,
+            "user_id": user.id,
+            "message": "2FA code required.",
+        })
+
+    tokens = get_tokens_for_user(user)
     return Response(tokens)
 
 
