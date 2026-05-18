@@ -186,46 +186,46 @@ Log
 
 | Module | Type | Points | Description | Implemented by |
 |---|---|---|---|---|
-| Framework — Frontend + Backend | Major | 2 | React 19 (frontend) + Django 5 + DRF (backend). Both are production-grade frameworks handling routing, auth, serialization, and state. | _TBD_ |
-| User Interaction | Major | 2 | Chat (real-time polling), profile pages, and friends system (add/accept/decline/remove/block). Meets the minimum chat + profile + friends requirement. | _TBD_ |
-| Custom design system | Minor | 1 | 12+ reusable components with a shared token-based design language: `StatusPill`, `Toggle`, `AvatarRing`, `PillButton`, `GlassCard`, `Kicker`, `ConstellationThumb`, `TimestampMono`, `SectionKicker`, `OverlayShell`, `Button`, `Anchor`, `ConfirmModal`. Consistent color palette (`--panel`, `--accent`, `--text`, `--sub`), typography, and glass-morphism recipe in `index.css`. | _TBD_ |
-| Advanced search | Minor | 1 | Project search with 400ms debounce, sort by date/name, pagination (9 per page). User search with per-row context-aware action buttons. Both backed by dedicated API endpoints. | _TBD_ |
+| Framework — Frontend + Backend | Major | 2 | React 19 (frontend) + Django 5 + DRF (backend). Both are production-grade frameworks handling routing, auth, serialization, and state. | mchetoui |
+| User Interaction | Major | 2 | Chat (real-time polling), profile pages, and friends system (add/accept/decline/remove/block). Meets the minimum chat + profile + friends requirement. | wtoumi |
+| Custom design system | Minor | 1 | 12+ reusable components with a shared token-based design language: `StatusPill`, `Toggle`, `AvatarRing`, `PillButton`, `GlassCard`, `Kicker`, `ConstellationThumb`, `TimestampMono`, `SectionKicker`, `OverlayShell`, `Button`, `Anchor`, `ConfirmModal`. Consistent color palette (`--panel`, `--accent`, `--text`, `--sub`), typography, and glass-morphism recipe in `index.css`. | mchetoui |
+| Advanced search | Minor | 1 | Project search with 400ms debounce, sort by date/name, pagination (9 per page). User search with per-row context-aware action buttons. Both backed by dedicated API endpoints. | mchetoui |
 
 ### IV.2 — Accessibility and Internationalization
 
 | Module | Type | Points | Description | Implemented by |
 |---|---|---|---|---|
-| Multiple languages (i18n) | Minor | 1 | 5 complete translations: EN, FR, AR, DE, ES. Custom `t()`, `tn()` (plural), and `richT()` (React node interpolation) helpers in `i18n.ts`. Language switcher in the UI. All user-facing text runs through the i18n system. | _TBD_ |
-| RTL language support | Minor | 1 | Full Arabic (AR) RTL support. Layout mirrors on language switch via `.rtl-flip` utilities and `dir` attribute propagation. Overlay and grid layouts tested in RTL mode. | _TBD_ |
-| Additional browser support | Minor | 1 | Verified on Brave and Chrome. All features function identically across both browsers. Known limitation: self-signed TLS certificate requires manual acceptance on first visit in both browsers. | _TBD_ |
+| Multiple languages (i18n) | Minor | 1 | 5 complete translations: EN, FR, AR, DE, ES. Custom `t()`, `tn()` (plural), and `richT()` (React node interpolation) helpers in `i18n.ts`. Language switcher in the UI. All user-facing text runs through the i18n system. | mchetoui |
+| RTL language support | Minor | 1 | Full Arabic (AR) RTL support. Layout mirrors on language switch via `.rtl-flip` utilities and `dir` attribute propagation. Overlay and grid layouts tested in RTL mode. | mchetoui |
+| Additional browser support | Minor | 1 | Verified on Brave and Chrome. All features function identically across both browsers. Known limitation: self-signed TLS certificate requires manual acceptance on first visit in both browsers. | mchetoui |
 
 ### IV.3 — User Management
 
 | Module | Type | Points | Description | Implemented by |
 |---|---|---|---|---|
-| Standard user management + authentication | Major | 2 | Profile update (display name, bio, avatar), avatar upload with defaults, friends with online-adjacent status, public profile pages. JWT auth with email verification. | _TBD_ |
-| Remote authentication — OAuth 2.0 | Minor | 1 | Google (implicit flow) and 42 (authorization code flow) OAuth2. Popup-based flow, token exchange on the backend, JWT pair returned to the SPA. | _TBD_ |
-| Advanced permissions system | Major | 2 | Admin role granted via `ADMIN_USERNAMES` env var. Admin-only endpoints: list all users, delete any user, view per-user and global logs. `IsAdminUserCustom` permission class gates all `/api/users/admin/` routes. Regular users cannot access admin views. | _TBD_ |
-| Two-Factor Authentication (2FA) | Minor | 1 | TOTP-based 2FA via `pyotp`. Setup flow: generate secret + QR code, verify code → enable. Login flow: password auth returns `{requires_2fa, user_id}` if enabled; client posts TOTP code to `/api/users/login/2fa-verify/` for tokens. QR rendered in-browser with `qrcode.react`. | _TBD_ |
+| Standard user management + authentication | Major | 2 | Profile update (display name, bio, avatar), avatar upload with defaults, friends with online-adjacent status, public profile pages. JWT auth with email verification. | aelsayed |
+| Remote authentication — OAuth 2.0 | Minor | 1 | Google (implicit flow) and 42 (authorization code flow) OAuth2. Popup-based flow, token exchange on the backend, JWT pair returned to the SPA. | aelsayed |
+| Advanced permissions system | Major | 2 | Admin role granted via `ADMIN_USERNAMES` env var. Admin-only endpoints: list all users, delete any user, view per-user and global logs. `IsAdminUserCustom` permission class gates all `/api/users/admin/` routes. Regular users cannot access admin views. | aelsayed |
+| Two-Factor Authentication (2FA) | Minor | 1 | TOTP-based 2FA via `pyotp`. Setup flow: generate secret + QR code, verify code → enable. Login flow: password auth returns `{requires_2fa, user_id}` if enabled; client posts TOTP code to `/api/users/login/2fa-verify/` for tokens. QR rendered in-browser with `qrcode.react`. | aelsayed |
 
 ### IV.7 — DevOps
 
 | Module | Type | Points | Description | Implemented by |
 |---|---|---|---|---|
-| ELK log management | Major | 2 | Elasticsearch (single-node, xpack+TLS) stores all logs. Logstash receives Beats input on port 5044. Filebeat ships Django app logs (`app.log`) and Docker container logs to Elasticsearch. Metricbeat ships system + container metrics (CPU, mem, net, disk). Kibana visualizes at `:5601`. TLS certs provisioned by one-shot `elk-setup` service. | _TBD_ |
-| Prometheus + Grafana monitoring | Major | 2 | Prometheus scrapes `backend:8000/monitoring/metrics` (via `django-prometheus`) every 15s. Grafana connects to Prometheus via proxy datasource and auto-provisions a dashboard from `config/grafana/`. Config files in `config/prometheus/prometheus-config.yml` and `config/grafana/`. | _TBD_ |
+| ELK log management | Major | 2 | Elasticsearch (single-node, xpack+TLS) stores all logs. Logstash receives Beats input on port 5044. Filebeat ships Django app logs (`app.log`) and Docker container logs to Elasticsearch. Metricbeat ships system + container metrics (CPU, mem, net, disk). Kibana visualizes at `:5601`. TLS certs provisioned by one-shot `elk-setup` service. | iboutadg |
+| Prometheus + Grafana monitoring | Major | 2 | Prometheus scrapes `backend:8000/monitoring/metrics` (via `django-prometheus`) every 15s. Grafana connects to Prometheus via proxy datasource and auto-provisions a dashboard from `config/grafana/`. Config files in `config/prometheus/prometheus-config.yml` and `config/grafana/`. | iboutadg |
 
 ### IV.8 — Data and Analytics
 
 | Module | Type | Points | Description | Implemented by |
 |---|---|---|---|---|
-| Advanced analytics dashboard | Major | 2 | Metabase embedded via JWT-signed iframes, one dashboard per user. 13 native-SQL cards: Total Projects, Total Session Time, Avg Session, Streak (scalar + sparkline), Active Days heatmap (pivot dow×week, conditional formatting), Hour-of-Day, Module Usage, Projects Over Time, Upvote Velocity, Top Patches table, Total Shares, Net Votes. All cards parameterized by `user_id` (locked server-side) plus an optional `date_range` filter. Backend signs 1h JWT at `GET /api/users/dashboard-token/`; rendered in an iframe overlay in the SPA. | _TBD_ |
+| Advanced analytics dashboard | Major | 2 | Metabase embedded via JWT-signed iframes, one dashboard per user. 13 native-SQL cards: Total Projects, Total Session Time, Avg Session, Streak (scalar + sparkline), Active Days heatmap (pivot dow×week, conditional formatting), Hour-of-Day, Module Usage, Projects Over Time, Upvote Velocity, Top Patches table, Total Shares, Net Votes. All cards parameterized by `user_id` (locked server-side) plus an optional `date_range` filter. Backend signs 1h JWT at `GET /api/users/dashboard-token/`; rendered in an iframe overlay in the SPA. | iboutadg |
 
 ### IV.10 — Module of choice
 
 | Module | Type | Points | Description | Implemented by |
 |---|---|---|---|---|
-| Modular Synthesizer | Major | 2 | See justification below. | _TBD_ |
+| Modular Synthesizer | Major | 2 | See justification below. | mchetoui |
 
 #### Synthesizer — justification for Major module status
 
@@ -276,16 +276,16 @@ It is a standalone full-stack feature: its own frontend app, its own API surface
 ## Individual Contributions
 
 ### iboutadg
-- _TBD_
+- devops, analysis
 
 ### mchetoui
-- _TBD_
+- front, synth
 
 ### aelsayed
-- _TBD_
+- backend, synth
 
 ### wtoumi
-- _TBD_
+- chat, devops, nginx
 
 ---
 
@@ -373,6 +373,8 @@ docker compose up --build
 #    API docs:   https://localhost:8443/api/docs/
 #    Kibana:     http://localhost:5601
 #    Metabase:   http://localhost:3004
+#    prometheus  http://localhost:3002
+#    grafana     http://localhost:3003
 ```
 
 > **TLS note:** nginx uses a self-signed cert by default. Accept the browser warning on first visit.
@@ -412,6 +414,7 @@ This creates 8 users with predefined friendships and randomized social links.
 - [Elasticsearch docs](https://www.elastic.co/guide/en/elasticsearch/reference/current/index.html)
 - [Metabase embedding docs](https://www.metabase.com/docs/latest/embedding/introduction.html)
 - [OAuth 2.0 spec](https://oauth.net/2/)
+- [Web audio api](https://www.w3.org/TR/webaudio-1.1/)
 
 ### AI usage
 
@@ -432,9 +435,5 @@ AI was used as a pair programmer and architecture advisor. All code was reviewed
 ## Known Limitations
 
 - **2FA cannot be disabled** once enabled — no endpoint or UI path to turn off TOTP.
-- **Email backend defaults to console** — verification and reset emails print to stdout; configure SMTP for real delivery.
 - **`/api/token/` bypasses 2FA** — kept for compatibility, but the frontend uses `/api/users/login/` instead.
-- **Prometheus + Grafana are disabled** — services are configured but commented out in `docker-compose.yml`; ELK covers observability.
-- **Synthesizer audio engine is a placeholder** — the modular synth UI exists but audio/DSP is not implemented.
-- **`DEBUG=True` and `CORS_ALLOW_ALL_ORIGINS=True`** — not safe for production; for development only.
 - **`SECRET_KEY` is hardcoded** in `settings.py` — must be rotated before any production deployment.
