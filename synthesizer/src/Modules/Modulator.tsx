@@ -74,7 +74,7 @@ function Modulator(props: ModuleProps & {
       <div className="w-full flex items-center">
         <KnobParam id={props.id} name="depth" side="left" color={color}>
           <Knob
-            max={15000}
+            max={2000}
             min={20}
             step={1}
             value={depth}

@@ -539,7 +539,7 @@ function CosmicSynthPreview() {
 function CosmicModuleCatalog() {
   const shared = useCosmicShared();
   const cats = [
-    { type: "OSC",   count: 4, color: v.accent2, items: ["Sine", "Square", "Saw", "Triangle"] },
+    { type: "OSC",   count: 5, color: v.accent2, items: ["Sine", "Square", "Saw", "Triangle", "Noise"] },
     { type: "LFO",   count: 2, color: v.accent,  items: ["Free", "Sync"] },
     { type: "ENV",   count: 4, color: v.accent3, items: ["Attack", "Decay", "Sustain", "Release"] },
     { type: "MOD",   count: 4, color: v.accent2, items: ["FM", "AM", "RM", "PM"] },
