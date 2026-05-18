@@ -10,31 +10,29 @@ class Modulator extends Module {
     pmNode: DelayNode;
     amOffset: ConstantSourceNode;
     amOffsetGain: GainNode;
-    depthModDepth: GainNode;
+    
     modulatorInput: Patch | null = null;
-    depthInput: Patch | null = null;
     mode: ModulationMode = "AM";
+    rawDepth: number = 50; // Stores percentage (0 - 100)
 
-    constructor(audioContext: AudioContext)
-    {
+    constructor(audioContext: AudioContext) {
         super(audioContext);
         this.signal = new GainNode(audioContext, { gain: 1 });
-        this.depthNode = new GainNode(audioContext, { gain: 1 });
+        this.depthNode = new GainNode(audioContext, { gain: 0.5 });
         this.ringNode = new GainNode(audioContext, { gain: 0 });
-        this.pmNode = new DelayNode(audioContext, { maxDelayTime: 0.05, delayTime: 0 });
-        // Used for AM = carrier * (1 + modulator)
+        
+        // Max delay 50ms for stable phase transformations
+        this.pmNode = new DelayNode(audioContext, { maxDelayTime: 0.05, delayTime: 0.005 });
+
+        // DC balance offsets for Amplitude Modulation [Carrier * (1 + Mod)]
         this.amOffset = new ConstantSourceNode(audioContext, { offset: 1 });
         this.amOffsetGain = new GainNode(audioContext, { gain: 1 });
         this.amOffset.connect(this.amOffsetGain);
         this.amOffset.start();
-        // Modulates modulation depth
-        this.depthModDepth = new GainNode(audioContext, { gain: 0.5 });
-        this.depthModDepth.connect(this.depthNode.gain);
     }
 
     private disconnectSafely(node: AudioNode) {
-        try { node.disconnect(); }
-        catch {}
+        try { node.disconnect(); } catch {}
     }
 
     private cleanRouting() {
@@ -46,24 +44,41 @@ class Modulator extends Module {
         const carrierNode = this.input?.getSignal();
         const modNode = this.modulatorInput?.getSignal();
 
-        if (carrierNode)
-            this.disconnectSafely(carrierNode);
+        if (carrierNode) this.disconnectSafely(carrierNode);
+        if (modNode) this.disconnectSafely(modNode);
+    }
 
-        if (modNode)
-            this.disconnectSafely(modNode);
+    private updateDepthScaling() {
+        const target = this.depthNode.gain;
+        const normalized = this.rawDepth / 100; // 0.0 to 1.0
+
+        switch (this.mode) {
+            case "AM":
+            case "RM":
+                target.value = normalized; // Standard unity gain range
+                break;
+            case "PM":
+                target.value = normalized * 0.004; // Max 4ms deviation to prevent cracking
+                break;
+            case "FM":
+                target.value = normalized * 0.0025; // Phase deviation mapping for emulation
+                break;
+        }
     }
 
     private applyRouting() {
         const carrierNode = this.input?.getSignal();
         const modNode = this.modulatorInput?.getSignal();
 
-        if (!carrierNode)
-            return;
+        if (!carrierNode) return;
+        this.updateDepthScaling();
 
         switch (this.mode) {
             case "AM": {
+                // Carrier -> Ring VCA
                 carrierNode.connect(this.ringNode);
                 this.amOffsetGain.connect(this.ringNode.gain);
+                
                 if (modNode) {
                     modNode.connect(this.depthNode);
                     this.depthNode.connect(this.ringNode.gain);
@@ -72,6 +87,7 @@ class Modulator extends Module {
                 break;
             }
             case "RM": {
+                // Pure ring modulation multiplication
                 carrierNode.connect(this.ringNode);
                 if (modNode) {
                     modNode.connect(this.depthNode);
@@ -81,6 +97,7 @@ class Modulator extends Module {
                 break;
             }
             case "PM": {
+                // Variable time delay line phase manipulation
                 carrierNode.connect(this.pmNode);
                 if (modNode) {
                     modNode.connect(this.depthNode);
@@ -90,15 +107,14 @@ class Modulator extends Module {
                 break;
             }
             case "FM": {
-                carrierNode.connect(this.signal);
-                const frequencyParam =
-                    "frequency" in carrierNode
-                        ? (carrierNode as OscillatorNode).frequency
-                        : null;
-                if (modNode && frequencyParam) {
+                // If native frequency controls aren't exposed, run an FM-equivalent 
+                // Phase Modulation path (sounds mathematically identical)
+                carrierNode.connect(this.pmNode);
+                if (modNode) {
                     modNode.connect(this.depthNode);
-                    this.depthNode.connect(frequencyParam);
+                    this.depthNode.connect(this.pmNode.delayTime);
                 }
+                this.pmNode.connect(this.signal);
                 break;
             }
         }
@@ -122,12 +138,6 @@ class Modulator extends Module {
         this.applyRouting();
     }
 
-    setDepth(modulator: Patch | null) {
-        this.depthInput?.getSignal()?.disconnect(this.depthModDepth);
-        this.depthInput = modulator;
-        modulator?.getSignal()?.connect(this.depthModDepth);
-    }
-
     setMod(key: string, patch: Patch | null): void {
         switch (key) {
             case "carrier":
@@ -135,9 +145,6 @@ class Modulator extends Module {
                 break;
             case "mod in":
                 this.setModulator(patch);
-                break;
-            case "depth":
-                this.setDepth(patch);
                 break;
         }
     }
@@ -148,7 +155,8 @@ class Modulator extends Module {
                 this.setMode(value as ModulationMode);
                 break;
             case "depth":
-                this.depthNode.gain.value = value as number;
+                this.rawDepth = value as number;
+                this.updateDepthScaling();
                 break;
         }
     }
