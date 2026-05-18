@@ -332,19 +332,6 @@ function Scene() {
           });
           logger.action('module.disconnected', { module_id: id, project_id: projectIdRef.current });
           break;
-        case 'RESET':
-          setModules((prev) =>
-            prev.map((m) => {
-              if (m.id !== id) return m;
-              console.log('BEFORE', structuredClone(m.params));
-              const newParams = createDefaultParams(m.type);
-              console.log('RESET', m.id, 'old:', m.params, 'new:', newParams);
-              paramsRef.current[id] = { ...newParams };
-              return { ...m, params: newParams };
-            })
-          );
-          logger.action('module.reset', { module_id: id, project_id: projectIdRef.current });
-          break;
       }
     };
     window.addEventListener('MOD_ACTION', handleAction);
