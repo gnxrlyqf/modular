@@ -366,7 +366,9 @@ function TwoFactorSetupModal(props: { onClose: () => void; onEnabled: () => void
           <>
             <p className="text-indigo-300/60 text-xs leading-relaxed mb-4">{t('settings.2fa_scan_desc')}</p>
             <div className="flex justify-center mb-4">
-              <div className="bg-white p-3 rounded-lg"><QRCodeSVG value={qrUri} size={180} level="M" /></div>
+              <div style={{ backgroundColor: '#ffffff', padding: '12px', borderRadius: '8px' }}>
+                <QRCodeSVG value={qrUri} size={180} level="M" fgColor="#000000" bgColor="#ffffff" />
+              </div>
             </div>
             {secret && (
               <div className="space-y-1.5 mb-4">
@@ -589,14 +591,6 @@ function AccountPane(props: { setLoggedIn?: (value: boolean) => void }) {
             <button type="button" className="field-edit-btn" style={{ opacity: 1, color: 'var(--accent)' }} onClick={() => setIsTwoFactorModalOpen(true)} aria-label={t('common.enable')}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
             </button>
-          )}
-          {twoFactorEnabled && (
-            <Toggle
-              checked={true}
-              onChange={() => {/* no disable endpoint */}}
-              label={t('settings.two_factor')}
-              disabled
-            />
           )}
         </div>
       </div>
